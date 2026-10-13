@@ -1,0 +1,8 @@
+# Netlify publica só a pasta "site" (o app). O banco e o guia ficam fora do site.
+[build]
+  publish = "site"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
