@@ -272,6 +272,24 @@ grant execute on function public.clock_out(double precision, double precision, t
 grant execute on function public.set_task_done(uuid, boolean) to authenticated;
 grant execute on function public.admin_set_password(uuid, text) to authenticated;
 
+
+-- Primeiro acesso: enquanto não existir administrador, o app mostra "Criar administrador".
+create or replace function public.needs_setup() returns boolean
+language sql stable security definer set search_path = public as $$
+  select not exists (select 1 from public.profiles where role = 'admin');
+$$;
+create or replace function public.claim_first_admin(p_name text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'Faça login primeiro.'; end if;
+  if exists (select 1 from public.profiles where role = 'admin') then raise exception 'Já existe um administrador.'; end if;
+  update public.profiles set role = 'admin', active = true,
+         full_name = coalesce(nullif(p_name, ''), full_name)
+   where id = auth.uid();
+end $$;
+grant execute on function public.needs_setup() to anon, authenticated;
+grant execute on function public.claim_first_admin(text) to authenticated;
+
 -- ═══════════ ARQUIVOS (Storage) ═══════════
 insert into storage.buckets (id, name, public) values
   ('project-files', 'project-files', false),
@@ -300,5 +318,4 @@ create policy admin_media on storage.objects for delete to authenticated
   using (bucket_id in ('punch-photos','receipts') and public.is_admin());
 
 -- ═══════════ PRIMEIRO ADMINISTRADOR ═══════════
--- Depois de criar o seu login (veja o guia), rode só a linha abaixo trocando 'bruno':
--- update public.profiles set role = 'admin', active = true, full_name = 'Bruno' where username = 'bruno';
+-- Não precisa fazer nada aqui: abra o app e use "Primeiro acesso" para criar o administrador.

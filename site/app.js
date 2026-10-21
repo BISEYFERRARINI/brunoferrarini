@@ -237,7 +237,17 @@
   function go(view, params) { S.view = view; S.params = params || {}; S.modal = null; render(); window.scrollTo(0, 0); }
 
   // ═══════════ login ═══════════
+  function setupView() {
+    return '<div class="login"><form class="login-card" id="setupForm">' +
+      '<div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">Primeiro acesso</div></div></div>' +
+      '<div class="login-hint">Banco de dados novo. Crie agora o login do administrador (você). Os funcionários você cadastra depois, dentro do app.</div>' +
+      '<label class="field"><span>Seu nome</span><input type="text" id="suName" required></label>' +
+      '<label class="field"><span>Usuário (para entrar)</span><input type="text" id="suUser" autocapitalize="none" autocomplete="username" required placeholder="ex.: bruno"></label>' +
+      '<label class="field"><span>Senha (mínimo 6)</span><input type="password" id="suPass" autocomplete="new-password" minlength="6" required></label>' +
+      '<div class="err" id="suErr" hidden></div><button class="btn block" type="submit">Criar administrador e entrar</button></form></div>';
+  }
   function loginView() {
+    if (S.setup) return setupView();
     return '<div class="login"><form class="login-card" id="loginForm">' +
       '<div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">Eternity Electric · Blue Star HVAC</div></div></div>' +
       '<label class="field"><span>Usuário</span><input type="text" id="lgUser" autocomplete="username" autocapitalize="none" required></label>' +
@@ -941,6 +951,12 @@
   document.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var f = ev.target;
+    if (f.id === "setupForm") {
+      var se = $("#suErr"); se.hidden = true;
+      API.setupAdmin({ name: $("#suName").value.trim(), username: $("#suUser").value, password: $("#suPass").value })
+        .then(function (u) { S.setup = false; return afterLogin(u); }).catch(function (e) { se.textContent = e.message; se.hidden = false; });
+      return;
+    }
     if (f.id === "loginForm") {
       var err = $("#lgErr"); err.hidden = true;
       API.signIn($("#lgUser").value, $("#lgPass").value).then(afterLogin).catch(function (e) { err.textContent = e.message; err.hidden = false; });
@@ -984,6 +1000,9 @@
 
   // boot
   $("#app").innerHTML = '<div class="login"><div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div class="brand-name">Eternity Electric</div></div></div>';
-  API.init().then(function () { return API.session(); }).then(function (u) { if (u) return afterLogin(u); render(); })
+  API.init().then(function () { return API.session(); }).then(function (u) {
+    if (u) return afterLogin(u);
+    return (API.needsSetup ? API.needsSetup() : Promise.resolve(false)).then(function (n) { S.setup = n; render(); });
+  })
     .catch(function (e) { $("#app").innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">Eternity Electric</div><div class="err">' + esc(e.message || "Erro ao iniciar.") + "</div></div></div>"; });
 })();

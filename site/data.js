@@ -178,6 +178,7 @@
       mode: "demo",
       companies: COMPANIES,
       init: function () { load(); return P(); },
+      needsSetup: function () { return P(false); },
       reset: function () { safeDel(KEY); safeDel(SESSION); db = null; load(); return P(); },
       session: function () { return P(pub(me())); },
       signIn: function (username, pw) {
@@ -373,6 +374,15 @@
         });
       },
       pendingQueue: function () { return queue(); },
+      needsSetup: function () { return sb.rpc("needs_setup").then(function (r) { return !r.error && r.data === true; }).catch(function () { return false; }); },
+      setupAdmin: function (o) {
+        var uname = String(o.username || "").trim().toLowerCase();
+        return sb.auth.signUp({ email: email(uname), password: o.password, options: { data: { username: uname, full_name: o.name } } }).then(function (r) {
+          if (r.error) throw new Error(/registered/i.test(r.error.message) ? "Esse usuário já existe. Use Entrar." : r.error.message);
+          if (!r.data.session) throw new Error("No Supabase, desligue 'Confirm email' (Authentication → Sign In / Providers → Email) e tente de novo.");
+          return sb.rpc("claim_first_admin", { p_name: o.name });
+        }).then(function (r) { chk(r); return loadProfile(); });
+      },
       session: function () {
         return sb.auth.getSession().then(function (r) {
           var s = r.data && r.data.session;
