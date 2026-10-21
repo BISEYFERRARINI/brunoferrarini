@@ -13,9 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Consulta leve no banco
+        env:
+          URL: https://zvjirpqmyjhawtteainq.supabase.co
+          # chave pública "anon" (a mesma que está no app; não dá acesso a dados)
+          KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2amlycHFteWpoYXd0dGVhaW5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NDAzNTYsImV4cCI6MjEwODExNjM1Nn0.SN8nci_MAk9EEYJT7UEWOkEROQkjqGamizl7kbrhJAA
         run: |
-          URL=$(grep -o 'https://[a-z0-9]*\.supabase\.co' <<< "$(curl -s https://eternity-electric.netlify.app/config.js)" | head -1)
-          KEY=$(curl -s https://eternity-electric.netlify.app/config.js | grep -o 'eyJ[A-Za-z0-9._-]*' | head -1)
           code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/rest/v1/rpc/needs_setup" \
             -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}')
           echo "Resposta do banco: $code"
