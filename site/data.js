@@ -308,6 +308,7 @@
         persist(); return P(clone(rec));
       },
       deleteProposal: function (id) { db.proposals = (db.proposals || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      aiProposal: function () { return P({ error: "DEMO" }); },
       // materiais e preços
       listMaterials: function () { db.materials = db.materials || []; return P(clone(db.materials)); },
       saveMaterial: function (m) {
@@ -563,6 +564,12 @@
           .select().single().then(function (r) { return mapProposal(chk(r)); });
       },
       deleteProposal: function (id) { return sb.from("proposals").delete().eq("id", id).then(chk); },
+      aiProposal: function (body) {
+        return sb.functions.invoke("montar-proposta", { body: body }).then(function (r) {
+          if (r.error) { var st = r.error.context && r.error.context.status; return { error: st === 404 ? "NOT_DEPLOYED" : "OFFLINE", detail: r.error.message || "" }; }
+          return r.data || { error: "FAIL" };
+        });
+      },
       // materiais e preços
       listMaterials: function () {
         return sb.from("materials").select("*, material_prices(*)").order("name").then(function (r) {

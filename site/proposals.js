@@ -42,9 +42,9 @@
   var CO = {
     eternity: { brand: "Eternity Electric", title: "ELECTRICAL PROPOSAL", tagline: "LICENSED ELECTRICAL CONTRACTOR", contact: "Commonwealth of Massachusetts · office@eternityelectrical.com",
       footer: "Eternity Electric · office@eternityelectrical.com · Licensed Electrical Contractor MA", role: "Licensed Electrical Contractor", logo: "icons/logo-eternity.jpg", logoSm: "icons/logo-eternity-sm.jpg",
-      accent: "#B08A4A", dark: "#2B241D", bg: "#FBF7F1" },
+      accent: "#B08A4A", dark: "#2B241D", bg: "#FBF7F1", payTo: "Eternity Electric" },
     bluestar: { brand: "Blue Star HVAC", title: "HVAC PROPOSAL", tagline: "HEATING · VENTILATION · AIR CONDITIONING", contact: "Blue Star HVAC Inc. · Watertown, Massachusetts",
-      footer: "Blue Star HVAC Inc. · Watertown, MA", role: "HVAC Contractor", logo: null, logoSm: null, accent: "#2462B0", dark: "#13233A", bg: "#F7F9FC" }
+      footer: "Blue Star HVAC Inc. · Watertown, MA", role: "HVAC Contractor", logo: null, logoSm: null, accent: "#2462B0", dark: "#13233A", bg: "#F7F9FC", payTo: "Blue Star HVAC Inc." }
   };
 
   var SECTIONS = {
@@ -66,7 +66,7 @@
       ["Ductwork & Distribution", "Furnish and install new sheet-metal supply and return ductwork as required, sealed and insulated per the Massachusetts Energy Code.\nInstall supply registers and return grilles."],
       ["Refrigerant Piping & Condensate", "Furnish and install insulated copper line sets, nitrogen pressure test, evacuation (micron verified), and refrigerant charge per manufacturer.\nCondensate drain piping with condensate pump where required."],
       ["Controls & Thermostats", "Furnish and install programmable / Wi-Fi thermostat(s) and zoning controls as required."],
-      ["Gas Piping & Venting", "Furnish and install gas piping from the meter / existing manifold to the new appliance, pressure tested per 248 CMR.\nInstall venting / flue per manufacturer's instructions."],
+      ["Venting & Gas (by others)", "Install venting / flue per manufacturer's instructions.\nGas piping and gas connection to the appliance by others (licensed plumber / gas fitter)."],
       ["Start-Up, Testing & Commissioning", "Start-up, testing, and commissioning of the complete system; review of operation with the Owner."],
       ["Rebates & Documentation", "Provide documentation required for **Mass Save** rebates where applicable (rebate approval by the program)."],
       ["Permit & Inspections", "Mechanical / gas permits will be pulled by us. Permit fees are included.\nCoordination of all required inspections."]
@@ -84,11 +84,11 @@
     var ele = E.tradeOf(co) !== "hvac", c = CO[co] || CO.eternity;
     return {
       includes: ele ? "all labor, materials, supervision, project management, applicable Massachusetts sales tax, and electrical permit fees and inspection coordination."
-        : "all labor, equipment and materials listed above, supervision, applicable Massachusetts sales tax, and mechanical / gas permit fees and inspection coordination.",
+        : "all labor, equipment and materials listed above, supervision, applicable Massachusetts sales tax, and mechanical permit fees and inspection coordination.",
       notIncluded: ele ? "Fire alarm system (unless listed above) · any engineering, stamped drawings, or design drawings · decorative light fixtures, pendants, sconces, chandeliers, and ceiling fans (supplied by Owner / GC; installation included where listed) · appliances · HVAC equipment supply (electrical connection only) · utility company charges and customer-contribution fees · trenching or excavation · drywall, patching, painting, framing, or carpentry · core drilling and structural penetrations."
-        : "Electrical power feed and disconnect (by a licensed electrician unless listed above) · drywall, patching, painting, or carpentry · structural modifications · asbestos or hazardous-material abatement · oil tank removal · engineering or stamped drawings · utility company charges.",
+        : "Gas piping and gas connections (by a licensed plumber / gas fitter) · electrical power feed and disconnect (by a licensed electrician unless listed above) · drywall, patching, painting, or carpentry · structural modifications · asbestos or hazardous-material abatement · oil tank removal · engineering or stamped drawings · utility company charges.",
       clarifications: (ele ? "Electrical permit will be pulled by " + c.brand + ". **Permit fees are included.**\nAll work performed by licensed Massachusetts electricians under the direct supervision of our Master Electrician.\n"
-        : "Permits will be pulled by " + c.brand + ". **Permit fees are included.**\nAll work performed by licensed technicians.\n") + "Any work outside the scope above will be quoted as a written change order before it is performed.",
+        : "Mechanical permit will be pulled by " + c.brand + ". **Permit fees are included.**\nAll work performed by licensed technicians.\n") + "Any work outside the scope above will be quoted as a written change order before it is performed.",
       warranty: "**Workmanship Warranty:** One (1) year on all workmanship from the date of final inspection. Manufacturer warranties on all materials and equipment transferred to Owner.\n**Insurance Coverage:** General Liability $1M / $2M, Massachusetts Workers' Compensation, and Commercial Auto. Certificate of Insurance available upon request."
     };
   }
@@ -99,18 +99,18 @@
       ? "This proposal covers the electrical scope of work for " + what + " at " + where + ". Work will be performed in full compliance with the 2023 Massachusetts Electrical Code (527 CMR 12.00 / NEC 2023), the Massachusetts State Building Code 780 CMR (10th edition), and the requirements of the local Authority Having Jurisdiction. All work will be performed by licensed Massachusetts electricians under permit."
       : "This proposal covers the HVAC scope of work for " + what + " at " + where + ". Work will be performed in accordance with the Massachusetts State Building Code 780 CMR (10th edition), the Massachusetts Fuel Gas Code (248 CMR) where applicable, the manufacturer's installation instructions, and the requirements of the local Authority Having Jurisdiction.";
   }
-  function nextNumber() {
-    var max = 366;
-    S.proposals.forEach(function (p) { var m = /(\d+)/.exec(p.number || ""); if (m) max = Math.max(max, Number(m[1])); });
-    return "EST" + (max + 1);
+  function nextNumber(type) {
+    var inv = type === "invoice", max = inv ? 1000 : 366, re = inv ? /^INV/i : /^EST/i;
+    S.proposals.forEach(function (p) { if (!re.test(p.number || "")) return; var m = /(\d+)/.exec(p.number || ""); if (m) max = Math.max(max, Number(m[1])); });
+    return (inv ? "INV" : "EST") + (max + 1);
   }
   function blankProposal() {
     var co = S.company, c = CO[co] || CO.eternity, d = defaults(co);
-    var p = { id: null, companyId: co, number: nextNumber(), status: "Rascunho", date: today(), validityDays: 30, title: c.title, subtitle: "",
+    var p = { id: null, docType: "estimate", speech: "", notes: [], companyId: co, number: nextNumber(), status: "Rascunho", date: today(), validityDays: 30, title: c.title, subtitle: "",
       client: { name: "", role: "General Contractor", address: "" }, intro: "", sections: [], items: [{ desc: "", qty: "1 lot", price: "" }],
       totalLabel: "TOTAL — Lump Sum, Fixed Price", includes: d.includes, payment: { note: "", rows: clone(PAY["30/40/30"]) },
       notIncluded: d.notIncluded, clarifications: d.clarifications, warranty: d.warranty,
-      header: { tagline: c.tagline, contact: c.contact, footer: c.footer }, materials: [], total: 0 };
+      header: { tagline: c.tagline, contact: c.contact, footer: c.footer }, materials: [], total: 0, amountPaid: "", dueTerms: "Due upon receipt", dueDate: "" };
     return p;
   }
   function totalOf(p) { return (p.items || []).reduce(function (a, it) { return a + num(it.price); }, 0); }
@@ -121,24 +121,29 @@
   });
   function reloadExt() { return Promise.all(EXT.load.map(function (f) { return f(); })).then(E.render); }
 
-  var STATUS_P = { "Rascunho": "neutral", "Enviada": "accent", "Aceita": "good", "Recusada": "bad" };
+  var STATUS_P = { "Rascunho": "neutral", "Enviada": "accent", "Aceita": "good", "Recusada": "bad", "Paga": "good" };
+  function isInv(p) { return p && p.docType === "invoice"; }
   function pPill(s) { return '<span class="pill ' + (STATUS_P[s] || "neutral") + '">' + esc(s) + "</span>"; }
 
   // ═══════════ lista de propostas ═══════════
   EXT.views.proposals = function () {
-    var list = S.proposals.filter(function (p) { return p.companyId === S.company; });
+    if (S.pRec) micStop();
+    var all = S.proposals.filter(function (p) { return p.companyId === S.company; }), tf = S.pTypeFilter || "all";
+    var list = all.filter(function (p) { return !isInv(p); });
+    var shown = all.filter(function (p) { return tf === "all" || (tf === "invoice") === isInv(p); });
     var sum = function (st) { return list.filter(function (p) { return p.status === st; }).reduce(function (a, p) { return a + (p.total || 0); }, 0); };
     var sent = list.filter(function (p) { return p.status === "Enviada" || p.status === "Aceita" || p.status === "Recusada"; }).length, won = list.filter(function (p) { return p.status === "Aceita"; }).length;
-    return '<div class="page-head"><div><h1>Propostas</h1><p>' + esc(E.companyName(S.company)) + " · " + list.length + ' propostas</p></div><button class="btn" data-act="pNew">+ Nova proposta</button></div>' +
+    return '<div class="page-head"><div><h1>Propostas</h1><p>' + esc(E.companyName(S.company)) + " · " + list.length + ' estimates · ' + (all.length - list.length) + ' invoices</p></div><div class="row"><button class="btn ghost" data-act="pNew" data-id="invoice">+ Invoice</button><button class="btn" data-act="pNew" data-id="estimate">🎤 Nova proposta</button></div></div>' +
       '<div class="kpis" style="margin-bottom:14px">' +
       kpi("Enviadas aguardando", money(sum("Enviada")), list.filter(function (p) { return p.status === "Enviada"; }).length + " propostas") +
       kpi("Aceitas", money(sum("Aceita")), won + " propostas", "v-good") +
       kpi("Taxa de fechamento", (sent ? Math.round(won / sent * 100) : 0) + "%", won + " de " + sent + " enviadas") + "</div>" +
-      (list.length ? '<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Cliente</th><th>Obra</th><th>Data</th><th>Status</th><th class="n">Valor</th></tr></thead><tbody>' +
-        list.map(function (p) {
-          return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + "</b></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
+      '<div class="chips" style="margin-bottom:10px">' + [["all", "Todas"], ["estimate", "Estimates"], ["invoice", "Invoices"]].map(function (x) { return '<button type="button" class="chip' + (tf === x[0] ? " on" : "") + '" data-act="pTypeFilter" data-id="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
+      (shown.length ? '<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Cliente</th><th>Obra</th><th>Data</th><th>Status</th><th class="n">Valor</th></tr></thead><tbody>' +
+        shown.map(function (p) {
+          return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + '</b><div class="small muted">' + (isInv(p) ? "Invoice" : "Estimate") + "</div></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
         }).join("") + "</tbody></table></div>"
-        : '<div class="panel empty">Nenhuma proposta ainda. Toque em “Nova proposta” para criar a primeira.</div>');
+        : '<div class="panel empty">Nada aqui ainda. Toque em “Nova proposta”, fale o serviço e a proposta sai pronta.</div>');
   };
   function kpi(label, value, sub, cls) { return '<div class="kpi" style="grid-template-columns:1fr"><div><div class="kpi-label">' + esc(label) + '</div><div class="kpi-value ' + (cls || "") + '">' + value + '</div><div class="kpi-sub">' + esc(sub) + "</div></div></div>"; }
 
@@ -151,17 +156,14 @@
     var v = get(S.pdraft, path);
     return '<label class="field"><span>' + esc(label) + (hint ? ' <span class="muted" style="font-weight:400">· ' + esc(hint) + "</span>" : "") + '</span><textarea data-pbind="' + path + '" rows="' + (rows || 4) + '">' + esc(v == null ? "" : v) + "</textarea></label>";
   }
-  EXT.views.proposalForm = function () {
-    var p = S.pdraft; if (!p) return '<div class="panel empty">Nenhuma proposta aberta.</div>';
+  function fullEditor(p) {
     var trade = E.tradeOf(p.companyId) === "hvac" ? "hvac" : "electrical";
     p.total = totalOf(p);
     var payTotal = (p.payment.rows || []).reduce(function (a, r) { return a + num(r[2]); }, 0);
-    var h = '<div class="page-head"><div><button class="btn ghost sm" data-act="nav" data-id="proposals" style="margin-bottom:10px">← Propostas</button><h1>' + (p.id ? "Proposta " + esc(p.number) : "Nova proposta") + "</h1><p>" + esc(E.companyName(p.companyId)) + " · o documento sai em inglês, no padrão das suas propostas</p></div>" +
-      '<div class="row"><select data-pbind="status" style="width:auto">' + Object.keys(STATUS_P).map(function (s) { return "<option" + (p.status === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></div></div>";
-
-    var a = '<div class="panel ed-sec"><h3>Cliente e obra</h3><div class="grid3">' + inp("number", "Número (EST)") + inp("date", "Data", "", "date") + inp("validityDays", "Validade (dias)", 'inputmode="numeric"', "number") + "</div>" +
+    var a = '<div class="panel ed-sec"><h3>Cliente e obra</h3><div class="grid3">' + inp("number", "Número") + inp("date", "Data", "", "date") + inp("validityDays", "Validade (dias)", 'inputmode="numeric"', "number") + "</div>" +
       '<div class="grid2">' + inp("client.name", "Preparado para (cliente / GC)") + inp("client.role", "Função do cliente (ex.: General Contractor, Homeowner)") + "</div>" +
       inp("client.address", "Endereço da obra") +
+      (isInv(p) ? '<div class="grid3">' + inp("amountPaid", "Já pago ($)", 'inputmode="decimal"') + inp("dueTerms", "Condição (ex.: Due upon receipt)") + inp("dueDate", "Vencimento", "", "date") + "</div>" : "") +
       '<div class="grid2">' + inp("title", "Título do documento") + inp("subtitle", "Subtítulo (ex.: New Construction · 5-Unit Multi-Family Residence)") + "</div>" +
       ta("intro", "Introdução", 5) + '<div><button class="btn ghost sm" data-act="pGenIntro">Gerar introdução padrão</button></div></div>';
 
@@ -189,10 +191,8 @@
     var terms = '<div class="panel ed-sec"><h3>Condições</h3>' + ta("notIncluded", "Não incluído", 4) + ta("clarifications", "Esclarecimentos", 4, "uma linha = um item") + ta("warranty", "Garantia e seguro", 3, "uma linha = um item") +
       '<details><summary class="small" style="cursor:pointer">Cabeçalho e rodapé do documento</summary><div class="stack" style="margin-top:10px">' + inp("header.tagline", "Linha abaixo do logo") + inp("header.contact", "Contato") + inp("header.footer", "Rodapé") + "</div></details></div>";
 
-    return h + a + sec + inv + pay + terms + materialsPanel(p) +
-      '<div class="sticky-actions">' + (p.id ? '<button class="btn danger" data-act="pAskDel">Apagar</button><button class="btn ghost" data-act="pDup">Duplicar</button>' : "") +
-      '<button class="btn ghost" data-act="pToProject">Virar projeto</button><button class="btn ghost" data-act="pPrint">Ver PDF / Imprimir</button><button class="btn" data-act="pSave">Salvar</button></div>';
-  };
+    return a + sec + inv + (isInv(p) ? "" : pay) + terms + materialsPanel(p);
+  }
 
   // ── materiais da estimativa ──
   function estimate(p) {
@@ -251,6 +251,8 @@
       '#print-root .tbl td{padding:8px 12px;border-bottom:1px solid #e6d8c2;vertical-align:middle}#print-root .tbl .tot td{background:' + A + ';color:#fff;font-weight:700;font-size:11.5pt}' +
       '#print-root .cover{text-align:center;page-break-after:always}#print-root .box{border:1px solid ' + A + ';padding:14px 20px;margin:18px auto;max-width:5.7in}' +
       '#print-root .lab{color:' + A + ';font-weight:700;font-size:9.5pt;letter-spacing:.06em;text-transform:uppercase}</style>';
+    var frame = function (body) { return css + '<table class="frame"><thead><tr><td class="hdr">' + logoSm + '</td></tr></thead><tfoot><tr><td class="ftr">' + esc(hd.footer || c.footer) + "</td></tr></tfoot><tbody><tr><td>" + body + "</td></tr></tbody></table>"; };
+    if (isInv(p)) return frame(invoiceBody(p, c));
     var cover = '<div class="cover">' + '<div style="margin-top:.25in">' + logoBig + "</div>" +
       '<div style="font-weight:700;margin-top:10px">' + esc(hd.tagline || c.tagline) + '</div><div style="font-style:italic">' + esc(hd.contact || c.contact) + "</div>" +
       '<div style="border-top:1px solid ' + A + ';border-bottom:1px solid ' + A + ';margin:14px 0;padding:10px 0"><div style="font-size:26pt;font-weight:700">' + esc(p.title || c.title) + "</div>" + (p.subtitle ? '<div style="font-style:italic">' + esc(p.subtitle) + "</div>" : "") + "</div>" +
@@ -275,7 +277,7 @@
     var sig = '<div style="page-break-inside:avoid"><h2>Acceptance</h2><p style="text-align:justify">By signing below, the ' + esc(p.client.role || "Client") + " accepts the scope, pricing, and payment terms above as a binding agreement. This proposal is valid for " + esc(p.validityDays || 30) + " days from the date issued.</p>" +
       '<table style="width:100%;margin-top:18px"><tr><td style="width:50%;vertical-align:top;padding-right:20px"><b>' + esc(c.brand.toUpperCase()) + '</b><div style="font-style:italic">' + esc(c.role) + '</div><div style="margin-top:.55in;border-top:1px solid ' + D + ';width:3in;font-size:9pt;padding-top:3px">Signature</div><div style="margin-top:.3in">Date: ____________________</div></td>' +
       '<td style="vertical-align:top"><b>' + esc((p.client.name || "CLIENT").toUpperCase()) + '</b><div style="font-style:italic">' + esc(p.client.role || "") + '</div><div style="margin-top:.55in;border-top:1px solid ' + D + ';width:3in;font-size:9pt;padding-top:3px">Signature</div><div style="margin-top:.3in">Date: ____________________</div></td></tr></table></div>';
-    return css + '<table class="frame"><thead><tr><td class="hdr">' + logoSm + '</td></tr></thead><tfoot><tr><td class="ftr">' + esc(hd.footer || c.footer) + "</td></tr></tfoot><tbody><tr><td>" + cover + scope + inv + pay + terms + sig + "</td></tr></tbody></table>";
+    return frame(cover + scope + inv + pay + terms + sig);
   }
   function printDoc(p) {
     var root = $("#print-root");
@@ -294,8 +296,12 @@
 
   // ═══════════ ações das propostas ═══════════
   var AC = EXT.actions;
-  AC.pNew = function () { S.pdraft = blankProposal(); E.go("proposalForm"); };
-  AC.pOpen = function (el) { var p = S.proposals.find(function (x) { return x.id === el.dataset.id; }); S.pdraft = Object.assign(blankProposal(), clone(p)); E.go("proposalForm"); };
+  AC.pNew = function (el) {
+    var p = blankProposal();
+    if (el && el.dataset.id === "invoice") { p.docType = "invoice"; p.number = nextNumber("invoice"); p.title = "INVOICE"; }
+    S.pdraft = p; S.pSpeech = ""; S.pAdv = false; E.go("proposalForm");
+  };
+  AC.pOpen = function (el) { var p = S.proposals.find(function (x) { return x.id === el.dataset.id; }); S.pdraft = Object.assign(blankProposal(), clone(p)); S.pSpeech = ""; S.pAdv = false; E.go("proposalForm"); };
   AC.pGenIntro = function () { S.pdraft.intro = introText(S.pdraft); E.render(); };
   AC.pAddSec = function (el) { var i = Number(el.dataset.id), tr = E.tradeOf(S.pdraft.companyId) === "hvac" ? "hvac" : "electrical"; S.pdraft.sections.push(i < 0 ? { title: "New Section", text: "" } : { title: SECTIONS[tr][i][0], text: SECTIONS[tr][i][1] }); E.render(); };
   AC.pRmSec = function (el) { S.pdraft.sections.splice(Number(el.dataset.id), 1); E.render(); };
@@ -314,7 +320,7 @@
     E.toast("Salvando…");
     API.saveProposal(p).then(function (saved) { S.pdraft = Object.assign(blankProposal(), saved); return reloadExt(); }).then(function () { E.toast("Proposta salva."); }).catch(function (e) { E.toast(e.message || "Erro ao salvar."); });
   };
-  AC.pDup = function () { var c = clone(S.pdraft); c.id = null; c.number = nextNumber(); c.status = "Rascunho"; c.date = today(); S.pdraft = c; E.render(); E.toast("Cópia criada. Salve para guardar."); window.scrollTo(0, 0); };
+  AC.pDup = function () { var c = clone(S.pdraft); c.id = null; c.number = nextNumber(c.docType); c.notes = []; c.status = "Rascunho"; c.date = today(); S.pdraft = c; E.render(); E.toast("Cópia criada. Salve para guardar."); window.scrollTo(0, 0); };
   AC.pAskDel = function () { S.modal = { type: "confirm", title: "Apagar proposta", text: "Apagar a proposta " + (S.pdraft.number || "") + "? Isso não pode ser desfeito.", act: "pDel", id: S.pdraft.id, okLabel: "Apagar" }; E.render(); };
   AC.pDel = function (el) { API.deleteProposal(el.dataset.id).then(function () { S.modal = null; S.pdraft = null; return reloadExt(); }).then(function () { E.go("proposals"); E.toast("Proposta apagada."); }); };
   AC.pToProject = function () {
@@ -328,6 +334,7 @@
   EXT.input.push(function (el) {
     if (!el.dataset.pbind || !S.pdraft) return false;
     set(S.pdraft, el.dataset.pbind, el.value);
+    schedulePreview();
     if (el.dataset.price) { var t = $("#pTotal"); if (t) t.textContent = money2(totalOf(S.pdraft)); }
     if (/^payment\.rows\.\d+\.2$/.test(el.dataset.pbind)) { var sm = $("#pSum"), tot = (S.pdraft.payment.rows || []).reduce(function (a, r) { return a + num(r[2]); }, 0); if (sm) { sm.textContent = "Soma: " + tot + "%"; sm.className = "small " + (tot === 100 ? "v-good" : "v-bad"); } }
     return true;
@@ -337,6 +344,239 @@
     if (el.dataset.pf) { S.priceFilter[el.dataset.pf] = el.value; E.render(); return true; }
     return false;
   });
+
+  // ═══════════ tela simples: cliente + tipo + voz ═══════════
+  var ROLES = ["Homeowner", "General Contractor", "Developer", "Property Manager", "Owner"];
+  var MIC_SVG = '<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4"/></svg>';
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  function built(p) { return p.sections.length > 0 || p.items.some(function (it) { return it.desc || it.price; }); }
+
+  EXT.views.proposalForm = function () {
+    var p = S.pdraft; if (!p) return '<div class="panel empty">Nenhuma proposta aberta.</div>';
+    p.total = totalOf(p);
+    var inv = isInv(p), ok = built(p), busy = S.pBusy;
+    var head = '<div class="page-head"><div><button class="btn ghost sm" data-act="nav" data-id="proposals" style="margin-bottom:10px">← Propostas</button><h1>' +
+      (p.id ? (inv ? "Invoice " : "Proposta ") + esc(p.number) : inv ? "Novo invoice" : "Nova proposta") + "</h1><p>" + esc(E.companyName(p.companyId)) + " · sai em inglês, no padrão das suas propostas</p></div>" +
+      '<div class="row"><select data-pbind="status" style="width:auto" aria-label="Status">' + Object.keys(STATUS_P).map(function (s) { return "<option" + (p.status === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></div></div>";
+
+    var type = '<div class="seg" role="group" aria-label="Tipo de documento">' +
+      '<button type="button" class="' + (inv ? "" : "on") + '" data-act="pType" data-id="estimate"><b>Estimate</b><span>proposta para o cliente aprovar</span></button>' +
+      '<button type="button" class="' + (inv ? "on" : "") + '" data-act="pType" data-id="invoice"><b>Invoice</b><span>cobrança do serviço feito</span></button></div>';
+
+    var cli = '<div class="panel ed-sec"><h3>Cliente</h3><div class="grid2">' + inp("client.name", inv ? "Cobrar de (cliente / GC)" : "Preparado para (cliente / GC)") +
+      '<label class="field"><span>Tipo de cliente</span><input type="text" list="pRoles" data-pbind="client.role" value="' + esc(p.client.role || "") + '"></label></div>' +
+      '<datalist id="pRoles">' + ROLES.map(function (r) { return '<option value="' + r + '">'; }).join("") + "</datalist>" +
+      inp("client.address", "Endereço da obra") + "</div>";
+
+    var ex = E.tradeOf(p.companyId) === "hvac"
+      ? "Ex.: “Trocar o sistema antigo por uma heat pump Viessmann de 36 mil BTU, duas zonas, dois termostatos, linha nova. Preço 14.500, metade na entrada.”"
+      : inv ? "Ex.: “Invoice da troca do painel para 200 amp e 6 tomadas GFCI na cozinha. Total 6.800, ele já pagou 3.400.”"
+        : "Ex.: “Casa de dois andares. Trocar o serviço para 200 amp, 12 recessed na sala e cozinha, GFCI na cozinha e banheiros, detectores de fumaça interligados. Paredes abertas, Romex. Preço 9.500, 30/40/30.”";
+    var voice = '<div class="panel ed-sec"><h3>' + (ok ? "Quer mudar alguma coisa? Fale aqui" : "Fale o serviço") + "</h3>" +
+      '<div class="voice"><button type="button" class="mic' + (S.pRec ? " on" : "") + '" data-act="pMic" aria-label="Gravar voz" aria-pressed="' + (S.pRec ? "true" : "false") + '">' + MIC_SVG + "</button>" +
+      '<div><b id="micState">' + micLabel() + '</b><div class="small muted" style="margin-top:4px">' + esc(ok ? "Ex.: “Tira o permit, muda o preço para 9 mil e acrescenta 4 tomadas no porão.”" : ex) + "</div></div></div>" +
+      '<textarea id="pSpeech" rows="5" placeholder="O que você falar aparece aqui. Também dá para digitar ou usar o microfone do teclado.">' + esc(S.pSpeech || "") + "</textarea>" +
+      '<div class="row">' + (busy ? '<button class="btn" disabled><span class="spin" aria-hidden="true"></span> Montando… leva uns 30 segundos</button>'
+        : ok ? '<button class="btn" data-act="pAI" data-id="adjust">✨ Ajustar ' + (inv ? "o invoice" : "a proposta") + '</button><button class="btn ghost" data-act="pAI" data-id="new">Montar do zero com esse texto</button>'
+          : '<button class="btn" data-act="pAI" data-id="new">✨ Montar ' + (inv ? "invoice" : "proposta") + "</button>") +
+      '<label class="small muted" style="margin-left:auto">Idioma da fala <select id="pLang" style="width:auto;padding:4px 8px"><option value="pt-BR"' + (S.pLang !== "en-US" ? " selected" : "") + '>Português</option><option value="en-US"' + (S.pLang === "en-US" ? " selected" : "") + ">English</option></select></label></div></div>";
+
+    var notes = (p.notes || []).length ? '<div class="panel ed-sec note-box"><h3>Confira antes de mandar</h3>' + p.notes.map(function (n) { return '<div class="small">• ' + esc(n) + "</div>"; }).join("") + "</div>" : "";
+    var paid = inv ? num(p.amountPaid) : 0;
+    var prev = ok ? '<div class="panel ed-sec"><div class="spread"><h3 style="margin:0">Prévia do documento</h3><span class="kpi-value" style="font-size:22px">' + money2(p.total - paid) + (inv && paid ? ' <span class="small muted">a receber</span>' : "") + "</span></div>" +
+      (p.total ? "" : '<div class="pill warn">Sem preço — fale o valor ou ajuste em “Editar tudo”.</div>') +
+      '<div id="pPrev" class="doc-box"></div></div>' : "";
+
+    var adv = '<div><button type="button" class="btn ghost sm" data-act="pAdv">' + (S.pAdv ? "Fechar edição completa ▲" : "Editar tudo (avançado) ▼") + "</button></div>" + (S.pAdv ? fullEditor(p) : "");
+
+    setTimeout(mountPreview, 0);
+    return head + type + cli + voice + notes + prev + adv +
+      '<div class="sticky-actions">' + (p.id ? '<button class="btn danger" data-act="pAskDel">Apagar</button><button class="btn ghost" data-act="pDup">Duplicar</button>' : "") +
+      (p.id && !inv ? '<button class="btn ghost" data-act="pToInvoice">Gerar invoice</button><button class="btn ghost" data-act="pToProject">Virar projeto</button>' : "") +
+      '<button class="btn ghost" data-act="pPrint">Ver PDF / Imprimir</button><button class="btn" data-act="pSave">Salvar</button></div>';
+  };
+
+  // ── prévia (mesmo HTML do PDF, dentro de um quadro) ──
+  var prevTimer = null;
+  function schedulePreview() { clearTimeout(prevTimer); prevTimer = setTimeout(mountPreview, 500); }
+  function mountPreview() {
+    var box = $("#pPrev"); if (!box || !S.pdraft) return;
+    var c = CO[S.pdraft.companyId] || CO.eternity;
+    var html = '<!doctype html><html><head><meta charset="utf-8"><base href="' + location.href.split("#")[0] + '"><style>html,body{margin:0;background:' + c.bg + "}body{padding:.45in .6in}#print-root .cover{min-height:auto}</style></head><body><div id=\"print-root\">" + buildDoc(S.pdraft) + "</div></body></html>";
+    var f = box.querySelector("iframe"), inner = box.querySelector(".doc-inner");
+    if (!f) { inner = document.createElement("div"); inner.className = "doc-inner"; f = document.createElement("iframe"); f.title = "Prévia do documento"; f.setAttribute("tabindex", "-1"); inner.appendChild(f); box.appendChild(inner); }
+    function fit() {
+      var s = Math.min(1, box.clientWidth / 816), h = 1100;
+      try { h = f.contentDocument.documentElement.scrollHeight; } catch (e) { }
+      f.style.height = h + "px"; f.style.transform = "scale(" + s + ")"; inner.style.height = Math.ceil(h * s) + "px";
+    }
+    f.onload = function () { fit(); setTimeout(fit, 400); };
+    f.srcdoc = html;
+  }
+  window.addEventListener("resize", function () { if ($("#pPrev")) schedulePreview(); });
+
+  // ── gravação de voz ──
+  var rec = null;
+  function micLabel() { return S.pRec ? "Gravando… fale à vontade. Toque de novo para parar." : "Toque no microfone e fale o que tem que ser feito"; }
+  function micUI() {
+    var b = document.querySelector(".mic"), t = $("#micState");
+    if (b) { b.classList.toggle("on", !!S.pRec); b.setAttribute("aria-pressed", S.pRec ? "true" : "false"); }
+    if (t) t.textContent = micLabel();
+  }
+  function micStop() { S.pRec = false; if (rec) { try { rec.stop(); } catch (e) { } } rec = null; micUI(); }
+  function micStart() {
+    var box = $("#pSpeech");
+    if (!SR) { E.toast("Este aparelho não grava direto no app. Toque na caixa de texto e use o microfone do teclado."); if (box) box.focus(); return; }
+    var android = /Android/i.test(navigator.userAgent);
+    var base = (box ? box.value : S.pSpeech || "").replace(/\s*$/, ""); if (base) base += " ";
+    var r = new SR(); rec = r;
+    r.lang = S.pLang || "pt-BR"; r.interimResults = true; r.continuous = !android; // Android repete frases no modo contínuo
+    r.onresult = function (ev) {
+      var fin = "", tmp = "";
+      for (var i = ev.resultIndex; i < ev.results.length; i++) { var x = ev.results[i]; if (x.isFinal) fin += x[0].transcript; else tmp += x[0].transcript; }
+      if (fin) base += fin.trim() + " ";
+      S.pSpeech = base; var t = $("#pSpeech"); if (t) { t.value = base + tmp; t.scrollTop = t.scrollHeight; }
+    };
+    r.onerror = function (e) {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { micStop(); E.toast("Libere o microfone para o app nas configurações do celular (ou use o microfone do teclado)."); }
+      else if (e.error === "network") { micStop(); E.toast("Sem internet para reconhecer a voz. Use o microfone do teclado."); }
+    };
+    r.onend = function () { if (S.pRec && rec === r) { setTimeout(function () { if (S.pRec && rec === r) { try { r.start(); } catch (e) { micStop(); } } }, 120); } };
+    try { r.start(); S.pRec = true; } catch (e) { S.pRec = false; E.toast("Não consegui abrir o microfone."); }
+    micUI();
+  }
+
+  // ── IA: monta / ajusta ──
+  var BANK_NOTE = "**Bank-financed project — performance-based draws.** This project is financed by the Owner's lender. A performance affidavit and supporting documentation will be issued to the bank at each milestone below.";
+  function defaultClar(p) { return lines(defaults(p.companyId).clarifications); }
+  function compact(p) {
+    var std = defaultClar(p);
+    return {
+      subtitle: p.subtitle, intro: p.intro,
+      sections: p.sections.map(function (s) { return { title: s.title, bullets: lines(s.text) }; }),
+      items: p.items.filter(function (it) { return it.desc || it.price; }).map(function (it) { var ls = String(it.desc || "").split("\n"); return { description: ls[0], details: ls.slice(1).join(" "), quantity: it.qty, price: it.price === "" ? null : num(it.price) }; }),
+      payment: (p.payment.rows || []).map(function (r) { return { milestone: r[0], trigger: r[1], percent: num(r[2]) }; }),
+      bank_financed: !!p.payment.note,
+      not_included: String(p.notIncluded || "").replace(/\.\s*$/, "").split(/\s+·\s+/).filter(Boolean),
+      extra_clarifications: lines(p.clarifications).filter(function (l) { return std.indexOf(l) < 0; }),
+      amount_paid: isInv(p) && p.amountPaid !== "" ? num(p.amountPaid) : null
+    };
+  }
+  function applyAI(p, r, mode, speech) {
+    if (r.client_name && (mode === "adjust" || !p.client.name)) p.client.name = r.client_name;
+    if (r.client_role && (mode === "adjust" || !p.client.name || p.client.role === "General Contractor")) p.client.role = r.client_role;
+    if (r.project_address && (mode === "adjust" || !p.client.address)) p.client.address = r.project_address;
+    p.subtitle = r.subtitle || p.subtitle;
+    p.title = isInv(p) ? "INVOICE" : (CO[p.companyId] || CO.eternity).title;
+    p.intro = r.intro || introText(p);
+    p.sections = (r.sections || []).map(function (s) { return { title: s.title, text: (s.bullets || []).join("\n") }; });
+    p.items = (r.items || []).map(function (it) { return { desc: it.description + (it.details ? "\n" + it.details : ""), qty: it.quantity || "1 lot", price: it.price == null ? "" : String(it.price) }; });
+    if (!p.items.length) p.items = [{ desc: "", qty: "1 lot", price: "" }];
+    if (r.payment && r.payment.length) p.payment.rows = r.payment.map(function (x) { return [x.milestone, x.trigger, num(x.percent)]; });
+    p.payment.note = r.bank_financed ? BANK_NOTE : "";
+    if (r.not_included && r.not_included.length) p.notIncluded = r.not_included.join(" · ") + ".";
+    p.clarifications = defaults(p.companyId).clarifications + ((r.extra_clarifications || []).length ? "\n" + r.extra_clarifications.join("\n") : "");
+    if (isInv(p)) { if (r.amount_paid != null) p.amountPaid = String(r.amount_paid); if (r.invoice_terms) p.dueTerms = r.invoice_terms; }
+    p.notes = r.notes_pt || [];
+    p.speech = mode === "adjust" && p.speech ? p.speech + "\n\n[ajuste] " + speech : speech;
+    p.total = totalOf(p);
+  }
+
+  // versão simples sem IA (quando a IA não está ligada): escolhe as seções padrão pelas palavras faladas
+  var KW = {
+    electrical: [/servi[cç]o|service|\b(100|150|200|400)\s?(a|amp)|painel|panel|meter|medidor/i, /rough|fia[cç][aã]o|wiring|r[oô]mex|\bmc\b|rewire|refazer a fia/i, /tomada|outlet|receptacle|interruptor|switch|recess|luz|luzes|light|dimmer|fixture|ilumina/i, /cozinha|kitchen|banheiro|bath/i, /smoke|fuma[cç]a|detector/i, /hvac|condens|heat ?pump|mini.?split|ar.condicionado|air handler/i, /fire alarm|alarme de inc[eê]ndio/i, /low voltage|baixa tens[aã]o|\bdata\b|internet|\btv\b|cat ?6/i, /exterior|externa|lado de fora|garage|garagem|outside/i, /./],
+    hvac: [/remov|tirar|velh|antig|existing|old/i, /./, /duto|duct|sheet ?metal/i, /line ?set|linha|refrigerant|condensa/i, /termostato|thermostat|zona|zone/i, /furnace|fornalha|g[aá]s|boiler|caldeira/i, /./, /mass ?save|rebate/i, /./]
+  };
+  function priceFrom(t) {
+    var best = 0, m, re = /\$\s?([\d.,]+)|\b(\d{1,3}(?:[.,]\d{3})+)\b|\b(\d+(?:[.,]\d+)?)\s?mil\b|\b(\d{4,6})\b/gi;
+    while ((m = re.exec(t))) {
+      var v = m[1] || m[2] ? Number(String(m[1] || m[2]).replace(/[.,](?=\d{3}\b)/g, "").replace(",", ".")) : m[3] ? Number(m[3].replace(",", ".")) * 1000 : Number(m[4]);
+      if (v >= 300 && v < 5e6 && v > best) best = v;
+    }
+    return best;
+  }
+  function localBuild(p, speech) {
+    var tr = E.tradeOf(p.companyId) === "hvac" ? "hvac" : "electrical", price = priceFrom(speech);
+    p.sections = SECTIONS[tr].filter(function (x, i) { return KW[tr][i].test(speech); }).map(function (x) { return { title: x[0], text: x[1] }; });
+    p.title = isInv(p) ? "INVOICE" : (CO[p.companyId] || CO.eternity).title;
+    p.intro = isInv(p) ? "Invoice for " + (tr === "hvac" ? "HVAC" : "electrical") + " work completed at " + (p.client.address || "the project location") + "." : introText(p);
+    if (isInv(p)) p.sections = [];
+    p.items = [{ desc: (tr === "hvac" ? "HVAC Scope" : "Electrical Scope") + (isInv(p) ? " — Work Completed" : " — Complete") + "\nLabor, material and permit per the scope above.", qty: "1 lot", price: price ? String(price) : "" }];
+    p.payment.rows = clone(PAY[price && price < 8000 ? "50/50" : "30/40/30"]);
+    p.notes = ["Montado sem IA: escolhi as seções padrão pelas palavras faladas. Revise o texto em “Editar tudo”."].concat(price ? [] : ["Não achei o preço na fala."]);
+    p.speech = speech; p.total = totalOf(p);
+  }
+
+  // ═══════════ invoice (documento) ═══════════
+  function invoiceBody(p, c) {
+    var A = c.accent, D = c.dark, paid = num(p.amountPaid), tot = totalOf(p);
+    var logo = c.logo ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="width:2.4in;display:block;margin:0 auto">' : '<div style="font-size:30pt;font-weight:700;letter-spacing:.04em;color:' + D + ';text-align:center">' + esc(c.brand.toUpperCase()) + "</div>";
+    var hd = p.header || {};
+    var top = '<div style="text-align:center">' + logo + '<div style="font-weight:700;margin-top:6px">' + esc(hd.tagline || c.tagline) + '</div><div style="font-style:italic">' + esc(hd.contact || c.contact) + "</div></div>" +
+      '<div style="border-top:1px solid ' + A + ';border-bottom:1px solid ' + A + ';margin:14px 0;padding:8px 0;text-align:center"><div style="font-size:26pt;font-weight:700;letter-spacing:.08em">INVOICE</div>' + (p.subtitle ? '<div style="font-style:italic">' + esc(p.subtitle) + "</div>" : "") + "</div>";
+    var meta = '<table style="width:100%;border-collapse:collapse;margin-bottom:10px"><tr>' +
+      '<td style="width:50%;vertical-align:top;padding-right:14px"><div class="lab">Bill to</div><div style="font-size:12.5pt;font-weight:700;margin-top:3px">' + esc(p.client.name || "—") + "</div>" + (p.client.role ? '<div style="font-style:italic">' + esc(p.client.role) + "</div>" : "") +
+      '<div class="lab" style="margin-top:10px">Project location</div><div style="font-weight:700;margin-top:3px">' + esc(p.client.address || "—") + "</div></td>" +
+      '<td style="vertical-align:top"><table style="margin-left:auto;border-collapse:collapse">' +
+      [["Invoice no.", p.number], ["Invoice date", longDate(p.date)], ["Payment terms", p.dueTerms || "Due upon receipt"], p.dueDate ? ["Due date", longDate(p.dueDate)] : null, p.ref ? ["Reference", "Proposal " + p.ref] : null].filter(Boolean).map(function (r) {
+        return '<tr><td class="lab" style="padding:3px 14px 3px 0;text-align:right">' + esc(r[0]) + '</td><td style="padding:3px 0"><b>' + esc(r[1] || "") + "</b></td></tr>";
+      }).join("") + "</table></td></tr></table>";
+    var intro = p.intro ? '<p style="text-align:justify">' + rich(p.intro) + "</p>" : "";
+    var work = p.sections.length ? "<h2>Work Performed</h2>" + p.sections.map(function (s) { return (p.sections.length > 1 ? "<h4>" + esc(s.title) + "</h4>" : "") + lines(s.text).map(function (l) { return '<div class="b">' + rich(l) + "</div>"; }).join(""); }).join("") : "";
+    var items = p.items.filter(function (it) { return it.desc || it.price; });
+    var tbl = "<h2>Charges</h2><table class=\"tbl\"><tr><th>Description</th><th style=\"width:1in\">Quantity</th><th style=\"width:1.3in;text-align:right\">Amount</th></tr>" +
+      items.map(function (it) { var ls = String(it.desc || "").split("\n"); return "<tr><td><b>" + rich(ls[0]) + "</b>" + (ls.length > 1 ? "<br>" + ls.slice(1).map(rich).join("<br>") : "") + "</td><td>" + esc(it.qty) + '</td><td style="text-align:right">' + (it.price !== "" ? money2(num(it.price)) : "") + "</td></tr>"; }).join("") +
+      (paid ? '<tr><td colspan="2" style="text-align:right"><b>Subtotal</b></td><td style="text-align:right">' + money2(tot) + '</td></tr><tr><td colspan="2" style="text-align:right"><b>Less: payments received</b></td><td style="text-align:right">(' + money2(paid) + ")</td></tr>" : "") +
+      '<tr class="tot"><td colspan="2">BALANCE DUE</td><td style="text-align:right">' + money2(tot - paid) + "</td></tr></table>";
+    var pay = '<h2>Payment</h2><div class="b">Please make checks payable to <b>' + esc(c.payTo || c.brand) + "</b> and reference invoice <b>" + esc(p.number || "") + "</b>.</div>" +
+      '<div class="b">Payment terms: ' + esc(p.dueTerms || "Due upon receipt") + ".</div>" +
+      '<p style="text-align:center;font-style:italic;margin-top:22px;color:' + A + '">Thank you for your business.</p>';
+    return top + meta + intro + work + tbl + pay;
+  }
+
+  // ── ações da tela simples ──
+  AC.pMic = function () { if (S.pRec) micStop(); else micStart(); };
+  AC.pAdv = function () { S.pAdv = !S.pAdv; E.render(); };
+  AC.pTypeFilter = function (el) { S.pTypeFilter = el.dataset.id; E.render(); };
+  AC.pType = function (el) {
+    var p = S.pdraft, t = el.dataset.id; if ((p.docType || "estimate") === t) return;
+    p.docType = t; p.title = t === "invoice" ? "INVOICE" : (CO[p.companyId] || CO.eternity).title;
+    if (!(t === "invoice" ? /^INV/i : /^EST/i).test(p.number || "")) p.number = nextNumber(t);
+    if (t === "invoice" && p.status === "Aceita") p.status = "Rascunho";
+    E.render();
+  };
+  AC.pToInvoice = function () {
+    var c = clone(S.pdraft); c.ref = c.number; c.id = null; c.docType = "invoice"; c.number = nextNumber("invoice"); c.title = "INVOICE"; c.status = "Rascunho"; c.date = today(); c.amountPaid = ""; c.notes = []; c.dueTerms = c.dueTerms || "Due upon receipt";
+    S.pdraft = c; S.pSpeech = ""; E.render(); window.scrollTo(0, 0); E.toast("Invoice criado a partir da proposta. Fale o que mudou (ex.: quanto já foi pago) e salve.");
+  };
+  AC.pAI = function (el) {
+    var mode = el.dataset.id, p = S.pdraft, t = $("#pSpeech"), speech = String((t ? t.value : S.pSpeech) || "").trim();
+    if (!speech) { E.toast("Fale ou escreva primeiro o que tem que ser feito."); return; }
+    micStop(); S.pSpeech = speech; S.pBusy = true; E.render();
+    API.aiProposal({ company: p.companyId, docType: p.docType || "estimate", speech: speech, client: p.client, today: today(), current: mode === "adjust" ? compact(p) : null })
+      .then(function (res) {
+        if (res && res.ok) { applyAI(p, res.result, mode, speech); S.pSpeech = ""; return { ok: true }; }
+        var why = { NO_KEY: "A IA ainda não foi ligada (falta a chave da Anthropic no Supabase).", NOT_DEPLOYED: "A IA ainda não foi instalada no Supabase.", DEMO: "Modo demonstração, sem IA.", FORBIDDEN: "Só administradores podem montar propostas.", OFFLINE: "Sem conexão com a IA agora.", EMPTY: "Nada para montar." }[res && res.error] || ("A IA não respondeu" + (res && res.detail ? ": " + res.detail : "") + ".");
+        if (mode === "new" && res && res.error !== "FORBIDDEN") { localBuild(p, speech); S.pSpeech = ""; return { ok: true, msg: why + " Montei uma versão simples pelas palavras faladas." }; }
+        return { ok: false, msg: why };
+      })
+      .catch(function (e) { return { ok: false, msg: (e && e.message) || "Erro ao montar." }; })
+      .then(function (r) {
+        S.pBusy = false; E.render();
+        if (!r.ok) { E.toast(r.msg); return; }
+        if (p.client.name || p.client.address) autoSave(r.msg); else E.toast(r.msg || "Pronto! Preencha o cliente e salve.");
+        var pv = $("#pPrev"); if (pv) pv.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+  };
+  function autoSave(msg) {
+    var p = S.pdraft; p.total = totalOf(p);
+    API.saveProposal(p).then(function (saved) { if (S.pdraft === p) { p.id = saved.id; } return reloadExt(); })
+      .then(function () { E.toast(msg || (isInv(p) ? "Invoice pronto e salvo." : "Proposta pronta e salva. Confira a prévia.")); })
+      .catch(function () { E.toast((msg ? msg + " " : "") + "Pronto, mas não salvou — toque em Salvar."); });
+  }
+  EXT.input.push(function (el) { if (el.id !== "pSpeech") return false; S.pSpeech = el.value; return true; });
+  EXT.change.push(function (el) { if (el.id !== "pLang") return false; S.pLang = el.value; if (S.pRec) { micStop(); micStart(); } return true; });
+
 
   // ═══════════ PREÇOS ═══════════
   var BASIC = {
