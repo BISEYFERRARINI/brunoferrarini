@@ -1,0 +1,22 @@
+# Mantém o banco de dados (Supabase, plano grátis) ativo.
+# O plano grátis pausa o projeto depois de 7 dias sem uso; este robô
+# faz uma consulta leve a cada 2 dias para isso não acontecer.
+name: Manter banco ativo
+
+on:
+  schedule:
+    - cron: "17 13 */2 * *"   # a cada 2 dias, ~9h da manhã (horário de Boston)
+  workflow_dispatch: {}        # permite rodar na mão pela aba Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta leve no banco
+        run: |
+          URL=$(grep -o 'https://[a-z0-9]*\.supabase\.co' <<< "$(curl -s https://eternity-electric.netlify.app/config.js)" | head -1)
+          KEY=$(curl -s https://eternity-electric.netlify.app/config.js | grep -o 'eyJ[A-Za-z0-9._-]*' | head -1)
+          code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$URL/rest/v1/rpc/needs_setup" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" -d '{}')
+          echo "Resposta do banco: $code"
+          test "$code" = "200"
