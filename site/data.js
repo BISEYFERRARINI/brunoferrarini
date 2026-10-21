@@ -296,7 +296,38 @@
           db.expenses.push(rec); persist(); return clone(rec);
         });
       },
-      deleteExpense: function (id) { db.expenses = db.expenses.filter(function (x) { return x.id !== id; }); persist(); return P(); }
+      deleteExpense: function (id) { db.expenses = db.expenses.filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      // propostas
+      listProposals: function (companyId) { db.proposals = db.proposals || []; return P(clone(db.proposals.filter(function (x) { return !companyId || x.companyId === companyId; }))); },
+      saveProposal: function (p) {
+        db.proposals = db.proposals || [];
+        var rec = clone(p); if (!rec.id) { rec.id = uid(); rec.createdAt = new Date().toISOString(); }
+        rec.updatedAt = new Date().toISOString();
+        var i = db.proposals.findIndex(function (x) { return x.id === rec.id; });
+        if (i >= 0) db.proposals[i] = rec; else db.proposals.unshift(rec);
+        persist(); return P(clone(rec));
+      },
+      deleteProposal: function (id) { db.proposals = (db.proposals || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      // materiais e preços
+      listMaterials: function () { db.materials = db.materials || []; return P(clone(db.materials)); },
+      saveMaterial: function (m) {
+        db.materials = db.materials || [];
+        var rec = clone(m); if (!rec.id) { rec.id = uid(); rec.prices = []; }
+        var i = db.materials.findIndex(function (x) { return x.id === rec.id; });
+        if (i >= 0) { rec.prices = db.materials[i].prices; db.materials[i] = rec; } else db.materials.push(rec);
+        persist(); return P(clone(rec));
+      },
+      saveMaterials: function (list) { var self = this; return list.reduce(function (pr, m) { return pr.then(function () { return self.saveMaterial(m); }); }, P()); },
+      deleteMaterial: function (id) { db.materials = (db.materials || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      addPrice: function (o) {
+        var m = (db.materials || []).find(function (x) { return x.id === o.materialId; });
+        var rec = { id: uid(), store: o.store, price: Number(o.price) || 0, date: o.date, note: o.note || "" };
+        m.prices = m.prices || []; m.prices.push(rec); persist(); return P(clone(rec));
+      },
+      deletePrice: function (materialId, priceId) { var m = (db.materials || []).find(function (x) { return x.id === materialId; }); if (m) m.prices = m.prices.filter(function (p) { return p.id !== priceId; }); persist(); return P(); },
+      listDeals: function () { return P(clone(db.deals || [])); },
+      saveDeal: function (d) { db.deals = db.deals || []; var rec = clone(d); rec.id = rec.id || uid(); var i = db.deals.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) db.deals[i] = rec; else db.deals.unshift(rec); persist(); return P(clone(rec)); },
+      deleteDeal: function (id) { db.deals = (db.deals || []).filter(function (x) { return x.id !== id; }); persist(); return P(); }
     };
   }
 
@@ -316,6 +347,7 @@
     }
     function mapTime(r) { return { id: r.id, userId: r.user_id, companyId: r.company_id, projectId: r.project_id, checkIn: r.check_in, checkOut: r.check_out, rate: Number(r.rate) || 0,
       inLoc: r.in_lat != null ? { lat: r.in_lat, lng: r.in_lng, ok: true } : { ok: false }, outLoc: r.out_lat != null ? { lat: r.out_lat, lng: r.out_lng, ok: true } : { ok: false }, inPhoto: r.in_photo, outPhoto: r.out_photo }; }
+    function mapProposal(r) { return Object.assign({}, r.data || {}, { id: r.id, companyId: r.company_id, number: r.number, status: r.status, total: Number(r.total) || 0, createdAt: r.created_at, updatedAt: r.updated_at }); }
     function mapExp(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, kind: r.kind, category: r.category, amount: Number(r.amount) || 0, vendor: r.vendor, date: r.date, note: r.note, receipt: r.receipt_path, createdBy: r.created_by }; }
 
     function loadLib() {
@@ -517,7 +549,50 @@
             amount: Number(x.amount) || 0, vendor: x.vendor || null, date: x.date, note: x.note || null, receipt_path: path, created_by: profile.id }).select().single();
         }).then(function (r) { return mapExp(chk(r)); });
       },
-      deleteExpense: function (id) { return sb.from("expenses").delete().eq("id", id).then(chk); }
+      deleteExpense: function (id) { return sb.from("expenses").delete().eq("id", id).then(chk); },
+      // propostas
+      listProposals: function (companyId) {
+        var q = sb.from("proposals").select("*").order("updated_at", { ascending: false });
+        if (companyId) q = q.eq("company_id", companyId);
+        return q.then(function (r) { return chk(r).map(mapProposal); });
+      },
+      saveProposal: function (p) {
+        var id = p.id || uid();
+        var data = JSON.parse(JSON.stringify(p)); ["id", "companyId", "number", "status", "total", "createdAt", "updatedAt"].forEach(function (k) { delete data[k]; });
+        return sb.from("proposals").upsert({ id: id, company_id: p.companyId, number: p.number || null, status: p.status || "Rascunho", total: Number(p.total) || 0, data: data, updated_at: new Date().toISOString() })
+          .select().single().then(function (r) { return mapProposal(chk(r)); });
+      },
+      deleteProposal: function (id) { return sb.from("proposals").delete().eq("id", id).then(chk); },
+      // materiais e preços
+      listMaterials: function () {
+        return sb.from("materials").select("*, material_prices(*)").order("name").then(function (r) {
+          return chk(r).map(function (m) { return { id: m.id, name: m.name, category: m.category, unit: m.unit, prices: (m.material_prices || []).map(function (p) { return { id: p.id, store: p.store, price: Number(p.price), date: p.date, note: p.note }; }) }; });
+        });
+      },
+      saveMaterial: function (m) {
+        var row = { name: m.name, category: m.category || null, unit: m.unit || null };
+        if (m.id) row.id = m.id;
+        return sb.from("materials").upsert(row).select().single().then(function (r) { var x = chk(r); return { id: x.id, name: x.name, category: x.category, unit: x.unit, prices: m.prices || [] }; });
+      },
+      saveMaterials: function (list) {
+        return sb.from("materials").insert(list.map(function (m) { return { name: m.name, category: m.category || null, unit: m.unit || null }; })).then(chk);
+      },
+      deleteMaterial: function (id) { return sb.from("materials").delete().eq("id", id).then(chk); },
+      addPrice: function (o) {
+        return sb.from("material_prices").insert({ material_id: o.materialId, store: o.store, price: Number(o.price) || 0, date: o.date, note: o.note || null }).select().single().then(function (r) { return chk(r); });
+      },
+      deletePrice: function (materialId, priceId) { return sb.from("material_prices").delete().eq("id", priceId).then(chk); },
+      listDeals: function () {
+        return sb.from("deals").select("*").order("created_at", { ascending: false }).then(function (r) {
+          return chk(r).map(function (d) { return { id: d.id, store: d.store, title: d.title, price: d.price == null ? null : Number(d.price), validUntil: d.valid_until, url: d.url, note: d.note, createdAt: d.created_at }; });
+        });
+      },
+      saveDeal: function (d) {
+        var row = { store: d.store, title: d.title, price: d.price === "" || d.price == null ? null : Number(d.price), valid_until: d.validUntil || null, url: d.url || null, note: d.note || null };
+        if (d.id) row.id = d.id;
+        return sb.from("deals").upsert(row).then(chk);
+      },
+      deleteDeal: function (id) { return sb.from("deals").delete().eq("id", id).then(chk); }
     };
   }
 

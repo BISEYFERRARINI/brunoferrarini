@@ -20,6 +20,7 @@
   function storeGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function storeSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   var hoursOf = API.hoursOf;
+  var EXT = { views: {}, actions: {}, nav: [], load: [], submit: {}, change: [], input: [] };
 
   var ICON = {
     bolt: '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13.2 2 4.5 13.4h6.1L9.8 22l8.7-11.6h-6.2L13.2 2Z"/></svg>',
@@ -31,6 +32,8 @@
     clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
     report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 17v-3M12 17v-6M15 17v-4"/></svg>',
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/></svg>',
+    doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h8l4 4v15H6z"/><path d="M14 2.5v4h4M9 12h6M9 16h6M9 8h2"/></svg>',
+    tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 12.5V4a1 1 0 0 1 1-1h8.5L21 11.5 12.5 20z"/><circle cx="8" cy="8" r="1.6"/></svg>',
     receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>'
   };
 
@@ -148,6 +151,7 @@
       S.projects = r[0]; S.time = r[1]; S.expenses = r[2];
       if (isAdmin) { S.fin = r[3] || {}; S.users = r[4] || []; }
       S.offline = false;
+      if (isAdmin) return Promise.all(EXT.load.map(function (f) { return f(co).catch(function () {}); }));
       if (API.mode === "live") storeSet(CK, JSON.stringify({ p: S.projects, t: S.time.slice(0, 600), e: S.expenses.slice(0, 600), f: S.fin, u: S.users, at: new Date().toISOString() }));
     }).catch(function (e) {
       // sem internet: mostra os últimos dados salvos neste aparelho
@@ -259,8 +263,9 @@
   }
 
   // ═══════════ admin shell ═══════════
-  var ADMIN_NAV = [["dashboard", "Painel", "dash"], ["gastos", "Gastos", "money"], ["projects", "Projetos", "folder"], ["time", "Ponto", "clock"], ["team", "Equipe", "team"], ["reports", "Relatórios", "report"]];
-  function navActive(v) { var map = { project: "projects", projectForm: "projects" }; return map[v] || v; }
+  var ADMIN_NAV_BASE = [["dashboard", "Painel", "dash"], ["gastos", "Gastos", "money"], ["projects", "Projetos", "folder"], ["proposals", "Propostas", "doc"], ["prices", "Preços", "tag"], ["time", "Ponto", "clock"], ["team", "Equipe", "team"], ["reports", "Relatórios", "report"]];
+  var ADMIN_NAV = ADMIN_NAV_BASE;
+  function navActive(v) { var map = { project: "projects", projectForm: "projects", proposalForm: "proposals" }; return map[v] || v; }
   function coSwitch() {
     return '<div class="co-switch" role="group" aria-label="Empresa">' + API.companies.map(function (c) {
       return '<button data-act="company" data-id="' + c.id + '" class="' + (S.company === c.id ? "on" : "") + '">' + esc(c.short) + "</button>";
@@ -274,7 +279,7 @@
       '<div class="side-foot"><span>' + esc(S.user.name) + " · Administrador</span>" + installBtn() + '<button data-act="logout">Sair</button></div></aside>';
     var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div class="brand-name" style="font-size:17px">Eternity Electric</div></div>' + coSwitch() + "</header>";
     var mob = '<nav class="mobile-nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + "<span>" + esc(n[1]) + "</span></button>"; }).join("") + "</nav>";
-    var body = ({ dashboard: dashboardView, gastos: gastosView, projects: projectsView, project: projectView, projectForm: wizardView, time: timeView, team: teamView, reports: reportsView })[S.view] || dashboardView;
+    var body = Object.assign({ dashboard: dashboardView, gastos: gastosView, projects: projectsView, project: projectView, projectForm: wizardView, time: timeView, team: teamView, reports: reportsView }, EXT.views)[S.view] || dashboardView;
     return '<div class="shell">' + side + '<div class="main">' + top + demoFlag() + body() + "</div></div>" + mob;
   }
   function offlineFlag() { return S.offline ? '<div class="demo-flag">Sem internet: mostrando os dados salvos em ' + fmtDate(S.offline) + " " + fmtTime(S.offline) + ". O ponto continua funcionando e é enviado quando a conexão voltar.</div>" : ""; }
@@ -738,6 +743,8 @@
         '<div class="grid2"><label class="field"><span>Entrada</span><input type="datetime-local" id="tIn" value="' + loc(t.checkIn) + '"></label><label class="field"><span>Saída</span><input type="datetime-local" id="tOut" value="' + loc(t.checkOut) + '"></label></div><button class="btn" type="submit">Salvar correção</button></form>';
     } else if (m.type === "image") {
       inner = m.urls.length ? '<div class="grid2">' + m.urls.map(function (u) { return '<div><div class="label">' + esc(u[0]) + '</div><img src="' + esc(u[1]) + '" alt="' + esc(u[0]) + '" style="border-radius:10px;margin-top:6px"></div>'; }).join("") + "</div>" : '<div class="empty">Sem imagem.</div>';
+    } else if (EXT.modals && EXT.modals[m.type]) {
+      inner = EXT.modals[m.type](m);
     } else if (m.type === "confirm") {
       inner = '<p>' + esc(m.text) + '</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="closeModal">Cancelar</button><button class="btn danger" data-act="' + m.act + '" data-id="' + m.id + '">' + esc(m.okLabel || "Confirmar") + "</button></div>";
     }
@@ -926,10 +933,13 @@
     if (!el) return;
     var act = el.dataset.act;
     if (el.tagName === "INPUT" || el.tagName === "SELECT") return; // handled on change
-    if (A[act]) { if (el.tagName === "A") return; ev.preventDefault(); A[act](el, ev); }
+    if (act === "modalBg" && ev.target !== el) return; // clique dentro do modal: deixa botões e formulários funcionarem
+    var fn = A[act] || EXT.actions[act];
+    if (fn) { if (el.tagName === "A" && el.getAttribute("href") !== "#") return; ev.preventDefault(); fn(el, ev); }
   });
   document.addEventListener("change", function (ev) {
     var el = ev.target;
+    for (var ci = 0; ci < EXT.change.length; ci++) { if (EXT.change[ci](el, ev)) return; }
     if (el.dataset.filter) {
       S.filters[el.dataset.filter] = el.value;
       if (el.dataset.filter === "preset") { if (el.value === "custom" && !S.filters.from) { S.filters.preset = "this_month"; applyPreset(); S.filters.preset = "custom"; } else applyPreset(); }
@@ -947,10 +957,11 @@
         .then(refresh).then(function () { toast("Arquivos enviados."); }).catch(function (e) { toast(e.message || "Erro ao enviar."); });
     }
   });
-  document.addEventListener("input", function (ev) { var el = ev.target; if (el.dataset.bind && S.draft && el.tagName !== "SELECT") set(S.draft, el.dataset.bind, el.value); });
+  document.addEventListener("input", function (ev) { var el = ev.target; for (var ii = 0; ii < EXT.input.length; ii++) { if (EXT.input[ii](el, ev)) return; } if (el.dataset.bind && S.draft && el.tagName !== "SELECT") set(S.draft, el.dataset.bind, el.value); });
   document.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var f = ev.target;
+    if (EXT.submit[f.id]) { EXT.submit[f.id](f, ev); return; }
     if (f.id === "setupForm") {
       var se = $("#suErr"); se.hidden = true;
       API.setupAdmin({ name: $("#suName").value.trim(), username: $("#suUser").value, password: $("#suPass").value })
@@ -997,6 +1008,10 @@
   if ("serviceWorker" in navigator && location.protocol === "https:" && !/claude|anthropic/.test(location.hostname)) {
     try { navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {}
   }
+
+  window.EE = { S: S, EXT: EXT, API: API, render: render, go: go, toast: toast, esc: esc, money: money, fmtDate: fmtDate, fmtPct: fmtPct, pct: pct, todayISO: todayISO,
+    companyName: companyName, tradeOf: tradeOf, companyProjects: companyProjects, projectById: projectById, statusPill: statusPill, ICON: ICON, refresh: refresh,
+    blankProject: blankProject, TRADE: TRADE, storeGet: storeGet, storeSet: storeSet, ring: ring };
 
   // boot
   $("#app").innerHTML = '<div class="login"><div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div class="brand-name">Eternity Electric</div></div></div>';
