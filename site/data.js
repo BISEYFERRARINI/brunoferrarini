@@ -387,7 +387,11 @@
       },
       signIn: function (username, pw) {
         return sb.auth.signInWithPassword({ email: email(username), password: pw }).then(function (r) {
-          if (r.error) throw new Error("Usuário ou senha incorretos.");
+          if (r.error) {
+            var m = (r.error.name || "") + " " + (r.error.message || "") + " " + (r.error.status || "");
+            if (!navigator.onLine || /fetch|network|retryable|timeout|5\d\d|\b0\b/i.test(m)) throw new Error("Não foi possível conectar ao servidor. Verifique a internet. Se a internet estiver ok, o banco de dados pode estar pausado: entre no Supabase e clique em Restore project.");
+            throw new Error("Usuário ou senha incorretos.");
+          }
           return loadProfile();
         }).then(function (p) {
           if (!p || !p.active) { sb.auth.signOut(); throw new Error("Este usuário ainda não foi ativado pelo administrador."); }
