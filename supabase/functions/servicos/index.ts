@@ -63,11 +63,21 @@ async function claude(system: string, content: unknown, tool: Record<string, unk
   return b.input;
 }
 
-// ── e-mail (Resend) ──
+// ── e-mail: pela conta Google do office@ (senha de app) ou pelo Resend ──
+let SMTP: any = null;
 async function sendEmail(o: { to: string | string[]; subject: string; html: string; replyTo?: string; bcc?: string[] }) {
+  const c = await cfg();
+  const gUser = Deno.env.get("GMAIL_USER"), gPass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
+  if (gUser && gPass) {
+    if (!SMTP) {
+      const nm: any = await import("npm:nodemailer@6.9.16");
+      SMTP = (nm.default || nm).createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gUser, pass: gPass } });
+    }
+    const info = await SMTP.sendMail({ from: `Eternity Electric <${gUser}>`, to: o.to, bcc: (o.bcc || []).filter((x) => x.toLowerCase() !== gUser.toLowerCase()), replyTo: o.replyTo || c.admin_email, subject: o.subject, html: o.html });
+    return { id: info.messageId };
+  }
   const key = Deno.env.get("RESEND_API_KEY");
   if (!key) throw new Error("NO_EMAIL_KEY");
-  const c = await cfg();
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
