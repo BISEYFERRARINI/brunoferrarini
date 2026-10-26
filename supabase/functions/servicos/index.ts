@@ -49,7 +49,7 @@ async function whoAmI(req: Request): Promise<Me | null> {
 
 // ── IA ──
 async function claude(system: string, content: unknown, tool: Record<string, unknown>, maxTokens = 4000) {
-  const key = Deno.env.get("ANTHROPIC_API_KEY");
+  const key = (Deno.env.get("ANTHROPIC_API_KEY") || "").trim().replace(/^["']|["']$/g, "");
   if (!key) throw new Error("NO_KEY");
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -339,6 +339,7 @@ Deno.serve(async (req: Request) => {
 
     const me = await whoAmI(req);
     if (!me) return out({ error: "LOGIN" });
+    if (action === "diag" && me.role === "admin") { const k = Deno.env.get("ANTHROPIC_API_KEY") || ""; return out({ ok: true, aiKey: { length: k.length, start: k.trim().slice(0, 12), spaces: k !== k.trim(), quotes: /["']/.test(k) }, gmail: !!Deno.env.get("GMAIL_APP_PASSWORD") }); }
     if (action === "readReceipt") return out({ ok: true, result: await readReceipt(me, b) });
     if (action === "notifyNotice") return out(await notifyNotice(me, b));
     if (me.role !== "admin") return out({ error: "FORBIDDEN" });
