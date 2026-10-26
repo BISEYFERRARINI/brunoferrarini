@@ -106,7 +106,7 @@ const TOOL = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
-    const key = Deno.env.get("ANTHROPIC_API_KEY");
+    const key = (Deno.env.get("ANTHROPIC_API_KEY") || "").trim();
     if (!key) return out({ error: "NO_KEY" });
 
     // só administradores (Bruno e sócio)
@@ -131,17 +131,22 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 8000,
-        system: systemPrompt(company, docType),
+        system: systemPrompt(company, docType) + "\n\nAlways answer ONLY by calling the `proposal` tool exactly once.",
         tools: [TOOL],
-        tool_choice: { type: "tool", name: "proposal" },
+        tool_choice: { type: "auto" },
         messages: [{ role: "user", content: user }],
       }),
     });
     const j = await r.json();
     if (!r.ok) return out({ error: "AI", detail: j?.error?.message || String(r.status) });
     const block = (j.content || []).find((c: { type: string }) => c.type === "tool_use");
-    if (!block) return out({ error: "AI", detail: "sem resposta estruturada" });
-    return out({ ok: true, result: block.input, model: MODEL });
+    let result = block ? block.input : null;
+    if (!result) {
+      const txt = (j.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+      const m = txt.match(/\{[\s\S]*\}/); if (m) { try { result = JSON.parse(m[0]); } catch (_) { /* segue */ } }
+    }
+    if (!result) return out({ error: "AI", detail: "sem resposta estruturada" });
+    return out({ ok: true, result, model: MODEL });
   } catch (e) {
     return out({ error: "FAIL", detail: String((e as Error)?.message || e) });
   }

@@ -54,13 +54,16 @@ async function claude(system: string, content: unknown, tool: Record<string, unk
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, tools: [tool], tool_choice: { type: "tool", name: tool.name }, messages: [{ role: "user", content }] }),
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system: system + `\n\nAlways answer ONLY by calling the \`${tool.name}\` tool exactly once.`, tools: [tool], tool_choice: { type: "auto" }, messages: [{ role: "user", content }] }),
   });
   const j = await r.json();
   if (!r.ok) throw new Error("AI: " + (j?.error?.message || r.status));
   const b = (j.content || []).find((c: { type: string }) => c.type === "tool_use");
-  if (!b) throw new Error("AI: sem resposta");
-  return b.input;
+  if (b) return b.input;
+  const txt = (j.content || []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
+  const m = txt.match(/\{[\s\S]*\}/);
+  if (m) { try { return JSON.parse(m[0]); } catch (_) { /* segue */ } }
+  throw new Error("AI: sem resposta");
 }
 
 // ── e-mail: pela conta Google do office@ (senha de app) ou pelo Resend ──
