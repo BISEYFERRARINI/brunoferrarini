@@ -509,6 +509,16 @@
   function blankProject() {
     return { id: null, companyId: S.company, name: "", client: "", address: "", lat: null, lng: null, radius: 150, status: "Active", startDate: todayISO(), estCompletion: "", details: { access: [], wiring: [], extras: [], equipment: [] }, scope: "", teamNotes: "", tasks: [], fin: { contractValue: "", materialBudget: "", laborBudget: "", estHours: "", clientEmail: "", clientPhone: "", dailyReport: "Sim" } };
   }
+  // valores em dinheiro no texto que a equipe vê (escopo / recado)
+  function moneyHits(t) {
+    var re = /(\$\s?\d[\d,.]*|\b(?:usd|us\$)\s?\d[\d,.]*|\b\d{1,3}(?:[.,]\d{3})+(?:[.,]\d{1,2})?\b|\b\d+(?:[.,]\d+)?\s?(?:mil|k|d[oó]lar(?:es)?|dollars?|bucks|reais)\b)/gi, out = [], m;
+    while ((m = re.exec(String(t || "")))) if (out.indexOf(m[1].trim()) < 0) out.push(m[1].trim());
+    return out;
+  }
+  function scopeWarnHtml(d) {
+    var h = moneyHits(d.scope).concat(moneyHits(d.teamNotes).filter(function (x) { return moneyHits(d.scope).indexOf(x) < 0; }));
+    return h.length ? '<div class="pill warn" style="white-space:normal;padding:8px 12px">⚠️ Achei valores que os funcionários vão ver: <b>' + h.slice(0, 6).map(esc).join(", ") + "</b>. Tire do texto se for preço.</div>" : "";
+  }
   function wizSteps() { var t = TRADE[tradeOf(S.draft.companyId)]; return ["Obra", "Tipo", "Condições", t.stepName, "Tarefas", "Escopo e plantas", "Valores"]; }
   function chooser(path, def, multi) {
     var v = get(S.draft, path);
@@ -558,7 +568,7 @@
         (custom.length ? '<div class="chips" style="margin-top:10px">' + custom.map(function (t) { return '<button type="button" class="chip on" data-act="toggleTask" data-group="' + esc(t.group) + '" data-val="' + esc(t.label) + '">✕ ' + esc(t.label) + "</button>"; }).join("") + "</div>" : "") + "</div>" +
         '<div class="muted small">' + d.tasks.length + " tarefas selecionadas</div></div>";
     } else if (step === 5) {
-      body = '<div class="stack"><label class="field"><span>Escopo do contrato (cole aqui o escopo que o contrato passa)</span><textarea id="w-scope" data-bind="scope" style="min-height:200px">' + esc(d.scope) + "</textarea></label>" +
+      body = '<div class="stack"><div class="muted small">Os funcionários veem o escopo e o recado. Não coloque preços aqui.</div><div id="scopeWarn">' + scopeWarnHtml(d) + '</div><label class="field"><span>Escopo do contrato (cole aqui o escopo que o contrato passa)</span><textarea id="w-scope" data-bind="scope" style="min-height:200px">' + esc(d.scope) + "</textarea></label>" +
         '<label class="field"><span>Recado para a equipe (chave, horários, cuidados, material)</span><textarea id="w-teamNotes" data-bind="teamNotes">' + esc(d.teamNotes) + "</textarea></label>" +
         '<div><span class="label">Plantas e documentos</span>' +
         '<label class="drop" style="margin-top:6px"><input type="file" data-act="wizFiles" multiple accept=".pdf,image/*,.dwg,.dxf,.doc,.docx,.xls,.xlsx"><b>Escolher plantas / PDFs</b><br><span class="small">Os arquivos são enviados quando você salvar o projeto</span></label>' +
@@ -1008,10 +1018,17 @@
         .then(function (d) { if (!d.length) { st.textContent = "Endereço não encontrado. Confira ou preencha latitude/longitude manualmente."; return; } S.draft.lat = Number(d[0].lat); S.draft.lng = Number(d[0].lon); render(); toast("Localização encontrada."); })
         .catch(function () { st.textContent = "Não foi possível buscar agora. Preencha latitude/longitude manualmente (Google Maps → clique no ponto)."; });
     },
+    saveProjectForce: function () { S.modal = null; S.draft._moneyOk = true; A.saveProject(); },
     saveProject: function () {
       var d = S.draft, err = $("#wizErr");
+      var hits = moneyHits(d.scope).concat(moneyHits(d.teamNotes));
+      if (hits.length && !d._moneyOk) {
+        S.wizStep = 5;
+        S.modal = { type: "confirm", title: "Atenção: valor no escopo", text: "O escopo ou o recado para a equipe tem valores: " + hits.slice(0, 6).join(", ") + ". Os funcionários vão ver esse texto. Volte e tire os preços, ou salve mesmo assim se não for preço (ex.: metragem).", act: "saveProjectForce", id: "x", okLabel: "Salvar mesmo assim" };
+        render(); return;
+      }
       if (!d.name.trim()) { S.wizStep = 0; render(); var e2 = $("#wizErr"); e2.textContent = "Dê um nome ao projeto."; e2.hidden = false; return; }
-      var fin = d.fin, files = S.draftFiles.slice(), proj = JSON.parse(JSON.stringify(d)); delete proj.fin;
+      var fin = d.fin, files = S.draftFiles.slice(), proj = JSON.parse(JSON.stringify(d)); delete proj.fin; delete proj._moneyOk; delete d._moneyOk;
       proj.lat = proj.lat === "" || proj.lat == null ? null : Number(proj.lat); proj.lng = proj.lng === "" || proj.lng == null ? null : Number(proj.lng);
       toast("Salvando…");
       API.saveProject(proj).then(function (saved) {
@@ -1118,7 +1135,7 @@
     }
   });
   function notaField(el) { var k = { nfProj: "projectId", nfAmt: "amount", nfDate: "date", nfVendor: "vendor" }[el.id]; if (k && S.nota) S.nota[k] = el.value; }
-  document.addEventListener("input", function (ev) { var el = ev.target; if (S.nota && /^nf/.test(el.id)) notaField(el); for (var ii = 0; ii < EXT.input.length; ii++) { if (EXT.input[ii](el, ev)) return; } if (el.dataset.bind && S.draft && el.tagName !== "SELECT") set(S.draft, el.dataset.bind, el.value); });
+  document.addEventListener("input", function (ev) { var el = ev.target; if (S.nota && /^nf/.test(el.id)) notaField(el); for (var ii = 0; ii < EXT.input.length; ii++) { if (EXT.input[ii](el, ev)) return; } if (el.dataset.bind && S.draft && el.tagName !== "SELECT") { set(S.draft, el.dataset.bind, el.value); if (/^(scope|teamNotes)$/.test(el.dataset.bind)) { S.draft._moneyOk = false; var w = $("#scopeWarn"); if (w) w.innerHTML = scopeWarnHtml(S.draft); } } });
   document.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var f = ev.target;

@@ -1,5 +1,5 @@
 // Service worker: keeps the app shell available offline.
-var CACHE = "eternity-v10";
+var CACHE = "eternity-v11";
 var SHELL = ["./", "./index.html", "./styles.css", "./config.js", "./data.js", "./app.js", "./proposals.js", "./icons/logo-eternity.jpg", "./icons/logo-eternity-sm.jpg", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 self.addEventListener("install", function (e) { e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); })); self.skipWaiting(); });
 self.addEventListener("activate", function (e) {
