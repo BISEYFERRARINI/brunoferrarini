@@ -34,6 +34,8 @@
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/></svg>',
     doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h8l4 4v15H6z"/><path d="M14 2.5v4h4M9 12h6M9 16h6M9 8h2"/></svg>',
     tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 12.5V4a1 1 0 0 1 1-1h8.5L21 11.5 12.5 20z"/><circle cx="8" cy="8" r="1.6"/></svg>',
+    calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16.5" rx="2"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>',
+    pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
     bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/></svg>',
     receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>'
   };
@@ -113,12 +115,13 @@
       }
     }
   };
+  var APPCO = API.companies[0], BRAND = APPCO.name, BRAND_ICON = '<img src="icons/mark-' + APPCO.id + '.png" alt="">';
   function tradeOf(companyId) { var c = API.companies.find(function (x) { return x.id === companyId; }); return c ? c.trade : "electrical"; }
   function companyName(id) { var c = API.companies.find(function (x) { return x.id === id; }); return c ? c.name : id; }
 
   // ═══════════ state ═══════════
   var S = {
-    user: null, company: "eternity", view: "dashboard", params: {},
+    user: null, company: APPCO.id, view: "dashboard", params: {},
     projects: [], fin: {}, users: [], time: [], expenses: [],
     filters: { preset: "all", from: "", to: "", projectId: "", userId: "" },
     gastoCat: "all", draft: null, draftFiles: [], wizStep: 0, modal: null, open: null, loc: null, installEvt: null
@@ -251,7 +254,7 @@
   // ═══════════ login ═══════════
   function setupView() {
     return '<div class="login"><form class="login-card" id="setupForm">' +
-      '<div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">Primeiro acesso</div></div></div>' +
+      '<div class="brand"><div class="brand-mark">' + BRAND_ICON + '</div><div><div class="brand-name">' + esc(BRAND) + '</div><div class="brand-sub">Primeiro acesso</div></div></div>' +
       '<div class="login-hint">Banco de dados novo. Crie agora o login do administrador (você). Os funcionários você cadastra depois, dentro do app.</div>' +
       '<label class="field"><span>Seu nome</span><input type="text" id="suName" required></label>' +
       '<label class="field"><span>Usuário (para entrar)</span><input type="text" id="suUser" autocapitalize="none" autocomplete="username" required placeholder="ex.: bruno"></label>' +
@@ -261,30 +264,30 @@
   function loginView() {
     if (S.setup) return setupView();
     return '<div class="login"><form class="login-card" id="loginForm">' +
-      '<div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">Gestão de obras</div></div></div>' +
+      '<div class="brand"><div class="brand-mark">' + BRAND_ICON + '</div><div><div class="brand-name">' + esc(BRAND) + '</div><div class="brand-sub">Gestão de obras</div></div></div>' +
       '<label class="field"><span>Usuário</span><input type="text" id="lgUser" autocomplete="username" autocapitalize="none" required></label>' +
       '<label class="field"><span>Senha</span><input type="password" id="lgPass" autocomplete="current-password" required></label>' +
       '<div class="err" id="lgErr" hidden></div>' +
       '<button class="btn block" type="submit">Entrar</button>' +
-      (API.mode === "demo" ? '<div class="login-hint"><b>Modo demonstração</b> (dados de exemplo)<br>Administrador: <b>bruno</b> / 1234<br>Funcionário: <b>joao</b> / 1234</div>' : '<div class="login-hint">Esqueceu a senha? Peça ao administrador para criar uma nova.</div>') +
+      (API.mode === "demo" ? '<div class="login-hint"><b>Modo demonstração</b> (dados de exemplo)<br>Administrador: <b>bruno</b> / 1234<br>Funcionário: <b>' + (S.company === "bluestar" ? "pedro" : "joao") + '</b> / 1234</div>' : '<div class="login-hint">Esqueceu a senha? Peça ao administrador para criar uma nova.</div>') +
       "</form></div>";
   }
 
   // ═══════════ admin shell ═══════════
-  var ADMIN_NAV_BASE = [["dashboard", "Painel", "dash"], ["gastos", "Despesas", "money"], ["projects", "Projetos", "folder"], ["proposals", "Propostas", "doc"], ["notas", "Notas", "receipt"], ["avisos", "Avisos", "bell"], ["prices", "Preços", "tag"], ["time", "Ponto", "clock"], ["team", "Equipe", "team"], ["reports", "Relatórios", "report"]];
+  var ADMIN_NAV_BASE = [["dashboard", "Painel", "dash"], ["agenda", "Agenda", "calendar"], ["gastos", "Despesas", "money"], ["projects", "Projetos", "folder"], ["escala", "Escala", "pin"], ["proposals", "Propostas", "doc"], ["notas", "Notas", "receipt"], ["avisos", "Avisos", "bell"], ["prices", "Preços", "tag"], ["time", "Ponto", "clock"], ["team", "Equipe", "team"], ["reports", "Relatórios", "report"]];
   var ADMIN_NAV = ADMIN_NAV_BASE;
-  function navActive(v) { var map = { project: "projects", projectForm: "projects", proposalForm: "proposals", hours: "dashboard" }; return map[v] || v; }
+  function navActive(v) { var map = { project: "projects", projectForm: "projects", proposalForm: "proposals", hours: "dashboard" }; if (S.user && S.user.role !== "admin" && v === "project") return "jobs"; return map[v] || v; }
   function navLabel(n) { var c = n[0] === "avisos" ? openNotices().length : 0; return esc(n[1]) + (c ? ' <span class="nav-badge">' + c + "</span>" : ""); }
   function coSwitch() { return ""; } // app só da Eternity
   function adminShell() {
     var cur = navActive(S.view);
     var co = API.companies.find(function (c) { return c.id === S.company; });
-    var side = '<aside class="sidebar"><div class="brand"><div class="brand-mark">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">' + (co.trade === "hvac" ? "Blue Star HVAC" : "Elétrica") + "</div></div></div>" +
+    var side = '<aside class="sidebar"><div class="brand"><div class="brand-mark">' + BRAND_ICON + '</div><div><div class="brand-name">' + esc(BRAND) + '</div><div class="brand-sub">' + (co.trade === "hvac" ? "HVAC" : "Elétrica") + "</div></div></div>" +
       coSwitch() + '<nav class="nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + navLabel(n) + "</button>"; }).join("") + "</nav>" +
       '<div class="side-foot"><span>' + esc(S.user.name) + " · Administrador</span>" + installBtn() + '<button data-act="logout">Sair</button></div></aside>';
-    var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div class="brand-name" style="font-size:17px">Eternity Electric</div></div>' + coSwitch() + "</header>";
+    var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + BRAND_ICON + '</div><div class="brand-name" style="font-size:17px">' + esc(BRAND) + '</div></div>' + coSwitch() + "</header>";
     var mob = '<nav class="mobile-nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + "<span>" + navLabel(n) + "</span></button>"; }).join("") + "</nav>";
-    var body = Object.assign({ dashboard: dashboardView, gastos: gastosView, hours: hoursView, notas: notasView, avisos: avisosView, projects: projectsView, project: projectView, projectForm: wizardView, time: timeView, team: teamView, reports: reportsView }, EXT.views)[S.view] || dashboardView;
+    var body = Object.assign({ dashboard: dashboardView, gastos: gastosView, hours: hoursView, notas: notasView, avisos: avisosView, agenda: agendaView, escala: escalaView, projects: projectsView, project: projectView, projectForm: wizardView, time: timeView, team: teamView, reports: reportsView }, EXT.views)[S.view] || dashboardView;
     return '<div class="shell">' + side + '<div class="main">' + top + demoFlag() + body() + "</div></div>" + mob;
   }
   function offlineFlag() { return S.offline ? '<div class="demo-flag">Sem internet: mostrando os dados salvos em ' + fmtDate(S.offline) + " " + fmtTime(S.offline) + ". O ponto continua funcionando e é enviado quando a conexão voltar.</div>" : ""; }
@@ -321,7 +324,7 @@
     var margin = P.revenue > 0 ? pct(P.profit, P.revenue) : 0;
     var progress = pct(m.tDone, m.tAll);
 
-    var banner = '<div class="proj-banner"><div class="bolt-badge">' + ICON.bolt + "</div><div style=\"min-width:0\">" +
+    var banner = '<div class="proj-banner"><div class="bolt-badge">' + BRAND_ICON + "</div><div style=\"min-width:0\">" +
       '<div class="label">' + (sel ? "Projeto selecionado" : "Todos os projetos") + "</div>" +
       '<div class="pname">' + esc(sel ? sel.name : m.scope.length + " projetos") + "</div>" +
       '<div class="pmeta">' + (sel ? esc([sel.client, sel.address].filter(Boolean).join(" · ")) : "Período: " + periodLabel()) + "</div></div>" +
@@ -585,7 +588,7 @@
         [["Projeto", d.name || "—"], ["Tipo", [d.details.sector, d.details.building, d.details.workType].filter(Boolean).join(" · ") || "—"], ["Tarefas", d.tasks.length], ["Arquivos para enviar", S.draftFiles.length], ["Limite de gastos", money(lim)], ["Lucro previsto", money((Number(d.fin.contractValue) || 0) - lim)]].map(function (r) { return '<div class="spec"><div class="label">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + "</div></div>"; }).join("") +
         "</div></div></div>";
     }
-    return '<div class="page-head"><div><button class="btn ghost sm" data-act="cancelWizard" style="margin-bottom:10px">← Cancelar</button><h1>' + (d.id ? "Editar projeto" : "Novo projeto") + "</h1><p>Eternity Electric</p></div></div>" +
+    return '<div class="page-head"><div><button class="btn ghost sm" data-act="cancelWizard" style="margin-bottom:10px">← Cancelar</button><h1>' + (d.id ? "Editar projeto" : "Novo projeto") + "</h1><p>" + esc(BRAND) + "</p></div></div>" +
       '<div class="steps">' + steps.map(function (s, i) { return '<button data-act="wizGo" data-id="' + i + '" class="' + (i === step ? "on" : i < step ? "done" : "") + '">' + (i + 1) + ". " + esc(s) + "</button>"; }).join("") + "</div>" +
       '<div class="panel">' + body + '<div class="err" id="wizErr" hidden></div></div>' +
       '<div class="wiz-foot"><button class="btn ghost" data-act="wizGo" data-id="' + Math.max(0, step - 1) + '"' + (step === 0 ? " disabled" : "") + ">← Voltar</button>" +
@@ -656,15 +659,15 @@
   }
 
   // ═══════════ employee shell ═══════════
-  var EMP_NAV = [["punch", "Ponto", "clock"], ["jobs", "Obras", "folder"], ["notas", "Notas", "receipt"], ["me", "Perfil", "user"]];
+  var EMP_NAV = [["punch", "Ponto", "clock"], ["escala", "Escala", "pin"], ["jobs", "Obras", "folder"], ["notas", "Notas", "receipt"], ["me", "Perfil", "user"]];
   function employeeShell() {
     var cur = S.view === "project" ? "jobs" : S.view;
     var co = API.companies.find(function (c) { return c.id === S.user.companyId; }) || API.companies[0];
-    var side = '<aside class="sidebar"><div class="brand"><div class="brand-mark">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">' + (co.trade === "hvac" ? "Blue Star HVAC" : "Elétrica") + '</div></div></div><nav class="nav">' +
+    var side = '<aside class="sidebar"><div class="brand"><div class="brand-mark">' + BRAND_ICON + '</div><div><div class="brand-name">' + esc(BRAND) + '</div><div class="brand-sub">' + (co.trade === "hvac" ? "HVAC" : "Elétrica") + '</div></div></div><nav class="nav">' +
       EMP_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + esc(n[1]) + "</button>"; }).join("") + '</nav><div class="side-foot"><span>' + esc(S.user.name) + "</span>" + installBtn() + '<button data-act="logout">Sair</button></div></aside>';
-    var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div><div class="brand-name" style="font-size:17px">Eternity Electric</div><div class="brand-sub">' + (co.trade === "hvac" ? "Blue Star HVAC" : "Elétrica") + "</div></div></div></header>";
+    var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + BRAND_ICON + '</div><div><div class="brand-name" style="font-size:17px">' + esc(BRAND) + '</div><div class="brand-sub">' + (co.trade === "hvac" ? "HVAC" : "Elétrica") + "</div></div></div></header>";
     var mob = '<nav class="mobile-nav">' + EMP_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + "<span>" + esc(n[1]) + "</span></button>"; }).join("") + "</nav>";
-    var body = ({ punch: punchView, jobs: jobsView, project: projectView, notas: notasView, myexp: myExpView, me: meView })[S.view] || punchView;
+    var body = ({ punch: punchView, jobs: jobsView, project: projectView, notas: notasView, escala: minhaEscalaView, myexp: myExpView, me: meView })[S.view] || punchView;
     return '<div class="shell">' + side + '<div class="main">' + top + offlineFlag() + (API.mode === "demo" ? '<div class="demo-flag">Modo demonstração — dados de exemplo.</div>' : "") + body() + "</div></div>" + mob;
   }
 
@@ -683,7 +686,10 @@
   function punchView() {
     var open = S.open, jobs = S.projects.filter(function (p) { return p.status === "Active" || p.status === "Planned"; });
     var near = nearest(), autoId = near && near.d <= (near.p.radius || 150) ? near.p.id : "";
+    var tdy = todayISO(); ensureRange("shifts", tdy, addDays(tdy, 14), API.listSchedule);
+    var todayShifts = myScheduleList(0);
     if (!S.params.projectId && autoId) S.params.projectId = autoId;
+    if (!S.params.projectId && todayShifts.length) S.params.projectId = todayShifts[0].projectId;
     var locLine = !S.loc ? '<div class="loc-bad">Buscando sua localização…</div>' : S.loc.ok ? (near ? '<div class="' + (autoId ? "loc-ok" : "loc-bad") + '">' + (autoId ? "Você está na obra: " + esc(near.p.name) : "Obra mais próxima: " + esc(near.p.name) + " (" + (near.d > 1000 ? (near.d / 1000).toFixed(1) + " km" : Math.round(near.d) + " m") + ")") + "</div>" : '<div class="loc-ok">Localização ok</div>') : '<div class="loc-bad">Localização indisponível. Ative o GPS para o ponto ficar completo.</div>';
     var mine = S.time.filter(function (t) { return t.userId === S.user.id; });
     var weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
@@ -701,6 +707,7 @@
     var pend = API.pendingPunches ? API.pendingPunches() : 0;
     return '<div class="page-head"><div><h1>Olá, ' + esc(S.user.name.split(" ")[0]) + "</h1><p>" + esc(companyName(S.user.companyId)) + "</p></div></div>" +
       (pend ? '<div class="demo-flag">' + pend + " ponto(s) salvos sem internet. Serão enviados quando a conexão voltar.</div>" : "") +
+      (todayShifts.length ? '<div class="panel today-card" style="margin-bottom:12px"><div class="label">Sua escala de hoje</div>' + todayShifts.map(function (x) { var p = projectById(x.projectId); return '<div style="font-size:17px;font-weight:600;margin-top:4px">' + (x.start ? x.start + " · " : "") + esc(p ? p.name : "Obra") + "</div>" + (x.note ? '<div class="small">📝 ' + esc(x.note) + "</div>" : ""); }).join("") + "</div>" : "") +
       '<input type="file" id="selfie" accept="image/*" capture="user" hidden>' + card +
       '<div class="grid2" style="margin-top:14px"><div class="panel"><div class="label">Horas nesta semana</div><div class="kpi-value v-info">' + hrs(weekH) + '</div></div><div class="panel"><div class="label">Dias trabalhados (30 dias)</div><div class="kpi-value">' + mine.filter(function (t) { return (Date.now() - new Date(t.checkIn)) < 30 * 864e5; }).length + "</div></div></div>" +
       '<div class="section-title"><h3>Meus registros</h3></div><div class="table-wrap"><table><thead><tr><th>Dia e obra</th><th>Horário</th><th class="n">Horas</th></tr></thead><tbody>' +
@@ -869,6 +876,114 @@
     });
   }
 
+  // ═══════════ agenda dos sócios ═══════════
+  var WD = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  var MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  function addDays(iso, n) { var d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n); return isoLocal(d); }
+  var rangeCache = {};
+  function ensureRange(kind, from, to, loader) {
+    var key = kind + from + to;
+    if (rangeCache[kind] === key) return true;
+    if (rangeCache[kind + "_loading"] === key) return false;
+    rangeCache[kind + "_loading"] = key;
+    loader(from, to).then(function (list) { S[kind] = list || []; rangeCache[kind] = key; rangeCache[kind + "_loading"] = ""; render(); })
+      .catch(function (e) { rangeCache[kind + "_loading"] = ""; toast(e.message || "Erro ao carregar."); });
+    return false;
+  }
+  function reloadRange(kind) { rangeCache[kind] = ""; render(); }
+  function admins() { return S.users.filter(function (u) { return u.role === "admin" && u.active; }); }
+  function whoLabel(w) { if (!w || w === "todos") return "Todos"; var u = userById(w); return u ? u.name.split(" ")[0] : "—"; }
+  function agendaView() {
+    var t = todayISO(), cal = S.cal || (S.cal = { month: t.slice(0, 7), day: t });
+    var first = cal.month + "-01", fd = new Date(first + "T12:00:00"), gridStart = addDays(first, -fd.getDay());
+    var lastDay = new Date(fd.getFullYear(), fd.getMonth() + 1, 0).getDate(), gridEnd = addDays(cal.month + "-" + String(lastDay).padStart(2, "0"), 6 - new Date(fd.getFullYear(), fd.getMonth(), lastDay).getDay());
+    var to = gridEnd > addDays(t, 14) ? gridEnd : addDays(t, 14), from = gridStart < t ? gridStart : t;
+    var ready = ensureRange("events", from, to, API.listEvents);
+    var ev = S.events || [], byDay = {};
+    ev.forEach(function (e) { (byDay[e.date] = byDay[e.date] || []).push(e); });
+    var cells = "", d = gridStart;
+    while (d <= gridEnd) {
+      var list = byDay[d] || [], other = d.slice(0, 7) !== cal.month;
+      cells += '<button type="button" class="cal-cell' + (other ? " other" : "") + (d === t ? " today" : "") + (d === cal.day ? " sel" : "") + '" data-act="calDay" data-id="' + d + '"><span class="cal-n">' + Number(d.slice(8)) + "</span>" +
+        list.slice(0, 3).map(function (e) { return '<span class="cal-ev' + (e.done ? " done" : "") + '">' + (e.start ? e.start + " " : "") + esc(e.title) + "</span>"; }).join("") + (list.length > 3 ? '<span class="cal-more">+' + (list.length - 3) + "</span>" : "") + "</button>";
+      d = addDays(d, 1);
+    }
+    var mIdx = fd.getMonth();
+    var dayList = byDay[cal.day] || [];
+    var upcoming = ev.filter(function (e) { return e.date >= t && e.date <= addDays(t, 14) && !e.done; });
+    return '<div class="page-head"><div><h1>Agenda</h1><p>Sua agenda e a do seu sócio juntas · cada item novo manda e-mail para vocês</p></div><button class="btn" data-act="evNew">+ Novo na agenda</button></div>' +
+      '<div class="panel"><div class="spread" style="margin-bottom:10px"><button class="btn ghost sm" data-act="calMonth" data-id="-1" aria-label="Mês anterior">◀</button><h3 style="margin:0">' + MONTHS[mIdx] + " " + fd.getFullYear() + (ready ? "" : ' <span class="spin" aria-hidden="true"></span>') + '</h3><button class="btn ghost sm" data-act="calMonth" data-id="1" aria-label="Próximo mês">▶</button></div>' +
+      '<div class="cal-grid">' + WD.map(function (w) { return '<div class="cal-wd">' + w + "</div>"; }).join("") + cells + "</div></div>" +
+      '<div class="grid2" style="margin-top:14px;align-items:start"><div><div class="section-title"><h3>' + fmtDate(cal.day) + " · " + WD[new Date(cal.day + "T12:00:00").getDay()] + '</h3><button class="btn ghost sm" data-act="evNew" data-id="' + cal.day + '">+ Neste dia</button></div>' +
+      (dayList.length ? '<div class="stack" style="gap:8px">' + dayList.map(evCard).join("") + "</div>" : '<div class="panel empty">Nada neste dia.</div>') + "</div>" +
+      '<div><div class="section-title"><h3>Próximos 14 dias</h3></div>' + (upcoming.length ? '<div class="stack" style="gap:8px">' + upcoming.map(function (e) { return evCard(e, true); }).join("") + "</div>" : '<div class="panel empty">Nada marcado.</div>') + "</div></div>";
+  }
+  function evCard(e, withDate) {
+    var p = e.projectId ? projectById(e.projectId) : null;
+    return '<div class="ev' + (e.done ? " done" : "") + '"><label class="ev-check"><input type="checkbox" data-act="evDone" data-id="' + e.id + '"' + (e.done ? " checked" : "") + ' aria-label="Feito"></label><div style="min-width:0;flex:1">' +
+      '<div class="ev-title">' + (withDate ? '<span class="muted">' + fmtDate(e.date) + "</span> " : "") + (e.start ? "<b>" + e.start + (e.end ? "–" + e.end : "") + "</b> " : "") + esc(e.title) + "</div>" +
+      '<div class="chips" style="margin-top:4px"><span class="pill accent">' + esc(whoLabel(e.who)) + "</span>" + (e.companyId ? '<span class="pill neutral">' + (e.companyId === "bluestar" ? "Blue Star" : "Eternity") + "</span>" : "") + (p ? '<span class="pill neutral">' + esc(p.name) + "</span>" : "") + "</div>" +
+      (e.notes ? '<div class="small" style="margin-top:4px;white-space:pre-wrap">' + esc(e.notes) + "</div>" : "") + '<div class="small muted" style="margin-top:2px">por ' + esc(e.createdByName || "") + "</div></div>" +
+      '<div class="row" style="gap:4px"><button class="btn ghost sm" data-act="evEdit" data-id="' + e.id + '">Editar</button><button class="btn ghost sm" data-act="evDel" data-id="' + e.id + '" aria-label="Apagar">✕</button></div></div>';
+  }
+  function evModal(m) {
+    var e = m.ev || { title: "", date: (S.cal && S.cal.day) || todayISO(), start: "", end: "", who: "todos", companyId: S.company, projectId: "", notes: "" };
+    return '<form id="evForm" class="stack"><label class="field"><span>O que é</span><input type="text" id="evTitle" required value="' + esc(e.title) + '" placeholder="Ex.: Visita técnica 53 Mason St, reunião com GC, inspeção final"></label>' +
+      '<div class="grid3"><label class="field"><span>Dia</span><input type="date" id="evDate" required value="' + esc(e.date) + '"></label><label class="field"><span>Início</span><input type="time" id="evStart" value="' + esc(e.start || "") + '"></label><label class="field"><span>Fim</span><input type="time" id="evEnd" value="' + esc(e.end || "") + '"></label></div>' +
+      '<div class="grid2"><label class="field"><span>Quem</span><select id="evWho"><option value="todos">Todos (você e o sócio)</option>' + admins().map(function (u) { return '<option value="' + u.id + '"' + (e.who === u.id ? " selected" : "") + ">" + esc(u.name) + "</option>"; }).join("") + "</select></label>" +
+      '<label class="field"><span>Empresa</span><select id="evCo"><option value="">Geral</option><option value="eternity"' + (e.companyId === "eternity" ? " selected" : "") + '>Eternity Electric</option><option value="bluestar"' + (e.companyId === "bluestar" ? " selected" : "") + ">Blue Star HVAC</option></select></label></div>" +
+      '<label class="field"><span>Obra (opcional)</span><select id="evProj"><option value="">—</option>' + companyProjects().filter(function (p) { return p.status !== "Cancelled"; }).map(function (p) { return '<option value="' + p.id + '"' + (e.projectId === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>"; }).join("") + "</select></label>" +
+      '<label class="field"><span>Observações</span><textarea id="evNotes" rows="3">' + esc(e.notes || "") + "</textarea></label>" +
+      (m.ev ? '<label class="row"><input type="checkbox" id="evNotify" style="width:auto"> Avisar por e-mail sobre a mudança</label>' : '<div class="muted small">Você e o seu sócio recebem um e-mail com este item.</div>') +
+      '<button class="btn" type="submit">' + (m.ev ? "Salvar" : "Adicionar na agenda") + "</button></form>";
+  }
+
+  // ═══════════ escala dos funcionários ═══════════
+  function weekStartISO(offset) { var d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - d.getDay() + 7 * (offset || 0)); return isoLocal(d); }
+  function shiftLabel(x) { var p = projectById(x.projectId); return (x.start ? x.start + " · " : "") + (p ? p.name : "Obra removida"); }
+  function escalaView() {
+    var off = S.schedWeek || 0, from = weekStartISO(off), to = addDays(from, 6), t = todayISO();
+    var ready = ensureRange("shifts", from, to, API.listSchedule);
+    var emps = S.users.filter(function (u) { return u.companyId === S.company && u.role !== "admin" && u.active; });
+    var days = []; for (var i = 0; i < 7; i++) days.push(addDays(from, i));
+    var sh = (S.shifts || []).filter(function (x) { return x.companyId === S.company; });
+    var head = "<tr><th>Funcionário</th>" + days.map(function (d, i) { return '<th class="' + (d === t ? "today" : "") + '">' + WD[i] + "<br><span class=\"small muted\">" + d.slice(8) + "/" + d.slice(5, 7) + "</span></th>"; }).join("") + "</tr>";
+    var rows = emps.map(function (u) {
+      return "<tr><td><b>" + esc(u.name) + "</b></td>" + days.map(function (d) {
+        var mine = sh.filter(function (x) { return x.userId === u.id && x.date === d; });
+        return '<td class="sched-cell' + (d === t ? " today" : "") + '">' + mine.map(function (x) { return '<button type="button" class="sched-chip" data-act="shiftEdit" data-id="' + x.id + '">' + esc(shiftLabel(x)) + "</button>"; }).join("") +
+          '<button type="button" class="sched-add" data-act="shiftNew" data-id="' + u.id + '" data-date="' + d + '" aria-label="Escalar ' + esc(u.name) + " em " + fmtDate(d) + '">+</button></td>';
+      }).join("") + "</tr>";
+    }).join("");
+    return '<div class="page-head"><div><h1>Escala</h1><p>Onde cada funcionário vai trabalhar · eles veem no app deles</p></div><button class="btn ghost" data-act="schedCopy">Copiar semana anterior</button></div>' +
+      '<div class="spread" style="margin-bottom:10px"><button class="btn ghost sm" data-act="schedWeek" data-id="-1">◀ Semana anterior</button><b>' + fmtDate(from) + " a " + fmtDate(to) + (ready ? "" : ' <span class="spin" aria-hidden="true"></span>') + '</b><button class="btn ghost sm" data-act="schedWeek" data-id="1">Próxima semana ▶</button></div>' +
+      (emps.length ? '<div class="table-wrap sched"><table><thead>' + head + "</thead><tbody>" + rows + "</tbody></table></div>" : '<div class="panel empty">Cadastre funcionários na aba Equipe para montar a escala.</div>');
+  }
+  function shiftModal(m) {
+    var x = m.shift || { userId: m.userId, date: m.date, projectId: "", start: "07:00", note: "" };
+    var jobs = companyProjects().filter(function (p) { return p.status !== "Cancelled" && p.status !== "Completed"; });
+    return '<form id="shiftForm" class="stack"><div class="muted">' + esc(userName(x.userId)) + " · " + WD[new Date(x.date + "T12:00:00").getDay()] + " " + fmtDate(x.date) + "</div>" +
+      '<label class="field"><span>Obra</span><select id="shProj" required><option value="">Escolha a obra</option>' + jobs.map(function (p) { return '<option value="' + p.id + '"' + (x.projectId === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>"; }).join("") + "</select></label>" +
+      '<div class="grid2"><label class="field"><span>Chegar às</span><input type="time" id="shStart" value="' + esc(x.start || "") + '"></label><label class="field"><span>Observação para ele</span><input type="text" id="shNote" value="' + esc(x.note || "") + '" placeholder="Ex.: levar escada de 10 ft"></label></div>' +
+      '<div class="row">' + (x.id ? '<button type="button" class="btn danger" data-act="shiftDel" data-id="' + x.id + '">Tirar da escala</button>' : "") + '<button class="btn" type="submit" style="margin-left:auto">Salvar</button></div></form>';
+  }
+  // funcionário: minha escala
+  function myScheduleList(days) {
+    var t = todayISO(), list = (S.shifts || []).filter(function (x) { return x.userId === S.user.id && x.date >= t && x.date <= addDays(t, days); }).sort(function (a, b) { return a.date + (a.start || "") < b.date + (b.start || "") ? -1 : 1; });
+    return list;
+  }
+  function minhaEscalaView() {
+    var t = todayISO(); ensureRange("shifts", t, addDays(t, 14), API.listSchedule);
+    var list = myScheduleList(14);
+    return '<div class="page-head"><div><h1>Minha escala</h1><p>Onde você vai trabalhar nos próximos dias</p></div></div>' +
+      (list.length ? '<div class="stack" style="gap:8px">' + list.map(function (x) {
+        var p = projectById(x.projectId);
+        return '<div class="panel' + (x.date === t ? " today-card" : "") + '"><div class="spread"><b>' + (x.date === t ? "Hoje" : WD[new Date(x.date + "T12:00:00").getDay()] + " " + fmtDate(x.date)) + "</b>" + (x.start ? '<span class="pill accent">' + x.start + "</span>" : "") + "</div>" +
+          '<div style="font-size:17px;font-weight:600;margin-top:4px">' + esc(p ? p.name : "Obra") + "</div>" + (p && p.address ? '<div class="small"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.address) + '" target="_blank" rel="noopener">' + esc(p.address) + " ↗</a></div>" : "") +
+          (x.note ? '<div class="small" style="margin-top:6px">📝 ' + esc(x.note) + "</div>" : "") + (p ? '<div style="margin-top:8px"><button class="btn ghost sm" data-act="openProject" data-id="' + p.id + '">Ver a obra e as tarefas</button></div>' : "") + "</div>";
+      }).join("") + "</div>" : '<div class="panel empty">Nenhuma escala marcada para os próximos dias.</div>');
+  }
+
   // ═══════════ modals ═══════════
   function modalView() {
     var m = S.modal, inner = "";
@@ -878,7 +993,8 @@
       var u = m.user || { name: "", username: "", role: "employee", companyId: S.company, rate: "", active: true };
       inner = '<form id="userForm" class="stack"><label class="field"><span>Nome completo</span><input type="text" id="uName" value="' + esc(u.name) + '" required></label>' +
         '<div class="grid2"><label class="field"><span>Usuário (login)</span><input type="text" id="uUser" value="' + esc(u.username) + '" autocapitalize="none" ' + (u.id ? "disabled" : "required") + '></label><label class="field"><span>' + (u.id ? "Nova senha (deixe vazio para manter)" : "Senha inicial") + '</span><input type="text" id="uPass" ' + (u.id ? "" : 'required minlength="6"') + "></label></div>" +
-        '<input type="hidden" id="uCo" value="eternity"><div class="grid2"><label class="field"><span>Função</span><select id="uRole"><option value="employee"' + (u.role !== "admin" ? " selected" : "") + '>Funcionário</option><option value="admin"' + (u.role === "admin" ? " selected" : "") + '>Administrador</option></select></label><label class="field"><span>Valor/hora $</span><input type="number" id="uRate" step="0.01" value="' + esc(u.rate) + '"></label></div>' +
+        '<input type="hidden" id="uCo" value="' + esc(S.company) + '"><div class="grid2"><label class="field"><span>Função</span><select id="uRole"><option value="employee"' + (u.role !== "admin" ? " selected" : "") + '>Funcionário</option><option value="admin"' + (u.role === "admin" ? " selected" : "") + '>Administrador</option></select></label><label class="field"><span>Valor/hora $</span><input type="number" id="uRate" step="0.01" value="' + esc(u.rate) + '"></label></div>' +
+        '<label class="field"><span>E-mail (recebe a agenda e os avisos' + (u.role === "admin" ? "" : " — opcional") + ')</span><input type="email" id="uEmail" value="' + esc(u.email || "") + '" autocapitalize="none"></label>' +
         (u.id ? '<label class="row"><input type="checkbox" id="uActive"' + (u.active ? " checked" : "") + "> Ativo (pode entrar no app)</label>" : "") +
         '<div class="err" id="uErr" hidden></div><button class="btn" type="submit">' + (u.id ? "Salvar" : "Criar funcionário") + "</button></form>";
     } else if (m.type === "time") {
@@ -888,6 +1004,10 @@
         '<div class="grid2"><label class="field"><span>Entrada</span><input type="datetime-local" id="tIn" value="' + loc(t.checkIn) + '"></label><label class="field"><span>Saída</span><input type="datetime-local" id="tOut" value="' + loc(t.checkOut) + '"></label></div><button class="btn" type="submit">Salvar correção</button></form>';
     } else if (m.type === "image") {
       inner = m.urls.length ? '<div class="grid2">' + m.urls.map(function (u) { return '<div><div class="label">' + esc(u[0]) + '</div><img src="' + esc(u[1]) + '" alt="' + esc(u[0]) + '" style="border-radius:10px;margin-top:6px"></div>'; }).join("") + "</div>" : '<div class="empty">Sem imagem.</div>';
+    } else if (m.type === "event") {
+      inner = evModal(m);
+    } else if (m.type === "shift") {
+      inner = shiftModal(m);
     } else if (EXT.modals && EXT.modals[m.type]) {
       inner = EXT.modals[m.type](m);
     } else if (m.type === "confirm") {
@@ -944,6 +1064,27 @@
         if (r && r.ok && x && x.sent) { toast("Relatório enviado para " + x.sent + "."); return refresh(); }
         toast(svcError(r, x && x.error));
       });
+    },
+    calDay: function (el) { S.cal.day = el.dataset.id; if (el.dataset.id.slice(0, 7) !== S.cal.month) S.cal.month = el.dataset.id.slice(0, 7); render(); },
+    calMonth: function (el) { var d = new Date(S.cal.month + "-15T12:00:00"); d.setMonth(d.getMonth() + Number(el.dataset.id)); S.cal.month = isoLocal(d).slice(0, 7); S.cal.day = S.cal.month + "-01"; render(); },
+    evNew: function (el) { S.modal = { type: "event", title: "Novo na agenda", date: el.dataset.id }; if (el.dataset.id) S.cal.day = el.dataset.id; render(); },
+    evEdit: function (el) { S.modal = { type: "event", title: "Editar", ev: (S.events || []).find(function (e) { return e.id === el.dataset.id; }) }; render(); },
+    evDel: function (el) { S.modal = { type: "confirm", title: "Apagar da agenda", text: "Apagar este item da agenda?", act: "evDelOk", id: el.dataset.id, okLabel: "Apagar" }; render(); },
+    evDelOk: function (el) { API.deleteEvent(el.dataset.id).then(function () { S.modal = null; reloadRange("events"); toast("Apagado."); }); },
+    shiftNew: function (el) { S.modal = { type: "shift", title: "Escalar funcionário", userId: el.dataset.id, date: el.dataset.date }; render(); },
+    shiftEdit: function (el) { var x = (S.shifts || []).find(function (y) { return y.id === el.dataset.id; }); S.modal = { type: "shift", title: "Escala", shift: x, userId: x.userId, date: x.date }; render(); },
+    shiftDel: function (el) { API.deleteShift(el.dataset.id).then(function () { S.modal = null; reloadRange("shifts"); toast("Tirado da escala."); }); },
+    schedWeek: function (el) { S.schedWeek = (S.schedWeek || 0) + Number(el.dataset.id); render(); },
+    schedCopy: function () {
+      var from = weekStartISO(S.schedWeek || 0), prevFrom = addDays(from, -7);
+      toast("Copiando…");
+      API.listSchedule(prevFrom, addDays(prevFrom, 6)).then(function (prev) {
+        prev = prev.filter(function (x) { return x.companyId === S.company; });
+        if (!prev.length) { toast("A semana anterior está vazia."); return; }
+        var have = (S.shifts || []).map(function (x) { return x.userId + x.date + x.projectId; });
+        var todo = prev.map(function (x) { return { companyId: x.companyId, userId: x.userId, date: addDays(x.date, 7), projectId: x.projectId, start: x.start, note: x.note }; }).filter(function (x) { return have.indexOf(x.userId + x.date + x.projectId) < 0; });
+        return todo.reduce(function (pr, x) { return pr.then(function () { return API.saveShift(x); }); }, Promise.resolve()).then(function () { reloadRange("shifts"); toast(todo.length + " escalas copiadas."); });
+      }).catch(function (e) { toast(e.message); });
     },
     payWeek: function (el) { S.payWeek = Number(el.dataset.id); render(); },
     payEmail: function () { toast("Enviando…"); API.services("weeklyPayroll", { email: true }).then(function (r) { toast(r && r.ok ? "Enviado para o seu e-mail." : svcError(r)); }); },
@@ -1125,6 +1266,7 @@
     if (el.dataset.act === "punchProject") { S.params.projectId = el.value; return; }
     if (el.id === "selfie" && el.files[0]) { doPunch(el.files[0]); return; }
     if (el.id === "notaFile" && el.files[0]) { startNota(el.files[0]); return; }
+    if (el.dataset.act === "evDone") { var ev = (S.events || []).find(function (e) { return e.id === el.dataset.id; }); if (ev) { ev.done = el.checked; API.saveEvent(Object.assign({}, ev)).then(render).catch(function (e) { toast(e.message); }); } return; }
     if (S.nota && /^nf/.test(el.id)) { notaField(el); return; }
     if (el.dataset.act === "wizFiles") { S.draftFiles = S.draftFiles.concat([].slice.call(el.files)); render(); return; }
     if (el.dataset.act === "uploadFiles") {
@@ -1140,6 +1282,18 @@
     ev.preventDefault();
     var f = ev.target;
     if (EXT.submit[f.id]) { EXT.submit[f.id](f, ev); return; }
+    if (f.id === "evForm") {
+      var old = S.modal.ev, ev = Object.assign({}, old || {}, { title: $("#evTitle").value.trim(), date: $("#evDate").value, start: $("#evStart").value, end: $("#evEnd").value, who: $("#evWho").value, companyId: $("#evCo").value, projectId: $("#evProj").value, notes: $("#evNotes").value.trim(), notify: !!($("#evNotify") && $("#evNotify").checked) });
+      if (!ev.title || !ev.date) return;
+      API.saveEvent(ev).then(function () { S.modal = null; S.cal.day = ev.date; S.cal.month = ev.date.slice(0, 7); reloadRange("events"); toast(old && !ev.notify ? "Salvo." : "Salvo na agenda. E-mail enviado para você e o sócio."); }).catch(function (e) { toast(e.message || "Erro ao salvar."); });
+      return;
+    }
+    if (f.id === "shiftForm") {
+      var m0 = S.modal, sx = Object.assign({}, m0.shift || {}, { companyId: S.company, userId: m0.userId, date: m0.date, projectId: $("#shProj").value, start: $("#shStart").value, note: $("#shNote").value.trim() });
+      if (!sx.projectId) { toast("Escolha a obra."); return; }
+      API.saveShift(sx).then(function () { S.modal = null; reloadRange("shifts"); toast("Escala salva."); }).catch(function (e) { toast(e.message || "Erro ao salvar."); });
+      return;
+    }
     if (f.id === "noticeForm") {
       var txt = $("#nText").value.trim(); if (!txt) return;
       var btn = f.querySelector("button[type=submit]"); btn.disabled = true;
@@ -1176,7 +1330,7 @@
       }).then(function () { S.modal = null; return refresh(); }).then(function () { toast("Lançamento salvo."); }).catch(function (e) { toast(e.message || "Erro ao salvar."); });
     } else if (f.id === "userForm") {
       var u = S.modal.user, ue = $("#uErr");
-      var data = { name: $("#uName").value.trim(), companyId: $("#uCo").value, role: $("#uRole").value, rate: $("#uRate").value, password: $("#uPass").value };
+      var data = { name: $("#uName").value.trim(), companyId: $("#uCo").value, role: $("#uRole").value, rate: $("#uRate").value, password: $("#uPass").value, email: $("#uEmail").value.trim() };
       var p = u ? API.updateUser(u.id, Object.assign(data, { active: $("#uActive").checked, password: data.password || undefined })) : API.createUser(Object.assign(data, { username: $("#uUser").value }));
       p.then(function () { S.modal = null; return refresh(); }).then(function () { toast(u ? "Funcionário atualizado." : "Funcionário criado. Passe o usuário e a senha para ele."); }).catch(function (e) { ue.textContent = e.message; ue.hidden = false; });
     } else if (f.id === "timeForm") {
@@ -1194,6 +1348,11 @@
   }
   window.addEventListener("online", function () { if (S.user) setTimeout(function () { loadData().then(function () { return S.user.role !== "admin" ? API.openShift(S.user.id).then(function (o) { S.open = o; }).catch(function () {}) : null; }).then(render).catch(function () {}); }, 4000); });
   function afterLogin(user) {
+    if (user.role !== "admin" && user.companyId !== S.company) {
+      API.signOut();
+      var other = user.companyId === "bluestar" ? "Blue Star HVAC" : "Eternity Electric";
+      return Promise.reject(new Error("Este usuário é da " + other + ". Use o app da " + other + "."));
+    }
     S.user = user;
     if (user.role !== "admin") { S.company = user.companyId; S.view = "punch"; } else { S.view = "dashboard"; }
     applyPreset();
@@ -1211,10 +1370,10 @@
 
   // boot (o link da proposta para o cliente é tratado em proposals.js)
   if (/[?&]proposta=/.test(location.search)) return;
-  $("#app").innerHTML = '<div class="login"><div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div class="brand-name">Eternity Electric</div></div></div>';
+  $("#app").innerHTML = '<div class="login"><div class="brand"><div class="brand-mark">' + BRAND_ICON + '</div><div class="brand-name">' + esc(BRAND) + '</div></div></div>';
   API.init().then(function () { return API.session(); }).then(function (u) {
     if (u) return afterLogin(u);
     return (API.needsSetup ? API.needsSetup() : Promise.resolve(false)).then(function (n) { S.setup = n; render(); });
   })
-    .catch(function (e) { $("#app").innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">Eternity Electric</div><div class="err">' + esc(e.message || "Erro ao iniciar.") + "</div></div></div>"; });
+    .catch(function (e) { $("#app").innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">' + esc(BRAND) + '</div><div class="err">' + esc(e.message || "Erro ao iniciar.") + "</div></div></div>"; });
 })();

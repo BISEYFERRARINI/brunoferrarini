@@ -1,7 +1,7 @@
 {
   "name": "Eternity Electric",
   "short_name": "Eternity",
-  "description": "Ponto, projetos e gastos — Eternity Electric e Blue Star HVAC",
+  "description": "Ponto, obras, propostas e gastos — Eternity Electric",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

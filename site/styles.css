@@ -113,7 +113,7 @@ a { color: var(--info); }
 .btn[disabled] { opacity: .5; cursor: not-allowed; }
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .field > span { font-size: 12.5px; font-weight: 600; color: var(--muted); }
-input[type=text], input[type=number], input[type=password], input[type=date], input[type=search], select, textarea {
+input[type=text], input[type=number], input[type=password], input[type=date], input[type=search], input[type=email], input[type=tel], input[type=time], input[type=datetime-local], select, textarea {
   width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 14.5px; min-width: 0;
 }
 textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
@@ -381,3 +381,29 @@ tr.total-row td { border-top: 2px solid var(--line); }
   #print-root.pub .box { padding: 12px !important; }
 }
 .pub-accept label.row { display: flex; }
+.brand-mark:has(img), .bolt-badge:has(img) { background: transparent; }
+.brand-mark img, .bolt-badge img { width: 100%; height: 100%; object-fit: contain; display: block; }
+/* agenda */
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.cal-wd { font-size: 12px; font-weight: 600; color: var(--muted); text-align: center; padding: 4px 0; }
+.cal-cell { min-height: 86px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 4px; display: flex; flex-direction: column; gap: 2px; text-align: left; cursor: pointer; color: var(--ink); overflow: hidden; }
+.cal-cell.other { opacity: .45; }
+.cal-cell.today .cal-n { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 6px; }
+.cal-cell.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+.cal-n { font-size: 12.5px; font-weight: 700; align-self: flex-start; }
+.cal-ev { font-size: 11px; line-height: 1.25; background: var(--accent-soft); border-radius: 4px; padding: 1px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-ev.done { text-decoration: line-through; opacity: .6; }
+.cal-more { font-size: 11px; color: var(--muted); }
+@media (max-width: 640px) { .cal-cell { min-height: 54px; padding: 3px; } .cal-ev { font-size: 0; height: 6px; padding: 0; } .cal-more { font-size: 10px; } }
+.ev { display: flex; gap: 10px; align-items: flex-start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.ev.done { opacity: .6; }
+.ev.done .ev-title { text-decoration: line-through; }
+.ev-check input { width: 20px; height: 20px; margin-top: 2px; }
+.ev-title { font-size: 15px; }
+/* escala */
+.sched table td, .sched table th { vertical-align: top; min-width: 110px; }
+.sched th.today, .sched td.today { background: var(--accent-soft); }
+.sched-cell { display: flex; flex-direction: column; gap: 4px; }
+.sched-chip { text-align: left; font-size: 12.5px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px; cursor: pointer; color: var(--ink); }
+.sched-add { border: 1px dashed var(--line); background: none; border-radius: 6px; color: var(--muted); cursor: pointer; padding: 2px; }
+.today-card { border-left: 4px solid var(--accent); }

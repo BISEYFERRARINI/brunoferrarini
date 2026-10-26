@@ -41,10 +41,10 @@
   // ═══════════ empresas (cabeçalho do documento) ═══════════
   var CO = {
     eternity: { brand: "Eternity Electric", title: "ELECTRICAL PROPOSAL", tagline: "LICENSED ELECTRICAL CONTRACTOR", contact: "Commonwealth of Massachusetts · office@eternityelectrical.com",
-      footer: "Eternity Electric · office@eternityelectrical.com · Licensed Electrical Contractor MA", role: "Licensed Electrical Contractor", logo: "icons/logo-eternity.jpg", logoSm: "icons/logo-eternity-sm.jpg",
+      footer: "Eternity Electric · office@eternityelectrical.com · Licensed Electrical Contractor MA", role: "Licensed Electrical Contractor", logo: "icons/logo-eternity.png", logoSm: "icons/mark-eternity.png",
       accent: "#B08A4A", dark: "#2B241D", bg: "#FBF7F1", payTo: "Eternity Electric" },
-    bluestar: { brand: "Blue Star HVAC", title: "HVAC PROPOSAL", tagline: "HEATING · VENTILATION · AIR CONDITIONING", contact: "Blue Star HVAC Inc. · Watertown, Massachusetts",
-      footer: "Blue Star HVAC Inc. · Watertown, MA", role: "HVAC Contractor", logo: null, logoSm: null, accent: "#2462B0", dark: "#13233A", bg: "#F7F9FC", payTo: "Blue Star HVAC Inc." }
+    bluestar: { brand: "Blue Star HVAC", title: "HVAC PROPOSAL", tagline: "LICENSED HVAC CONTRACTOR", contact: "9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com · (857) 505-5740 · (774) 244-7256",
+      footer: "Blue Star HVAC Inc. · 9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com", role: "Licensed HVAC Contractor", logo: "icons/logo-bluestar.png", logoSm: "icons/mark-bluestar.png", logoW: "2.5in", accent: "#B3202A", dark: "#13233A", bg: "#F7F9FC", payTo: "Blue Star HVAC Inc." }
   };
 
   var SECTIONS = {
@@ -100,8 +100,8 @@
       : "This proposal covers the HVAC scope of work for " + what + " at " + where + ". Work will be performed in accordance with the Massachusetts State Building Code 780 CMR (10th edition), the Massachusetts Fuel Gas Code (248 CMR) where applicable, the manufacturer's installation instructions, and the requirements of the local Authority Having Jurisdiction.";
   }
   function nextNumber(type) {
-    var inv = type === "invoice", max = inv ? 1000 : 366, re = inv ? /^INV/i : /^EST/i;
-    S.proposals.forEach(function (p) { if (!re.test(p.number || "")) return; var m = /(\d+)/.exec(p.number || ""); if (m) max = Math.max(max, Number(m[1])); });
+    var inv = type === "invoice", blue = S.company === "bluestar", max = inv ? (blue ? 5000 : 1000) : (blue ? 1000 : 366), re = inv ? /^INV/i : /^EST/i;
+    S.proposals.forEach(function (p) { if (p.companyId !== S.company || !re.test(p.number || "")) return; var m = /(\d+)/.exec(p.number || ""); if (m) max = Math.max(max, Number(m[1])); });
     return (inv ? "INV" : "EST") + (max + 1);
   }
   function blankProposal() {
@@ -237,7 +237,7 @@
   // ═══════════ documento (PDF) ═══════════
   function buildDoc(p) {
     var c = CO[p.companyId] || CO.eternity, hd = p.header || {}, A = c.accent, D = c.dark;
-    var logoBig = c.logo ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="width:3.3in;max-width:100%;display:block;margin:0 auto">' : '<div style="font-size:40pt;font-weight:700;letter-spacing:.04em;color:' + D + '">' + esc(c.brand.toUpperCase()) + "</div>";
+    var logoBig = c.logo ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="width:' + (c.logoW || "3.3in") + ';max-width:100%;display:block;margin:0 auto">' : '<div style="font-size:40pt;font-weight:700;letter-spacing:.04em;color:' + D + '">' + esc(c.brand.toUpperCase()) + "</div>";
     var logoSm = c.logoSm ? '<img src="' + c.logoSm + '" alt="" style="height:.42in">' : '<span style="font-weight:700;color:' + D + ';letter-spacing:.06em">' + esc(c.brand.toUpperCase()) + "</span>";
     var validity = (p.validityDays || 30) + " days from issue date";
     var css = '<style>@page{size:letter;margin:.45in .6in .5in}' +
@@ -524,6 +524,8 @@
       var v = m[1] || m[2] ? Number(String(m[1] || m[2]).replace(/[.,](?=\d{3}\b)/g, "").replace(",", ".")) : m[3] ? Number(m[3].replace(",", ".")) * 1000 : Number(m[4]);
       if (v >= 300 && v < 5e6 && v > best) best = v;
     }
+    var m2 = /(?:pre[cç]o|valor|total|cobra[r]?|price)\s*(?:de|é|e|:)?\s*\$?\s?(\d+(?:[.,]\d+)?)/i.exec(t);
+    if (!best && m2) { var v2 = Number(m2[1].replace(",", ".")); if (v2 >= 50) best = v2; }
     return best;
   }
   function localBuild(p, speech) {
@@ -683,13 +685,24 @@
       '<p class="muted small" style="margin-top:12px">Toque num preço para atualizar. As lojas de material elétrico mostram preço só para clientes com conta; use o preço da sua cotação ou nota fiscal.</p>' + dealsHtml;
   }
 
+  var promoFile = null;
+  function loadPromoFile() {
+    if (promoFile !== null) return;
+    promoFile = [];
+    fetch("promos.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !Array.isArray(j.items)) return;
+      promoFile = j.items.map(function (d, i) { return { id: "pf" + i, store: d.store, title: d.title, price: d.price == null ? null : Number(d.price), wasPrice: d.was_price == null ? null : Number(d.was_price), image: d.image_url, url: d.url, note: d.note, validUntil: d.valid_until, source: "auto", fetchedAt: j.updated_at }; });
+      if (S.view === "prices") E.render();
+    }).catch(function () {});
+  }
   function promoView() {
-    var auto = S.deals.filter(function (d) { return d.source === "auto"; }), sf = S.promoStore || "";
+    loadPromoFile();
+    var auto = S.deals.filter(function (d) { return d.source === "auto"; }).concat(promoFile || []).filter(function (d) { return !d.validUntil || d.validUntil >= today(); }), sf = S.promoStore || "";
     var stores = {}; auto.forEach(function (d) { stores[d.store] = (stores[d.store] || 0) + 1; });
     var list = auto.filter(function (d) { return !sf || d.store === sf; }).sort(function (a, b) {
       var sa = a.wasPrice && a.price ? (a.wasPrice - a.price) / a.wasPrice : 0, sb2 = b.wasPrice && b.price ? (b.wasPrice - b.price) / b.wasPrice : 0; return sb2 - sa; });
     var when = auto.reduce(function (a, d) { return d.fetchedAt > a ? d.fetchedAt : a; }, "");
-    return '<div class="spread" style="margin-bottom:10px"><p class="muted small" style="margin:0">Só material elétrico em liquidação / promoção nas suas lojas. Atualiza sozinho todo dia às 7h30' + (when ? " · última busca " + E.fmtDate(when) + " " + new Date(when).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "") + '.</p><button class="btn sm" data-act="prFetch"' + (S.prBusy ? " disabled" : "") + ">" + (S.prBusy ? '<span class="spin" aria-hidden="true"></span> Buscando… (1 a 2 min)' : "Buscar agora") + "</button></div>" +
+    return '<div class="spread" style="margin-bottom:10px"><p class="muted small" style="margin:0">Só material elétrico em liquidação / promoção nas suas lojas. Vem dos e-mails de promoção das lojas e atualiza sozinho todo dia às 7h45' + (when ? " · última busca " + E.fmtDate(when) + " " + new Date(when).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "") + '.</p><button class="btn sm" data-act="prFetch"' + (S.prBusy ? " disabled" : "") + ">" + (S.prBusy ? '<span class="spin" aria-hidden="true"></span> Buscando… (1 a 2 min)' : "Buscar agora") + "</button></div>" +
       (Object.keys(stores).length > 1 ? '<div class="chips" style="margin-bottom:12px"><button type="button" class="chip' + (!sf ? " on" : "") + '" data-act="prStore" data-id="">Todas (' + auto.length + ")</button>" + Object.keys(stores).map(function (k) { return '<button type="button" class="chip' + (sf === k ? " on" : "") + '" data-act="prStore" data-id="' + k + '">' + esc(storeName(k)) + " (" + stores[k] + ")</button>"; }).join("") + "</div>" : "") +
       (list.length ? '<div class="deal-grid">' + list.map(function (d) {
         var off = d.wasPrice && d.price ? Math.round((d.wasPrice - d.price) / d.wasPrice * 100) : 0;
@@ -701,6 +714,7 @@
         : '<div class="panel empty">' + (when ? "Nenhuma liquidação de material elétrico encontrada na última busca." : "Ainda não buscamos as promoções. Toque em “Buscar agora”.") + "</div>");
   }
   EXT.views.prices = function () {
+    if (E.tradeOf(S.company) === "hvac") return '<div class="page-head"><div><h1>Preços</h1><p>Seus preços de material e equipamento por fornecedor</p></div></div>' + myPricesView();
     var tab = S.prTab || "promo";
     return '<div class="page-head"><div><h1>Preços</h1><p>Liquidações das lojas e seus preços de material</p></div></div>' +
       '<div class="tabs"><button data-act="prTab" data-id="promo" class="' + (tab === "promo" ? "on" : "") + '">Promoções</button><button data-act="prTab" data-id="mine" class="' + (tab === "mine" ? "on" : "") + '">Meus preços</button></div>' +

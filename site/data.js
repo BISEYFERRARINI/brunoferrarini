@@ -6,9 +6,12 @@
   "use strict";
 
   // Só a Eternity neste app (a Blue Star vai ter um app separado; os dados dela continuam guardados no banco)
-  var COMPANIES = [
-    { id: "eternity", name: "Eternity Electric", trade: "electrical", short: "Eternity" }
+  var ALL_COMPANIES = [
+    { id: "eternity", name: "Eternity Electric", trade: "electrical", short: "Eternity" },
+    { id: "bluestar", name: "Blue Star HVAC", trade: "hvac", short: "Blue Star" }
   ];
+  var APP_CO = (window.APP_CONFIG && window.APP_CONFIG.COMPANY) || "eternity";
+  var COMPANIES = ALL_COMPANIES.filter(function (c) { return c.id === APP_CO; });
   function finOut(f) {
     var mat = Number(f.materialBudget) || 0, lab = Number(f.laborBudget) || 0;
     return { contractValue: Number(f.contractValue) || 0, budget: mat + lab > 0 ? mat + lab : Number(f.budget) || 0, estHours: Number(f.estHours) || 0, materialBudget: mat, laborBudget: lab,
@@ -175,7 +178,7 @@
       }
     }
     function me() { var id = safeGet(SESSION); return db.users.find(function (u) { return u.id === id; }) || null; }
-    function pub(u) { return u ? { id: u.id, username: u.username, name: u.name, role: u.role, companyId: u.companyId, rate: u.rate, active: u.active } : null; }
+    function pub(u) { return u ? { id: u.id, username: u.username, name: u.name, role: u.role, companyId: u.companyId, rate: u.rate, active: u.active, email: u.email || "" } : null; }
     function clone(x) { return JSON.parse(JSON.stringify(x)); }
     function P(v) { return Promise.resolve(v); }
 
@@ -198,13 +201,13 @@
       createUser: function (u) {
         var uname = String(u.username || "").trim().toLowerCase();
         if (db.users.some(function (x) { return x.username === uname; })) return Promise.reject(new Error("Esse usuário já existe."));
-        var rec = { id: uid(), username: uname, password: u.password, name: u.name, role: u.role || "employee", companyId: u.companyId, rate: Number(u.rate) || 0, active: true };
+        var rec = { id: uid(), username: uname, password: u.password, name: u.name, role: u.role || "employee", companyId: u.companyId, rate: Number(u.rate) || 0, active: true, email: u.email || "" };
         db.users.push(rec); persist(); return P(pub(rec));
       },
       updateUser: function (id, patch) {
         var u = db.users.find(function (x) { return x.id === id; });
         if (!u) return Promise.reject(new Error("Funcionário não encontrado."));
-        ["name", "role", "companyId", "rate", "active"].forEach(function (k) { if (patch[k] !== undefined) u[k] = k === "rate" ? Number(patch[k]) || 0 : patch[k]; });
+        ["name", "role", "companyId", "rate", "active", "email"].forEach(function (k) { if (patch[k] !== undefined) u[k] = k === "rate" ? Number(patch[k]) || 0 : patch[k]; });
         if (patch.password) u.password = patch.password;
         persist(); return P(pub(u));
       },
@@ -327,6 +330,12 @@
       },
       resolveNotice: function (id, v) { var n = (db.notices || []).find(function (x) { return x.id === id; }); if (n) { n.resolved = v; n.resolvedAt = v ? new Date().toISOString() : null; persist(); } return P(); },
       deleteNotice: function (id) { db.notices = (db.notices || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      listEvents: function (from, to) { db.events = db.events || []; return P(clone(db.events.filter(function (e) { return e.date >= from && e.date <= to; }).sort(function (a, b) { return (a.date + (a.start || "")) < (b.date + (b.start || "")) ? -1 : 1; }))); },
+      saveEvent: function (e) { db.events = db.events || []; var u = me(), rec = clone(e); if (!rec.id) { rec.id = uid(); rec.createdBy = u.id; rec.createdByName = u.name; } var i = db.events.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) db.events[i] = rec; else db.events.push(rec); persist(); return P(clone(rec)); },
+      deleteEvent: function (id) { db.events = (db.events || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      listSchedule: function (from, to) { db.schedule = db.schedule || []; var u = me(); return P(clone(db.schedule.filter(function (x) { return x.date >= from && x.date <= to && (!u || u.role === "admin" || x.userId === u.id); }))); },
+      saveShift: function (x) { db.schedule = db.schedule || []; var rec = clone(x); if (!rec.id) rec.id = uid(); var i = db.schedule.findIndex(function (y) { return y.id === rec.id; }); if (i >= 0) db.schedule[i] = rec; else db.schedule.push(rec); persist(); return P(clone(rec)); },
+      deleteShift: function (id) { db.schedule = (db.schedule || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
       // materiais e preços
       listMaterials: function () { db.materials = db.materials || []; return P(clone(db.materials)); },
       saveMaterial: function (m) {
@@ -357,7 +366,9 @@
     function email(u) { return String(u).trim().toLowerCase() + "@" + cfg.LOGIN_DOMAIN; }
     function chk(r) { if (r.error) throw new Error(r.error.message); return r.data; }
 
-    function mapUser(r) { return r ? { id: r.id, username: r.username, name: r.full_name, role: r.role, companyId: r.company_id, rate: Number(r.hourly_rate) || 0, active: r.active } : null; }
+    function mapUser(r) { return r ? { id: r.id, username: r.username, name: r.full_name, role: r.role, companyId: r.company_id, rate: Number(r.hourly_rate) || 0, active: r.active, email: r.email || "" } : null; }
+    function mapEvent(r) { return { id: r.id, title: r.title, date: r.date, start: r.start_time ? r.start_time.slice(0, 5) : "", end: r.end_time ? r.end_time.slice(0, 5) : "", companyId: r.company_id, projectId: r.project_id, who: r.who, notes: r.notes, done: r.done, createdBy: r.created_by, createdByName: r.created_by_name, createdAt: r.created_at }; }
+    function mapShift(r) { return { id: r.id, companyId: r.company_id, userId: r.user_id, date: r.date, projectId: r.project_id, start: r.start_time ? r.start_time.slice(0, 5) : "", note: r.note }; }
     function mapProject(r) {
       return { id: r.id, companyId: r.company_id, name: r.name, client: r.client, address: r.address, lat: r.lat, lng: r.lng, radius: r.radius_m || 150,
         status: r.status, startDate: r.start_date, estCompletion: r.est_completion, details: r.details || {}, scope: r.scope || "", teamNotes: r.team_notes || "",
@@ -475,7 +486,7 @@
           if (r.error) throw new Error(/registered/i.test(r.error.message) ? "Esse usuário já existe." : r.error.message);
           if (!r.data.user || (r.data.user.identities && r.data.user.identities.length === 0)) throw new Error("Esse usuário já existe.");
           var id = r.data.user.id;
-          return sb.from("profiles").update({ full_name: u.name, role: u.role || "employee", company_id: u.companyId, hourly_rate: Number(u.rate) || 0, active: true }).eq("id", id).select().single();
+          return sb.from("profiles").update({ full_name: u.name, role: u.role || "employee", company_id: u.companyId, hourly_rate: Number(u.rate) || 0, active: true, email: u.email || null }).eq("id", id).select().single();
         }).then(function (r) { return mapUser(chk(r)); });
       },
       updateUser: function (id, patch) {
@@ -485,6 +496,7 @@
         if (patch.companyId !== undefined) row.company_id = patch.companyId;
         if (patch.rate !== undefined) row.hourly_rate = Number(patch.rate) || 0;
         if (patch.active !== undefined) row.active = patch.active;
+        if (patch.email !== undefined) row.email = patch.email || null;
         var p = sb.from("profiles").update(row).eq("id", id).select().single().then(function (r) { return mapUser(chk(r)); });
         if (patch.password) {
           p = p.then(function (u) { return sb.rpc("admin_set_password", { p_user_id: id, p_password: patch.password }).then(function (r) { chk(r); return u; }); });
@@ -589,6 +601,22 @@
       },
       resolveNotice: function (id, v) { return sb.from("notices").update({ resolved: v, resolved_at: v ? new Date().toISOString() : null }).eq("id", id).then(chk); },
       deleteNotice: function (id) { return sb.from("notices").delete().eq("id", id).then(chk); },
+      // agenda dos sócios
+      listEvents: function (from, to) { return sb.from("calendar_events").select("*").gte("date", from).lte("date", to).order("date").order("start_time", { nullsFirst: true }).then(function (r) { return chk(r).map(mapEvent); }); },
+      saveEvent: function (e) {
+        var row = { title: e.title, date: e.date, start_time: e.start || null, end_time: e.end || null, company_id: e.companyId || null, project_id: e.projectId || null, who: e.who || "todos", notes: e.notes || null, done: !!e.done, updated_at: new Date().toISOString() };
+        if (e.id) row.id = e.id; else { row.created_by = profile.id; row.created_by_name = profile.name; }
+        return sb.from("calendar_events").upsert(row).select().single().then(function (r) { var ev = mapEvent(chk(r)); if (!e.id || e.notify) svc("notifyCalendar", { id: ev.id, changed: !!e.id }); return ev; });
+      },
+      deleteEvent: function (id) { return sb.from("calendar_events").delete().eq("id", id).then(chk); },
+      // escala
+      listSchedule: function (from, to) { return sb.from("work_schedule").select("*").gte("date", from).lte("date", to).order("date").then(function (r) { return chk(r).map(mapShift); }); },
+      saveShift: function (x) {
+        var row = { company_id: x.companyId, user_id: x.userId, date: x.date, project_id: x.projectId || null, start_time: x.start || null, note: x.note || null };
+        if (x.id) row.id = x.id;
+        return sb.from("work_schedule").upsert(row).select().single().then(function (r) { return mapShift(chk(r)); });
+      },
+      deleteShift: function (id) { return sb.from("work_schedule").delete().eq("id", id).then(chk); },
       // propostas
       listProposals: function (companyId) {
         var q = sb.from("proposals").select("*").order("updated_at", { ascending: false });

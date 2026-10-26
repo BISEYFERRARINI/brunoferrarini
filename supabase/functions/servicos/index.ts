@@ -66,17 +66,35 @@ async function claude(system: string, content: unknown, tool: Record<string, unk
   throw new Error("AI: sem resposta");
 }
 
-// ── e-mail: pela conta Google do office@ (senha de app) ou pelo Resend ──
-let SMTP: any = null;
-async function sendEmail(o: { to: string | string[]; subject: string; html: string; replyTo?: string; bcc?: string[] }) {
+// ── marca de cada empresa ──
+function BR(co: string | null | undefined, c: Record<string, string>) {
+  const blue = co === "bluestar";
+  return blue
+    ? { id: "bluestar", name: "Blue Star HVAC", sub: "Licensed HVAC Contractor · Watertown, MA", dark: "#13233A", accent: "#B3202A", bg: "#F3F6FA", line: "#d4dce8", footer: "Blue Star HVAC Inc. · 9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com", reply: c.admin_email_bluestar || c.admin_email, appUrl: c.app_url_bluestar || c.app_url }
+    : { id: "eternity", name: "Eternity Electric", sub: "Licensed Electrical Contractor · Massachusetts", dark: "#2B241D", accent: "#B08A4A", bg: "#FBF7F1", line: "#e6d8c2", footer: "Eternity Electric · office@eternityelectrical.com", reply: c.admin_email, appUrl: c.app_url };
+}
+async function adminEmails(): Promise<string[]> {
   const c = await cfg();
-  const gUser = Deno.env.get("GMAIL_USER"), gPass = (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
+  const { data } = await admin.from("profiles").select("email").eq("role", "admin").eq("active", true);
+  const list = (data || []).map((r: any) => String(r.email || "").trim()).filter((e: string) => /@/.test(e));
+  return list.length ? Array.from(new Set(list)) : [c.admin_email];
+}
+
+// ── e-mail: pela conta Google (senha de app) ou pelo Resend ──
+const SMTP: Record<string, any> = {};
+async function sendEmail(o: { to: string | string[]; subject: string; html: string; replyTo?: string; bcc?: string[]; co?: string }) {
+  const c = await cfg(), b = BR(o.co, c);
+  const blueUser = Deno.env.get("GMAIL_USER_BLUESTAR"), bluePass = (Deno.env.get("GMAIL_APP_PASSWORD_BLUESTAR") || "").replace(/\s+/g, "");
+  const useBlue = o.co === "bluestar" && blueUser && bluePass;
+  const gUser = useBlue ? blueUser! : Deno.env.get("GMAIL_USER"), gPass = useBlue ? bluePass : (Deno.env.get("GMAIL_APP_PASSWORD") || "").replace(/\s+/g, "");
   if (gUser && gPass) {
-    if (!SMTP) {
+    if (!SMTP[gUser]) {
       const nm: any = await import("npm:nodemailer@6.9.16");
-      SMTP = (nm.default || nm).createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gUser, pass: gPass } });
+      SMTP[gUser] = (nm.default || nm).createTransport({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: gUser, pass: gPass } });
     }
-    const info = await SMTP.sendMail({ from: `Eternity Electric <${gUser}>`, to: o.to, bcc: (o.bcc || []).filter((x) => x.toLowerCase() !== gUser.toLowerCase()), replyTo: o.replyTo || c.admin_email, subject: o.subject, html: o.html });
+    const to = (Array.isArray(o.to) ? o.to : [o.to]).filter(Boolean);
+    const bcc = (o.bcc || []).filter((x) => x && x.toLowerCase() !== gUser.toLowerCase() && !to.includes(x));
+    const info = await SMTP[gUser].sendMail({ from: `${b.name} <${gUser}>`, to, bcc, replyTo: o.replyTo || b.reply, subject: o.subject, html: o.html });
     return { id: info.messageId };
   }
   const key = Deno.env.get("RESEND_API_KEY");
@@ -84,22 +102,24 @@ async function sendEmail(o: { to: string | string[]; subject: string; html: stri
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: c.from_email, to: Array.isArray(o.to) ? o.to : [o.to], subject: o.subject, html: o.html, reply_to: o.replyTo || c.admin_email, bcc: o.bcc }),
+    body: JSON.stringify({ from: c.from_email, to: Array.isArray(o.to) ? o.to : [o.to], subject: o.subject, html: o.html, reply_to: o.replyTo || b.reply, bcc: o.bcc }),
   });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error("EMAIL: " + (j?.message || r.status));
   return j;
 }
-function shell(title: string, body: string) {
-  return `<div style="background:#FBF7F1;padding:24px 12px;font-family:Georgia,'Times New Roman',serif;color:#2B241D">
-<div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #e6d8c2;border-radius:10px;overflow:hidden">
-<div style="background:#2B241D;color:#fff;padding:16px 22px"><div style="font-size:20px;font-weight:bold;letter-spacing:.04em">ETERNITY ELECTRIC</div><div style="font-size:12px;color:#d9c6a3">Licensed Electrical Contractor · Massachusetts</div></div>
-<div style="padding:22px"><h2 style="margin:0 0 12px;font-size:20px;color:#2B241D">${title}</h2>${body}</div>
-<div style="border-top:1px solid #e6d8c2;padding:12px 22px;font-size:12px;color:#7a6a55;font-style:italic">Eternity Electric · office@eternityelectrical.com</div></div></div>`;
+let CUR_CO = "eternity";
+function shell(title: string, body: string, co?: string) {
+  const b = BR(co || CUR_CO, CFG || {});
+  return `<div style="background:${b.bg};padding:24px 12px;font-family:Georgia,'Times New Roman',serif;color:${b.dark}">
+<div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid ${b.line};border-radius:10px;overflow:hidden">
+<div style="background:#fff;padding:16px 22px;border-bottom:3px solid ${b.accent};text-align:center"><img src="${b.appUrl}/icons/logo-${b.id}.png" alt="${b.name}" width="170" style="max-width:170px;height:auto;display:inline-block"><div style="font-size:12px;color:${b.dark};margin-top:4px">${b.sub}</div></div>
+<div style="padding:22px"><h2 style="margin:0 0 12px;font-size:20px;color:${b.dark}">${title}</h2>${body}</div>
+<div style="border-top:1px solid ${b.line};padding:12px 22px;font-size:12px;color:#7a6a55;font-style:italic">${b.footer}</div></div></div>`;
 }
 function bar(pct: number) {
-  const p = Math.max(0, Math.min(100, Math.round(pct)));
-  return `<div style="background:#efe6d6;border-radius:6px;height:14px;overflow:hidden"><div style="background:#B08A4A;width:${p}%;height:14px"></div></div><div style="font-size:13px;margin-top:4px"><b>${p}%</b> complete</div>`;
+  const p = Math.max(0, Math.min(100, Math.round(pct))), b = BR(CUR_CO, CFG || {});
+  return `<div style="background:#eee;border-radius:6px;height:14px;overflow:hidden"><div style="background:${b.accent};width:${p}%;height:14px"></div></div><div style="font-size:13px;margin-top:4px"><b>${p}%</b> complete</div>`;
 }
 
 // ═══════════ ações ═══════════
@@ -147,7 +167,8 @@ async function sendProposal(b: { id: string; to?: string; note?: string }) {
   const to = (b.to || d.client?.email || "").trim();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) throw new Error("Coloque o e-mail do cliente na proposta.");
   const inv = d.docType === "invoice";
-  const link = `${c.app_url}/?proposta=${row.public_token}`;
+  CUR_CO = row.company_id; const B = BR(row.company_id, c);
+  const link = `${B.appUrl}/?proposta=${row.public_token}`;
   const first = String(d.client?.name || "").split(" ")[0] || "there";
   const html = shell(inv ? `Invoice ${esc(row.number)}` : `Proposal ${esc(row.number)}`, `
 <p>Hello ${esc(first)},</p>
@@ -157,8 +178,8 @@ ${b.note ? `<p>${esc(b.note)}</p>` : ""}
 <tr><td style="padding:8px 0">${inv ? "Balance due" : "Total"}</td><td style="text-align:right"><b>${money((Number(row.total) || 0) - (inv ? Number(d.amountPaid) || 0 : 0))}</b></td></tr></table>
 <p style="text-align:center;margin:22px 0"><a href="${link}" style="background:#B08A4A;color:#fff;text-decoration:none;padding:13px 26px;border-radius:6px;font-weight:bold;display:inline-block">${inv ? "View invoice" : "View &amp; accept proposal"}</a></p>
 <p style="font-size:13px;color:#7a6a55">${inv ? "You can download a PDF copy from the link above." : "You can review every detail, download a PDF and accept the proposal online from the link above. If you have any questions, simply reply to this email."}</p>
-<p>Best regards,<br><b>Eternity Electric</b></p>`);
-  await sendEmail({ to, subject: `${inv ? "Invoice" : "Proposal"} ${row.number} — ${d.client?.address || "Eternity Electric"}`, html, bcc: [c.admin_email] });
+<p>Best regards,<br><b>${B.name}</b></p>`);
+  await sendEmail({ to, subject: `${inv ? "Invoice" : "Proposal"} ${row.number} — ${d.client?.address || B.name}`, html, bcc: [B.reply], co: row.company_id });
   const data = { ...d, sentTo: to, sentAt: new Date().toISOString() };
   await admin.from("proposals").update({ sent_at: new Date().toISOString(), status: row.status === "Rascunho" ? "Enviada" : row.status, data }).eq("id", row.id);
   return { sent: to };
@@ -191,8 +212,9 @@ async function publicAccept(b: { token: string; name: string }) {
   const c = await cfg();
   const job = (async () => {
     try {
-      await sendEmail({ to: c.admin_email, subject: `✅ Proposta ${row.number} ACEITA — ${data.client?.address || ""}`,
-        html: shell(`Proposta ${esc(row.number)} aceita`, `<p><b>${esc(name)}</b> aceitou a proposta <b>${esc(row.number)}</b> (${esc(data.client?.address || "")}) no valor de <b>${money(Number(row.total))}</b>.</p><p>Estou montando a lista de material com os melhores preços. Abra a proposta no app para ver.</p><p><a href="${c.app_url}">Abrir o app</a></p>`) });
+      CUR_CO = row.company_id;
+      await sendEmail({ co: row.company_id, to: await adminEmails(), subject: `✅ Proposta ${row.number} ACEITA — ${data.client?.address || ""}`,
+        html: shell(`Proposta ${esc(row.number)} aceita`, `<p><b>${esc(name)}</b> aceitou a proposta <b>${esc(row.number)}</b> (${esc(data.client?.address || "")}) no valor de <b>${money(Number(row.total))}</b>.</p><p>Estou montando a lista de material com os melhores preços. Abra a proposta no app para ver.</p><p><a href="${BR(row.company_id, c).appUrl}">Abrir o app</a></p>`) });
     } catch (_) { /* sem e-mail configurado */ }
     try { await buildMaterialList(row.id); } catch (_) { /* sem IA */ }
   })();
@@ -205,15 +227,35 @@ async function notifyNotice(me: Me, b: { id: string }) {
   const { data: n } = await admin.from("notices").select("*, projects(name, address)").eq("id", b.id).single();
   if (!n || (n.user_id !== me.id && me.role !== "admin")) throw new Error("FORBIDDEN");
   const c = await cfg();
-  await sendEmail({ to: c.admin_email, subject: `⚠️ Aviso de ${n.author_name || "funcionário"} — ${n.projects?.name || "obra"}`,
-    html: shell("Novo aviso da obra", `<p><b>${esc(n.author_name || "")}</b> · ${esc(n.projects?.name || "")}</p><p style="font-size:16px;background:#FFF4DC;padding:12px;border-radius:6px">${esc(n.text).replace(/\n/g, "<br>")}</p>${n.photo_path ? "<p>Tem foto anexada — veja no app.</p>" : ""}<p><a href="${c.app_url}">Abrir o app</a></p>`) });
+  CUR_CO = n.company_id;
+  await sendEmail({ co: n.company_id, to: await adminEmails(), subject: `⚠️ Aviso de ${n.author_name || "funcionário"} — ${n.projects?.name || "obra"}`,
+    html: shell("Novo aviso da obra", `<p><b>${esc(n.author_name || "")}</b> · ${esc(n.projects?.name || "")}</p><p style="font-size:16px;background:#FFF4DC;padding:12px;border-radius:6px">${esc(n.text).replace(/\n/g, "<br>")}</p>${n.photo_path ? "<p>Tem foto anexada — veja no app.</p>" : ""}<p><a href="${BR(n.company_id, c).appUrl}">Abrir o app</a></p>`) });
+  return { ok: true };
+}
+
+async function notifyCalendar(me: Me, b: { id: string; changed?: boolean }) {
+  const { data: e } = await admin.from("calendar_events").select("*, projects(name, address)").eq("id", b.id).single();
+  if (!e) throw new Error("Item não encontrado.");
+  CUR_CO = e.company_id || "eternity";
+  let whoName = "Todos";
+  if (e.who && e.who !== "todos") { const { data: u } = await admin.from("profiles").select("full_name").eq("id", e.who).single(); whoName = u?.full_name || "—"; }
+  const when = longDate(e.date) + (e.start_time ? " · " + String(e.start_time).slice(0, 5) + (e.end_time ? "–" + String(e.end_time).slice(0, 5) : "") : "");
+  const c = await cfg();
+  await sendEmail({ co: CUR_CO, to: await adminEmails(), subject: `📅 ${b.changed ? "Agenda alterada" : "Nova na agenda"}: ${e.title} — ${e.date.split("-").reverse().join("/")}${e.start_time ? " " + String(e.start_time).slice(0, 5) : ""}`,
+    html: shell(b.changed ? "Item da agenda alterado" : "Novo item na agenda", `<p style="font-size:18px;margin:0 0 6px"><b>${esc(e.title)}</b></p><p style="margin:0 0 10px">${esc(when)}</p>
+<table style="font-size:14px;border-collapse:collapse"><tr><td style="padding:3px 12px 3px 0;color:#7a6a55">Quem</td><td><b>${esc(whoName)}</b></td></tr>
+${e.company_id ? `<tr><td style="padding:3px 12px 3px 0;color:#7a6a55">Empresa</td><td>${e.company_id === "bluestar" ? "Blue Star HVAC" : "Eternity Electric"}</td></tr>` : ""}
+${e.projects ? `<tr><td style="padding:3px 12px 3px 0;color:#7a6a55">Obra</td><td>${esc(e.projects.name)}${e.projects.address ? " · " + esc(e.projects.address) : ""}</td></tr>` : ""}
+<tr><td style="padding:3px 12px 3px 0;color:#7a6a55">Colocado por</td><td>${esc(e.created_by_name || me.full_name)}</td></tr></table>
+${e.notes ? `<p style="background:#f6f3ee;padding:10px;border-radius:6px;white-space:pre-wrap">${esc(e.notes)}</p>` : ""}
+<p><a href="${BR(CUR_CO, c).appUrl}">Abrir a agenda no app</a></p>`) });
   return { ok: true };
 }
 
 async function dailyReports(b: { projectId?: string; force?: boolean }) {
   const since = new Date(Date.now() - 24 * 3600e3).toISOString(), today = nyDate();
-  let q = admin.from("projects").select("id, name, address, client, status, project_tasks(label, grp, done, done_at), project_financials(client_email, daily_report)").eq("status", "Active");
-  if (b.projectId) q = admin.from("projects").select("id, name, address, client, status, project_tasks(label, grp, done, done_at), project_financials(client_email, daily_report)").eq("id", b.projectId);
+  let q = admin.from("projects").select("id, company_id, name, address, client, status, project_tasks(label, grp, done, done_at), project_financials(client_email, daily_report)").eq("status", "Active");
+  if (b.projectId) q = admin.from("projects").select("id, company_id, name, address, client, status, project_tasks(label, grp, done, done_at), project_financials(client_email, daily_report)").eq("id", b.projectId);
   const { data: projects } = await q;
   const results: unknown[] = [];
   for (const p of projects || []) {
@@ -225,6 +267,7 @@ async function dailyReports(b: { projectId?: string; force?: boolean }) {
     const crew = new Set((te || []).map((t: { user_id: string }) => t.user_id)).size;
     const hours = (te || []).reduce((a: number, t: { check_in: string; check_out: string }) => a + (t.check_out ? (new Date(t.check_out).getTime() - new Date(t.check_in).getTime()) / 36e5 : 0), 0);
     if (!doneToday.length && !crew && !b.force) { results.push({ id: p.id, skipped: "sem atividade hoje" }); continue; }
+    CUR_CO = p.company_id;
     const done = tasks.filter((t: { done: boolean }) => t.done).length, pct = tasks.length ? (done / tasks.length) * 100 : 0;
     const next = tasks.filter((t: { done: boolean }) => !t.done).slice(0, 5);
     const html = shell(`Daily Progress Report — ${longDate(today)}`, `
@@ -235,9 +278,9 @@ ${doneToday.length ? `<ul style="margin:6px 0 0 18px;padding:0">${doneToday.map(
 ${crew && doneToday.length ? `<p style="font-size:13px;color:#7a6a55">Crew on site: ${crew} · ${hours.toFixed(1)} labor hours</p>` : ""}
 ${next.length ? `<p style="margin-top:14px"><b>Coming up next</b></p><ul style="margin:6px 0 0 18px;padding:0">${next.map((t: { label: string }) => `<li style="margin:3px 0">${esc(t.label)}</li>`).join("")}</ul>` : ""}
 <p style="margin-top:18px">${done} of ${tasks.length} scheduled tasks completed. Reply to this email with any questions.</p>
-<p>Eternity Electric</p>`);
+<p>${BR(p.company_id, await cfg()).name}</p>`);
     try {
-      await sendEmail({ to: fin.client_email, subject: `Daily progress — ${p.address || p.name} — ${longDate(today)}`, html });
+      await sendEmail({ co: p.company_id, to: fin.client_email, subject: `Daily progress — ${p.address || p.name} — ${longDate(today)}`, html });
       await admin.from("project_financials").update({ last_report_at: new Date().toISOString() }).eq("project_id", p.id);
       results.push({ id: p.id, sent: fin.client_email });
     } catch (e) { results.push({ id: p.id, error: String((e as Error).message) }); }
@@ -245,14 +288,15 @@ ${next.length ? `<p style="margin-top:14px"><b>Coming up next</b></p><ul style="
   return { results };
 }
 
-async function weeklyPayroll(b: { email?: boolean }) {
+async function weeklyPayroll(b: { email?: boolean; company?: string; skipEmpty?: boolean }) {
+  const co = b.company === "bluestar" ? "bluestar" : "eternity"; CUR_CO = co;
   // semana de domingo a sábado (horário de Boston)
   const todayNY = nyDate(), d = new Date(todayNY + "T12:00:00Z"), dow = d.getUTCDay();
   const start = new Date(d); start.setUTCDate(d.getUTCDate() - dow);
   const end = new Date(start); end.setUTCDate(start.getUTCDate() + 7);
   const from = start.toISOString().slice(0, 10), to = new Date(end.getTime() - 864e5).toISOString().slice(0, 10);
-  const { data: te } = await admin.from("time_entries").select("user_id, check_in, check_out, rate").gte("check_in", from + "T04:00:00Z").lt("check_in", end.toISOString().slice(0, 10) + "T05:00:00Z");
-  const { data: people } = await admin.from("profiles").select("id, full_name, hourly_rate, role, active").eq("company_id", "eternity");
+  const { data: te } = await admin.from("time_entries").select("user_id, check_in, check_out, rate").eq("company_id", co).gte("check_in", from + "T04:00:00Z").lt("check_in", end.toISOString().slice(0, 10) + "T05:00:00Z");
+  const { data: people } = await admin.from("profiles").select("id, full_name, hourly_rate, role, active").eq("company_id", co);
   const rows: Record<string, { name: string; hours: number; pay: number; days: Set<string>; open: number }> = {};
   for (const t of te || []) {
     const p = (people || []).find((x: any) => x.id === t.user_id);
@@ -263,9 +307,8 @@ async function weeklyPayroll(b: { email?: boolean }) {
   }
   const list = Object.values(rows).map((r) => ({ name: r.name, hours: Math.round(r.hours * 100) / 100, pay: Math.round(r.pay * 100) / 100, days: r.days.size, open: r.open })).sort((a, b) => b.pay - a.pay);
   const total = list.reduce((a, r) => a + r.pay, 0);
-  if (b.email !== false) {
-    const c = await cfg();
-    await sendEmail({ to: c.admin_email, subject: `💵 Pagamento da semana (${from} a ${to}) — total ${money(total)}`,
+  if (b.email !== false && !(b.skipEmpty && !list.length)) {
+    await sendEmail({ co, to: await adminEmails(), subject: `💵 ${BR(co, await cfg()).name}: pagamento da semana (${from} a ${to}) — total ${money(total)}`,
       html: shell("Pagamento da semana", `<p>Semana de <b>${from.split("-").reverse().join("/")}</b> a <b>${to.split("-").reverse().join("/")}</b>.</p>
 <table style="width:100%;border-collapse:collapse;font-size:15px"><tr style="background:#2B241D;color:#fff"><th style="text-align:left;padding:8px">Funcionário</th><th style="padding:8px">Dias</th><th style="padding:8px;text-align:right">Horas</th><th style="padding:8px;text-align:right">A pagar</th></tr>
 ${list.map((r) => `<tr><td style="padding:8px;border-bottom:1px solid #e6d8c2">${esc(r.name)}${r.open ? ' <span style="color:#B45309">(ponto sem saída)</span>' : ""}</td><td style="padding:8px;text-align:center;border-bottom:1px solid #e6d8c2">${r.days}</td><td style="padding:8px;text-align:right;border-bottom:1px solid #e6d8c2">${r.hours.toFixed(2)}h</td><td style="padding:8px;text-align:right;border-bottom:1px solid #e6d8c2"><b>${money(r.pay)}</b></td></tr>`).join("")}
@@ -336,7 +379,7 @@ Deno.serve(async (req: Request) => {
     // agendadas
     if (cron) {
       if (action === "dailyReports") return out(await dailyReports({}));
-      if (action === "weeklyPayroll") return out(await weeklyPayroll({}));
+      if (action === "weeklyPayroll") return out({ eternity: await weeklyPayroll({ company: "eternity" }), bluestar: await weeklyPayroll({ company: "bluestar", skipEmpty: true }) });
       if (action === "fetchDeals") return out(await fetchDeals());
     }
 
@@ -349,7 +392,8 @@ Deno.serve(async (req: Request) => {
     if (action === "sendProposal") return out({ ok: true, ...(await sendProposal(b)) });
     if (action === "materialList") return out({ ok: true, list: await buildMaterialList(b.id) });
     if (action === "dailyReports") return out({ ok: true, ...(await dailyReports({ projectId: b.projectId, force: true })) });
-    if (action === "weeklyPayroll") return out({ ok: true, ...(await weeklyPayroll({ email: !!b.email })) });
+    if (action === "weeklyPayroll") return out({ ok: true, ...(await weeklyPayroll({ email: !!b.email, company: b.company })) });
+    if (action === "notifyCalendar") return out(await notifyCalendar(me, b));
     if (action === "fetchDeals") return out({ ok: true, ...(await fetchDeals()) });
     return out({ error: "UNKNOWN_ACTION" });
   } catch (e) {
