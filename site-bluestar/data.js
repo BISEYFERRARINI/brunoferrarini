@@ -486,7 +486,8 @@
           if (r.error) throw new Error(/registered/i.test(r.error.message) ? "Esse usuário já existe." : r.error.message);
           if (!r.data.user || (r.data.user.identities && r.data.user.identities.length === 0)) throw new Error("Esse usuário já existe.");
           var id = r.data.user.id;
-          return sb.from("profiles").update({ full_name: u.name, role: u.role || "employee", company_id: u.companyId, hourly_rate: Number(u.rate) || 0, active: true, email: u.email || null }).eq("id", id).select().single();
+          var row = { full_name: u.name, role: u.role || "employee", company_id: u.companyId, hourly_rate: Number(u.rate) || 0, active: true, email: u.email || null };
+          return sb.from("profiles").update(row).eq("id", id).select().single().then(function (r2) { if (r2.error && /email/i.test(r2.error.message)) { delete row.email; return sb.from("profiles").update(row).eq("id", id).select().single(); } return r2; });
         }).then(function (r) { return mapUser(chk(r)); });
       },
       updateUser: function (id, patch) {
@@ -497,7 +498,10 @@
         if (patch.rate !== undefined) row.hourly_rate = Number(patch.rate) || 0;
         if (patch.active !== undefined) row.active = patch.active;
         if (patch.email !== undefined) row.email = patch.email || null;
-        var p = sb.from("profiles").update(row).eq("id", id).select().single().then(function (r) { return mapUser(chk(r)); });
+        var p = sb.from("profiles").update(row).eq("id", id).select().single().then(function (r) {
+          if (r.error && /email/i.test(r.error.message) && row.email !== undefined) { delete row.email; return sb.from("profiles").update(row).eq("id", id).select().single(); }
+          return r;
+        }).then(function (r) { return mapUser(chk(r)); });
         if (patch.password) {
           p = p.then(function (u) { return sb.rpc("admin_set_password", { p_user_id: id, p_password: patch.password }).then(function (r) { chk(r); return u; }); });
         }
