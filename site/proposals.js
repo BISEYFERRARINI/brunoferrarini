@@ -19,9 +19,9 @@
   // ═══════════ lojas ═══════════
   var STORES = [
     { id: "homedepot", name: "The Home Depot", short: "Home Depot", url: function (q) { return "https://www.homedepot.com/s/" + encodeURIComponent(q); } },
-    { id: "ies", name: "Independent Electric Supply", short: "Independent", url: function (q) { return g("Independent Electric Supply " + q); } },
-    { id: "northeast", name: "Northeast Electrical", short: "Northeast", url: function (q) { return g("Northeast Electrical Distributors " + q); } },
-    { id: "granite", name: "Granite City Electric", short: "Granite City", url: function (q) { return g("Granite City Electric Supply " + q); } },
+    { id: "ies", name: "Independent Electric Supply", short: "Independent", url: function (q) { return g("site:iesbuy.com " + q); } },
+    { id: "northeast", name: "Northeast Electrical", short: "Northeast", url: function (q) { return g("site:needco.com " + q); } },
+    { id: "granite", name: "Granite City Electric", short: "Granite City", url: function (q) { return g("site:granitecityelectric.com " + q); } },
     { id: "standard", name: "Standard Electric", short: "Standard", url: function (q) { return g("Standard Electric Supply " + q); } }
   ];
   function storeName(id) { var s = STORES.find(function (x) { return x.id === id; }); return s ? s.short : id; }
@@ -366,7 +366,8 @@
     var cli = '<div class="panel ed-sec"><h3>Cliente</h3><div class="grid2">' + inp("client.name", inv ? "Cobrar de (cliente / GC)" : "Preparado para (cliente / GC)") +
       '<label class="field"><span>Tipo de cliente</span><input type="text" list="pRoles" data-pbind="client.role" value="' + esc(p.client.role || "") + '"></label></div>' +
       '<datalist id="pRoles">' + ROLES.map(function (r) { return '<option value="' + r + '">'; }).join("") + "</datalist>" +
-      inp("client.address", "Endereço da obra") + "</div>";
+      inp("client.address", "Endereço da obra") +
+      '<div class="grid2">' + inp("client.email", "E-mail do cliente", 'autocapitalize="none" inputmode="email"', "email") + inp("client.phone", "Telefone do cliente", 'inputmode="tel"', "tel") + "</div></div>";
 
     var ex = E.tradeOf(p.companyId) === "hvac"
       ? "Ex.: “Trocar o sistema antigo por uma heat pump Viessmann de 36 mil BTU, duas zonas, dois termostatos, linha nova. Preço 14.500, metade na entrada.”"
@@ -390,11 +391,41 @@
     var adv = '<div><button type="button" class="btn ghost sm" data-act="pAdv">' + (S.pAdv ? "Fechar edição completa ▲" : "Editar tudo (avançado) ▼") + "</button></div>" + (S.pAdv ? fullEditor(p) : "");
 
     setTimeout(mountPreview, 0);
-    return head + type + cli + voice + notes + prev + adv +
+    var sent = p.acceptedAt ? '<div class="panel ed-sec" style="border-color:var(--good);background:var(--good-soft)"><h3 style="margin:0;color:var(--good)">✓ Aceita pelo cliente</h3><div>' + esc(p.acceptedBy || "") + " · " + E.fmtDate(p.acceptedAt) + "</div></div>"
+      : p.sentTo ? '<div class="panel ed-sec"><div class="small">📨 Enviada para <b>' + esc(p.sentTo) + "</b> em " + E.fmtDate(p.sentAt) + " · aguardando resposta do cliente</div></div>" : "";
+    return head + sent + type + cli + voice + notes + prev + (p.id && !inv ? matListPanel(p) : "") + adv +
       '<div class="sticky-actions">' + (p.id ? '<button class="btn danger" data-act="pAskDel">Apagar</button><button class="btn ghost" data-act="pDup">Duplicar</button>' : "") +
       (p.id && !inv ? '<button class="btn ghost" data-act="pToInvoice">Gerar invoice</button><button class="btn ghost" data-act="pToProject">Virar projeto</button>' : "") +
-      '<button class="btn ghost" data-act="pPrint">Ver PDF / Imprimir</button><button class="btn" data-act="pSave">Salvar</button></div>';
+      '<button class="btn ghost" data-act="pPrint">Ver PDF / Imprimir</button><button class="btn ghost" data-act="pSave">Salvar</button><button class="btn" data-act="pSend">📨 Enviar para o cliente</button></div>';
   };
+
+  // ── lista de material da obra (montada quando o cliente aceita) ──
+  function words(t) { return String(t || "").toLowerCase().replace(/[^a-z0-9/"]+/g, " ").split(" ").filter(function (w) { return w.length > 1; }); }
+  function matchMaterial(name) {
+    var a = words(name), bestM = null, bestS = 0;
+    S.materials.forEach(function (m) { var b = words(m.name), hit = a.filter(function (w) { return b.indexOf(w) >= 0; }).length, sc = hit / Math.max(3, Math.min(a.length, b.length)); if (sc > bestS) { bestS = sc; bestM = m; } });
+    return bestS >= 0.5 ? bestM : null;
+  }
+  function matListPanel(p) {
+    var ml = p.materialList;
+    var headH = '<div class="spread"><div><h3 style="margin:0">Lista de material e onde comprar mais barato</h3><div class="muted small">Só para você · ' + (ml ? "montada em " + E.fmtDate(ml.at) : "é montada sozinha quando o cliente aceita a proposta") + "</div></div>" +
+      '<button class="btn ' + (ml ? "ghost " : "") + 'sm" data-act="pMatList"' + (S.pMatBusy ? " disabled" : "") + ">" + (S.pMatBusy ? "Montando…" : ml ? "Refazer lista" : "Montar lista agora") + "</button></div>";
+    if (!ml || !(ml.items || []).length) return '<div class="panel ed-sec">' + headH + "</div>";
+    var shop = {}, known = 0;
+    var rows = ml.items.map(function (it) {
+      var m = matchMaterial(it.name), b = m ? best(m) : null, sub = b ? b.price * (Number(it.qty) || 0) : 0;
+      if (b) { known += sub; (shop[b.store] = shop[b.store] || []).push(it.qty + " " + (it.unit || "") + " " + it.name); }
+      return "<tr><td><b>" + esc(it.name) + '</b></td><td class="n">' + esc(it.qty) + " " + esc(it.unit || "") + "</td><td>" +
+        (b ? '<span class="pill good">' + esc(storeName(b.store)) + "</span> " + money2(b.price) + '</td><td class="n"><b>' + money2(sub) + "</b>" : '<span class="muted small">sem preço salvo</span></td><td class="n">—') + "</td><td>" +
+        STORES.map(function (s) { return '<a class="chip" style="padding:3px 8px;font-size:12px" href="' + esc(s.url(it.search || it.name)) + '" target="_blank" rel="noopener">' + esc(s.short) + "</a>"; }).join(" ") + "</td></tr>";
+    }).join("");
+    return '<div class="panel ed-sec">' + headH +
+      '<div class="table-wrap"><table><thead><tr><th>Material</th><th class="n">Qtd</th><th>Mais barato (seus preços)</th><th class="n">Subtotal</th><th>Pesquisar</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+      (known ? '<div class="total-bar"><span>Material com preço conhecido</span><span>' + money2(known) + "</span></div>" : "") +
+      (Object.keys(shop).length ? '<div><span class="label">Comprar em cada loja</span>' + Object.keys(shop).map(function (sid) { return '<div class="sec-card" style="margin-top:8px"><b>' + esc(storeName(sid)) + '</b><div class="small">' + shop[sid].map(esc).join(" · ") + "</div></div>"; }).join("") + "</div>" : "") +
+      (ml.notes ? '<div class="muted small">' + esc(ml.notes) + "</div>" : "") +
+      '<div class="muted small">O preço “mais barato” vem da aba Preços → Meus preços. As lojas de material elétrico não mostram preço sem login; os botões abrem a busca de cada loja para conferir.</div></div>';
+  }
 
   // ── prévia (mesmo HTML do PDF, dentro de um quadro) ──
   var prevTimer = null;
@@ -535,6 +566,33 @@
   }
 
   // ── ações da tela simples ──
+  AC.pSend = function () {
+    var p = S.pdraft, to = String((p.client && p.client.email) || "").trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { E.toast("Coloque o e-mail do cliente primeiro."); var f = document.querySelector('[data-pbind="client.email"]'); if (f) f.focus(); return; }
+    if (!built(p) || !p.total) { E.toast("Monte a proposta e confira o valor antes de enviar."); return; }
+    S.modal = { type: "confirm", title: "Enviar para o cliente", text: "Enviar " + (isInv(p) ? "o invoice " : "a proposta ") + (p.number || "") + " (" + money2(p.total) + ") para " + to + "? O cliente recebe um e-mail com o link para ver" + (isInv(p) ? "" : ", baixar o PDF e aceitar") + ". Você recebe uma cópia.", act: "pSendOk", id: "x", okLabel: "Enviar" };
+    E.render();
+  };
+  AC.pSendOk = function () {
+    var p = S.pdraft; S.modal = null; p.total = totalOf(p); E.render(); E.toast("Enviando…");
+    API.saveProposal(p).then(function (saved) { p.id = saved.id; return API.services("sendProposal", { id: saved.id }); })
+      .then(function (r) {
+        if (r && r.ok) { p.sentTo = r.sent; p.sentAt = new Date().toISOString(); if (p.status === "Rascunho") p.status = "Enviada"; return reloadExt().then(function () { E.toast("Enviado para " + r.sent + "."); }); }
+        E.toast(svcMsg(r));
+      }).catch(function (e) { E.toast(e.message || "Erro ao enviar."); });
+  };
+  AC.pMatList = function () {
+    var p = S.pdraft; if (!p.id) { E.toast("Salve a proposta primeiro."); return; }
+    S.pMatBusy = true; E.render();
+    API.services("materialList", { id: p.id }).then(function (r) {
+      S.pMatBusy = false;
+      if (r && r.ok) { p.materialList = r.list; E.render(); E.toast("Lista de material pronta."); } else { E.render(); E.toast(svcMsg(r)); }
+    });
+  };
+  function svcMsg(r) {
+    var e = r && r.error;
+    return ({ NO_EMAIL_KEY: "O envio de e-mail ainda não foi ligado (falta a chave do Resend no Supabase).", NO_KEY: "A IA ainda não foi ligada.", NOT_DEPLOYED: "Esse serviço ainda não foi instalado no Supabase.", DEMO: "Modo demonstração: nada foi enviado.", OFFLINE: "Sem conexão agora." })[e] || ("Não deu certo" + (r && r.detail ? ": " + r.detail : "."));
+  }
   AC.pMic = function () { if (S.pRec) micStop(); else micStart(); };
   AC.pAdv = function () { S.pAdv = !S.pAdv; E.render(); };
   AC.pTypeFilter = function (el) { S.pTypeFilter = el.dataset.id; E.render(); };
@@ -596,14 +654,14 @@
       ["Line hide kit", "Acabamento", "un"], ["Termostato Wi-Fi", "Controles", "un"], ["Fita aluminizada / mastic", "Dutos", "un"], ["Duto flexível 6\" isolado — 25 ft", "Dutos", "un"]
     ]
   };
-  EXT.views.prices = function () {
+  function myPricesView() {
     var f = S.priceFilter, cats = {};
     S.materials.forEach(function (m) { if (m.category) cats[m.category] = 1; });
     var list = S.materials.filter(function (m) { return (!f.cat || m.category === f.cat) && (!f.q || m.name.toLowerCase().indexOf(f.q.toLowerCase()) >= 0); })
       .sort(function (a, b) { return (a.category || "") + a.name < (b.category || "") + b.name ? -1 : 1; });
     var td = today();
-    var deals = S.deals.slice().sort(function (a, b) { return (a.validUntil || "9999") < (b.validUntil || "9999") ? -1 : 1; });
-    var dealsHtml = '<div class="panel"><div class="spread" style="margin-bottom:10px"><h3 style="margin:0">Ofertas e promoções</h3><button class="btn ghost sm" data-act="prNewDeal">+ Oferta</button></div>' +
+    var deals = S.deals.filter(function (d) { return d.source !== "auto"; }).sort(function (a, b) { return (a.validUntil || "9999") < (b.validUntil || "9999") ? -1 : 1; });
+    var dealsHtml = '<div class="panel" style="margin-top:14px"><div class="spread" style="margin-bottom:10px"><h3 style="margin:0">Ofertas anotadas à mão</h3><button class="btn ghost sm" data-act="prNewDeal">+ Oferta</button></div>' +
       (deals.length ? '<div class="stack" style="gap:8px">' + deals.map(function (d) {
         var expired = d.validUntil && d.validUntil < td;
         return '<div class="deal" style="' + (expired ? "opacity:.5" : "") + '"><div style="min-width:0"><span class="store-chip">' + esc(storeName(d.store)) + "</span> · <b>" + esc(d.title) + "</b>" + (d.price != null ? " · " + money2(d.price) : "") +
@@ -619,11 +677,44 @@
           }).join("") + '<td class="n">' + (b ? '<b class="v-good">' + money2(b.price) + '</b><span class="d small muted" style="display:block">' + esc(storeName(b.store)) + "</span>" : "—") + "</td></tr>";
       }).join("") + "</tbody></table></div>"
       : '<div class="panel empty">' + (S.materials.length ? "Nenhum material com esse filtro." : 'Nenhum material cadastrado. <div class="row" style="justify-content:center;margin-top:10px"><button class="btn" data-act="prBasic" data-id="electrical">Adicionar lista básica elétrica</button><button class="btn ghost" data-act="prBasic" data-id="hvac">Lista básica HVAC</button></div>') + "</div>";
-    return '<div class="page-head"><div><h1>Preços de material</h1><p>Compare The Home Depot, Independent, Northeast, Granite City e Standard. Verde = mais barato · apagado = preço com mais de 30 dias.</p></div><button class="btn" data-act="prNewMat">+ Material</button></div>' +
-      dealsHtml +
-      '<div class="filters" style="margin-top:14px"><label class="field"><span>Buscar</span><input type="search" data-pf="q" value="' + esc(f.q) + '" placeholder="ex.: Romex, GFCI, line set"></label><label class="field"><span>Categoria</span><select data-pf="cat"><option value="">Todas</option>' +
+    return '<div class="spread" style="margin-bottom:10px"><p class="muted small" style="margin:0">Seus preços por loja (usados na estimativa e na lista de material). Verde = mais barato · apagado = mais de 30 dias.</p><button class="btn sm" data-act="prNewMat">+ Material</button></div>' +
+      '<div class="filters"><label class="field"><span>Buscar</span><input type="search" data-pf="q" value="' + esc(f.q) + '" placeholder="ex.: Romex, GFCI, line set"></label><label class="field"><span>Categoria</span><select data-pf="cat"><option value="">Todas</option>' +
       Object.keys(cats).sort().map(function (c) { return "<option" + (f.cat === c ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select></label></div>" + table +
-      '<p class="muted small" style="margin-top:12px">Toque num preço para atualizar. As lojas de material elétrico mostram preço só para clientes com conta; use o preço da sua cotação ou nota fiscal.</p>';
+      '<p class="muted small" style="margin-top:12px">Toque num preço para atualizar. As lojas de material elétrico mostram preço só para clientes com conta; use o preço da sua cotação ou nota fiscal.</p>' + dealsHtml;
+  }
+
+  function promoView() {
+    var auto = S.deals.filter(function (d) { return d.source === "auto"; }), sf = S.promoStore || "";
+    var stores = {}; auto.forEach(function (d) { stores[d.store] = (stores[d.store] || 0) + 1; });
+    var list = auto.filter(function (d) { return !sf || d.store === sf; }).sort(function (a, b) {
+      var sa = a.wasPrice && a.price ? (a.wasPrice - a.price) / a.wasPrice : 0, sb2 = b.wasPrice && b.price ? (b.wasPrice - b.price) / b.wasPrice : 0; return sb2 - sa; });
+    var when = auto.reduce(function (a, d) { return d.fetchedAt > a ? d.fetchedAt : a; }, "");
+    return '<div class="spread" style="margin-bottom:10px"><p class="muted small" style="margin:0">Só material elétrico em liquidação / promoção nas suas lojas. Atualiza sozinho todo dia às 7h30' + (when ? " · última busca " + E.fmtDate(when) + " " + new Date(when).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "") + '.</p><button class="btn sm" data-act="prFetch"' + (S.prBusy ? " disabled" : "") + ">" + (S.prBusy ? '<span class="spin" aria-hidden="true"></span> Buscando… (1 a 2 min)' : "Buscar agora") + "</button></div>" +
+      (Object.keys(stores).length > 1 ? '<div class="chips" style="margin-bottom:12px"><button type="button" class="chip' + (!sf ? " on" : "") + '" data-act="prStore" data-id="">Todas (' + auto.length + ")</button>" + Object.keys(stores).map(function (k) { return '<button type="button" class="chip' + (sf === k ? " on" : "") + '" data-act="prStore" data-id="' + k + '">' + esc(storeName(k)) + " (" + stores[k] + ")</button>"; }).join("") + "</div>" : "") +
+      (list.length ? '<div class="deal-grid">' + list.map(function (d) {
+        var off = d.wasPrice && d.price ? Math.round((d.wasPrice - d.price) / d.wasPrice * 100) : 0;
+        return '<a class="deal-card" href="' + esc(d.url || "#") + '" target="_blank" rel="noopener"><div class="deal-img">' + (d.image ? '<img src="' + esc(d.image) + '" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'noimg\',textContent:\'sem foto\'}))">' : '<span class="noimg">sem foto</span>') + "</div>" +
+          '<div class="deal-body"><span class="store-chip">' + esc(storeName(d.store)) + "</span>" + '<div class="deal-title">' + esc(d.title) + "</div>" +
+          (d.price != null ? '<div><span class="deal-price">' + money2(d.price) + "</span>" + (d.wasPrice ? '<span class="deal-was">' + money2(d.wasPrice) + "</span>" : "") + (off ? ' <span class="pill good">-' + off + "%</span>" : "") + "</div>" : "") +
+          (d.note ? '<div class="small muted">' + esc(d.note) + "</div>" : "") + "</div></a>";
+      }).join("") + "</div>"
+        : '<div class="panel empty">' + (when ? "Nenhuma liquidação de material elétrico encontrada na última busca." : "Ainda não buscamos as promoções. Toque em “Buscar agora”.") + "</div>");
+  }
+  EXT.views.prices = function () {
+    var tab = S.prTab || "promo";
+    return '<div class="page-head"><div><h1>Preços</h1><p>Liquidações das lojas e seus preços de material</p></div></div>' +
+      '<div class="tabs"><button data-act="prTab" data-id="promo" class="' + (tab === "promo" ? "on" : "") + '">Promoções</button><button data-act="prTab" data-id="mine" class="' + (tab === "mine" ? "on" : "") + '">Meus preços</button></div>' +
+      (tab === "promo" ? promoView() : myPricesView());
+  };
+  AC.prTab = function (el) { S.prTab = el.dataset.id; E.render(); };
+  AC.prStore = function (el) { S.promoStore = el.dataset.id; E.render(); };
+  AC.prFetch = function () {
+    S.prBusy = true; E.render();
+    API.services("fetchDeals", {}).then(function (r) {
+      S.prBusy = false;
+      if (r && r.ok) return reloadExt().then(function () { E.toast(r.saved ? r.saved + " promoções encontradas." : "Nenhuma liquidação de material elétrico encontrada agora."); });
+      E.render(); E.toast(svcMsg(r));
+    });
   };
 
   AC.prBasic = function (el) {
@@ -683,4 +774,56 @@
   };
 
   window.EE.buildProposalDoc = buildDoc; // usado nos testes
+
+  // ═══════════ página do cliente (link do e-mail): ver, baixar PDF e aceitar ═══════════
+  (function publicPage() {
+    var mt = /[?&]proposta=([0-9a-f-]{36})/i.exec(location.search); if (!mt) return;
+    var cfg = window.APP_CONFIG || {}, token = mt[1], app = document.getElementById("app");
+    document.title = "Proposal · Eternity Electric";
+    function call(body) {
+      if (!cfg.SUPABASE_URL) return Promise.resolve({ error: "DEMO" });
+      return fetch(cfg.SUPABASE_URL + "/functions/v1/servicos", { method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.SUPABASE_ANON_KEY, Authorization: "Bearer " + cfg.SUPABASE_ANON_KEY }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json(); }).catch(function () { return { error: "OFFLINE" }; });
+    }
+    function full(p) {
+      return Object.assign({ client: {}, sections: [], items: [], payment: { rows: [] }, header: {}, validityDays: 30 }, p, { client: p.client || {}, sections: p.sections || [], items: p.items || [], payment: p.payment || { rows: [] }, header: p.header || {} });
+    }
+    var after = document.createElement("div"); after.id = "pub-after"; document.body.appendChild(after);
+    function show(raw) {
+      var p = full(raw), inv = p.docType === "invoice", c = CO[p.companyId] || CO.eternity;
+      document.title = (inv ? "Invoice " : "Proposal ") + (p.number || "") + " · " + c.brand;
+      document.body.style.background = "#EFE8DC";
+      app.innerHTML = '<div class="pub-bar"><div><b style="font-size:17px">' + esc(c.brand) + '</b><div class="small" style="color:#7a6a55">' + (inv ? "Invoice " : "Proposal ") + esc(p.number || "") + "</div></div>" +
+        '<button class="btn" id="pubPdf" type="button">Download PDF</button></div>';
+      var root = document.getElementById("print-root");
+      if (!root) { root = document.createElement("div"); root.id = "print-root"; document.body.insertBefore(root, after); }
+      root.className = "pub"; root.innerHTML = buildDoc(p);
+      document.getElementById("pubPdf").onclick = function () { printDoc(p); setTimeout(function () { root.className = "pub"; document.body.style.background = "#EFE8DC"; }, 2000); };
+      if (inv) { after.innerHTML = ""; return; }
+      if (p.acceptedAt || p.status === "Aceita") {
+        after.innerHTML = '<div class="pub-accept" style="border-color:#2E7D4F"><b style="font-size:18px;color:#2E7D4F">✓ Proposal accepted</b><div>Accepted by <b>' + esc(p.acceptedBy || "") + "</b>" + (p.acceptedAt ? " on " + esc(longDate(String(p.acceptedAt).slice(0, 10))) : "") + ". Thank you! We will contact you shortly to schedule the work.</div></div>";
+        return;
+      }
+      after.innerHTML = '<form class="pub-accept" id="pubForm"><b style="font-size:18px">Accept this proposal</b>' +
+        '<div class="small" style="color:#7a6a55">Total: <b style="color:#2B241D">' + money2(p.total) + "</b> · " + esc(p.totalLabel || "") + "</div>" +
+        '<label class="field"><span>Your full name</span><input type="text" id="pubName" autocomplete="name" required value="' + esc(p.client.name || "") + '"></label>' +
+        '<label class="row" style="align-items:flex-start;gap:8px"><input type="checkbox" id="pubOk" required style="width:auto;margin-top:3px"> <span>I have read and accept the scope of work, pricing and payment terms of this proposal.</span></label>' +
+        '<div class="err" id="pubErr" hidden></div><button class="btn" type="submit" style="background:#B08A4A;color:#fff">Accept proposal</button>' +
+        '<div class="small" style="color:#7a6a55">Questions? Reply to the email you received or write to office@eternityelectrical.com.</div></form>';
+      document.getElementById("pubForm").onsubmit = function (ev) {
+        ev.preventDefault();
+        var name = document.getElementById("pubName").value.trim(), err = document.getElementById("pubErr"), btn = this.querySelector("button");
+        if (!name || !document.getElementById("pubOk").checked) { err.textContent = "Please type your name and check the box."; err.hidden = false; return; }
+        btn.disabled = true; btn.textContent = "Sending…";
+        call({ action: "publicAccept", token: token, name: name }).then(function (r) {
+          if (r && r.ok) { show(r.proposal); window.scrollTo(0, document.body.scrollHeight); return; }
+          btn.disabled = false; btn.textContent = "Accept proposal"; err.textContent = (r && r.detail) || "Something went wrong. Please try again."; err.hidden = false;
+        });
+      };
+    }
+    call({ action: "publicGet", token: token }).then(function (r) {
+      if (r && r.ok) return show(r.proposal);
+      app.innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">Eternity Electric</div><p>' + (r && r.error === "NOT_FOUND" ? "This link is no longer valid." : "We could not load this document right now. Please try again in a moment.") + "</p></div></div>";
+    });
+  })();
 })();

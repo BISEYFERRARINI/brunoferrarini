@@ -5,10 +5,15 @@
 (function () {
   "use strict";
 
+  // Só a Eternity neste app (a Blue Star vai ter um app separado; os dados dela continuam guardados no banco)
   var COMPANIES = [
-    { id: "eternity", name: "Eternity Electric", trade: "electrical", short: "Eternity" },
-    { id: "bluestar", name: "Blue Star HVAC", trade: "hvac", short: "Blue Star" }
+    { id: "eternity", name: "Eternity Electric", trade: "electrical", short: "Eternity" }
   ];
+  function finOut(f) {
+    var mat = Number(f.materialBudget) || 0, lab = Number(f.laborBudget) || 0;
+    return { contractValue: Number(f.contractValue) || 0, budget: mat + lab > 0 ? mat + lab : Number(f.budget) || 0, estHours: Number(f.estHours) || 0, materialBudget: mat, laborBudget: lab,
+      clientEmail: (f.clientEmail || "").trim(), clientPhone: (f.clientPhone || "").trim(), dailyReport: f.dailyReport !== false && f.dailyReport !== "false" };
+  }
 
   function uid() {
     if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
@@ -111,8 +116,8 @@
       ];
 
       var financials = {
-        "p-elm": { contractValue: 62000, budget: 41000, estHours: 520 },
-        "p-maple": { contractValue: 18500, budget: 11500, estHours: 150 },
+        "p-elm": { contractValue: 62000, budget: 41000, materialBudget: 16000, laborBudget: 25000, estHours: 520, clientEmail: "", dailyReport: true },
+        "p-maple": { contractValue: 18500, budget: 11500, materialBudget: 4500, laborBudget: 7000, estHours: 150, clientEmail: "", dailyReport: true },
         "p-oak": { contractValue: 24800, budget: 16200, estHours: 90 }
       };
 
@@ -220,7 +225,7 @@
         delete db.financials[id]; persist(); return P();
       },
       getFinancials: function () { return P(clone(db.financials)); },
-      saveFinancials: function (projectId, f) { db.financials[projectId] = { contractValue: Number(f.contractValue) || 0, budget: Number(f.budget) || 0, estHours: Number(f.estHours) || 0 }; persist(); return P(); },
+      saveFinancials: function (projectId, f) { db.financials[projectId] = finOut(f); persist(); return P(); },
       setTaskDone: function (projectId, taskId, done, byName) {
         var p = db.projects.find(function (x) { return x.id === projectId; });
         var t = p && p.tasks.find(function (x) { return x.id === taskId; });
@@ -291,8 +296,8 @@
       },
       addExpense: function (x) {
         var u = me();
-        return (x.receipt ? blobToDataURL(x.receipt) : P(null)).then(function (d) {
-          var rec = { id: uid(), companyId: x.companyId || u.companyId, projectId: x.projectId || null, kind: x.kind || "expense", category: x.category, amount: Number(x.amount) || 0, vendor: x.vendor || "", date: x.date, note: x.note || "", receipt: d, createdBy: u.id };
+        return (x.receipt ? blobToDataURL(x.receipt) : P(x.receiptPath || null)).then(function (d) {
+          var rec = { id: uid(), companyId: x.companyId || u.companyId, projectId: x.projectId || null, kind: x.kind || "expense", category: x.category, amount: Number(x.amount) || 0, vendor: x.vendor || "", date: x.date, note: x.note || "", receipt: d, createdBy: u.id, ai: x.ai || null };
           db.expenses.push(rec); persist(); return clone(rec);
         });
       },
@@ -309,6 +314,19 @@
       },
       deleteProposal: function (id) { db.proposals = (db.proposals || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
       aiProposal: function () { return P({ error: "DEMO" }); },
+      services: function (action) { return P({ error: "DEMO", action: action }); },
+      uploadReceipt: function (blob) { return blobToDataURL(blob); },
+      readReceipt: function () { return P({ error: "DEMO" }); },
+      listNotices: function () { db.notices = db.notices || []; var u = me(); return P(clone(db.notices.filter(function (n) { return !u || u.role === "admin" || n.companyId === u.companyId; })).sort(function (a, b) { return a.createdAt < b.createdAt ? 1 : -1; })); },
+      addNotice: function (n) {
+        var u = me(); db.notices = db.notices || [];
+        return (n.photo ? blobToDataURL(n.photo) : P(null)).then(function (ph) {
+          var rec = { id: uid(), companyId: u.companyId, projectId: n.projectId || null, userId: u.id, authorName: u.name, text: n.text, photo: ph, resolved: false, createdAt: new Date().toISOString() };
+          db.notices.unshift(rec); persist(); return clone(rec);
+        });
+      },
+      resolveNotice: function (id, v) { var n = (db.notices || []).find(function (x) { return x.id === id; }); if (n) { n.resolved = v; n.resolvedAt = v ? new Date().toISOString() : null; persist(); } return P(); },
+      deleteNotice: function (id) { db.notices = (db.notices || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
       // materiais e preços
       listMaterials: function () { db.materials = db.materials || []; return P(clone(db.materials)); },
       saveMaterial: function (m) {
@@ -348,8 +366,15 @@
     }
     function mapTime(r) { return { id: r.id, userId: r.user_id, companyId: r.company_id, projectId: r.project_id, checkIn: r.check_in, checkOut: r.check_out, rate: Number(r.rate) || 0,
       inLoc: r.in_lat != null ? { lat: r.in_lat, lng: r.in_lng, ok: true } : { ok: false }, outLoc: r.out_lat != null ? { lat: r.out_lat, lng: r.out_lng, ok: true } : { ok: false }, inPhoto: r.in_photo, outPhoto: r.out_photo }; }
-    function mapProposal(r) { return Object.assign({}, r.data || {}, { id: r.id, companyId: r.company_id, number: r.number, status: r.status, total: Number(r.total) || 0, createdAt: r.created_at, updatedAt: r.updated_at }); }
-    function mapExp(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, kind: r.kind, category: r.category, amount: Number(r.amount) || 0, vendor: r.vendor, date: r.date, note: r.note, receipt: r.receipt_path, createdBy: r.created_by }; }
+    function mapProposal(r) { return Object.assign({}, r.data || {}, { id: r.id, companyId: r.company_id, number: r.number, status: r.status, total: Number(r.total) || 0, createdAt: r.created_at, updatedAt: r.updated_at, token: r.public_token, sentAt: r.sent_at, acceptedAt: r.accepted_at }); }
+    function mapExp(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, kind: r.kind, category: r.category, amount: Number(r.amount) || 0, vendor: r.vendor, date: r.date, note: r.note, receipt: r.receipt_path, createdBy: r.created_by, ai: r.ai }; }
+    function mapNotice(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, userId: r.user_id, authorName: r.author_name, text: r.text, photo: r.photo_path, resolved: r.resolved, resolvedAt: r.resolved_at, createdAt: r.created_at }; }
+    function svc(action, body) {
+      return sb.functions.invoke("servicos", { body: Object.assign({ action: action }, body || {}) }).then(function (r) {
+        if (r.error) { var st = r.error.context && r.error.context.status; return { error: st === 404 ? "NOT_DEPLOYED" : "OFFLINE", detail: r.error.message || "" }; }
+        return r.data || { error: "FAIL" };
+      });
+    }
 
     function loadLib() {
       if (window.supabase) return Promise.resolve();
@@ -488,10 +513,10 @@
       deleteProject: function (id) { return sb.from("projects").delete().eq("id", id).then(chk); },
       getFinancials: function () {
         return sb.from("project_financials").select("*").then(function (r) {
-          var out = {}; chk(r).forEach(function (f) { out[f.project_id] = { contractValue: Number(f.contract_value) || 0, budget: Number(f.budget) || 0, estHours: Number(f.est_hours) || 0 }; }); return out;
+          var out = {}; chk(r).forEach(function (f) { out[f.project_id] = { contractValue: Number(f.contract_value) || 0, budget: Number(f.budget) || 0, estHours: Number(f.est_hours) || 0, materialBudget: Number(f.material_budget) || 0, laborBudget: Number(f.labor_budget) || 0, clientEmail: f.client_email || "", clientPhone: f.client_phone || "", dailyReport: f.daily_report !== false, lastReportAt: f.last_report_at }; }); return out;
         });
       },
-      saveFinancials: function (projectId, f) { return sb.from("project_financials").upsert({ project_id: projectId, contract_value: Number(f.contractValue) || 0, budget: Number(f.budget) || 0, est_hours: Number(f.estHours) || 0 }).then(chk); },
+      saveFinancials: function (projectId, f) { var o = finOut(f); return sb.from("project_financials").upsert({ project_id: projectId, contract_value: o.contractValue, budget: o.budget, est_hours: o.estHours, material_budget: o.materialBudget, labor_budget: o.laborBudget, client_email: o.clientEmail || null, client_phone: o.clientPhone || null, daily_report: o.dailyReport }).then(chk); },
       setTaskDone: function (projectId, taskId, done) { return sb.rpc("set_task_done", { p_task_id: taskId, p_done: done }).then(chk); },
       uploadFile: function (projectId, file) {
         var fid = uid();
@@ -544,13 +569,26 @@
       },
       addExpense: function (x) {
         var id = uid();
-        var p = x.receipt ? upload("receipts", profile.id + "/" + id + ".jpg", x.receipt) : Promise.resolve(null);
+        var p = x.receipt ? upload("receipts", profile.id + "/" + id + ".jpg", x.receipt) : Promise.resolve(x.receiptPath || null);
         return p.then(function (path) {
           return sb.from("expenses").insert({ id: id, company_id: x.companyId || profile.companyId, project_id: x.projectId || null, kind: x.kind || "expense", category: x.category,
-            amount: Number(x.amount) || 0, vendor: x.vendor || null, date: x.date, note: x.note || null, receipt_path: path, created_by: profile.id }).select().single();
+            amount: Number(x.amount) || 0, vendor: x.vendor || null, date: x.date, note: x.note || null, receipt_path: path, created_by: profile.id, ai: x.ai || null }).select().single();
         }).then(function (r) { return mapExp(chk(r)); });
       },
       deleteExpense: function (id) { return sb.from("expenses").delete().eq("id", id).then(chk); },
+      services: svc,
+      uploadReceipt: function (blob) { return upload("receipts", profile.id + "/nota-" + Date.now() + ".jpg", blob); },
+      readReceipt: function (path) { return svc("readReceipt", { path: path }); },
+      listNotices: function () { return sb.from("notices").select("*").order("created_at", { ascending: false }).limit(500).then(function (r) { return chk(r).map(mapNotice); }); },
+      addNotice: function (n) {
+        var id = uid();
+        var p = n.photo ? upload("notice-photos", profile.id + "/" + id + ".jpg", n.photo) : Promise.resolve(null);
+        return p.then(function (path) {
+          return sb.from("notices").insert({ id: id, company_id: profile.companyId, project_id: n.projectId || null, user_id: profile.id, author_name: profile.name, text: n.text, photo_path: path }).select().single();
+        }).then(function (r) { var rec = mapNotice(chk(r)); svc("notifyNotice", { id: rec.id }); return rec; });
+      },
+      resolveNotice: function (id, v) { return sb.from("notices").update({ resolved: v, resolved_at: v ? new Date().toISOString() : null }).eq("id", id).then(chk); },
+      deleteNotice: function (id) { return sb.from("notices").delete().eq("id", id).then(chk); },
       // propostas
       listProposals: function (companyId) {
         var q = sb.from("proposals").select("*").order("updated_at", { ascending: false });
@@ -591,7 +629,7 @@
       deletePrice: function (materialId, priceId) { return sb.from("material_prices").delete().eq("id", priceId).then(chk); },
       listDeals: function () {
         return sb.from("deals").select("*").order("created_at", { ascending: false }).then(function (r) {
-          return chk(r).map(function (d) { return { id: d.id, store: d.store, title: d.title, price: d.price == null ? null : Number(d.price), validUntil: d.valid_until, url: d.url, note: d.note, createdAt: d.created_at }; });
+          return chk(r).map(function (d) { return { id: d.id, store: d.store, title: d.title, price: d.price == null ? null : Number(d.price), wasPrice: d.was_price == null ? null : Number(d.was_price), image: d.image_url, source: d.source, validUntil: d.valid_until, url: d.url, note: d.note, createdAt: d.created_at, fetchedAt: d.fetched_at }; });
         });
       },
       saveDeal: function (d) {

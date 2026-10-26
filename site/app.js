@@ -34,27 +34,27 @@
     user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/></svg>',
     doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h8l4 4v15H6z"/><path d="M14 2.5v4h4M9 12h6M9 16h6M9 8h2"/></svg>',
     tag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 12.5V4a1 1 0 0 1 1-1h8.5L21 11.5 12.5 20z"/><circle cx="8" cy="8" r="1.6"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/></svg>',
     receipt: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h12v19l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>'
   };
 
   // ═══════════ catalog (electrical / HVAC) ═══════════
+  // Despesas da obra (as mesmas opções da aba Notas). Mão de obra = horas trabalhadas (calculada pelo ponto).
   var EXPENSE_CATS = [
-    { id: "labor", label: "Mão de obra (horas)", color: "var(--c2)" },
     { id: "material", label: "Material", color: "var(--c1)" },
-    { id: "gasolina", label: "Gasolina", color: "var(--c5)" },
-    { id: "subcontractor", label: "Subempreiteiro", color: "var(--c4)" },
-    { id: "permit", label: "Permit / licença", color: "var(--c3)" },
+    { id: "permit", label: "Permit", color: "var(--c3)" },
     { id: "equipamento", label: "Equipamento / aluguel", color: "var(--c7)" },
     { id: "outros", label: "Outros", color: "var(--c6)" }
   ];
-  function catLabel(id) { var c = EXPENSE_CATS.find(function (x) { return x.id === id; }); return c ? c.label : (id === "receita" ? "Receita" : id); }
+  var LEGACY_CATS = { gasolina: "Gasolina", subcontractor: "Subempreiteiro", receita: "Receita", labor: "Mão de obra" };
+  function catKey(id) { return EXPENSE_CATS.some(function (c) { return c.id === id; }) ? id : "outros"; }
+  function catLabel(id) { var c = EXPENSE_CATS.find(function (x) { return x.id === id; }); return c ? c.label : (LEGACY_CATS[id] || id); }
   var STATUS = { Active: ["Em andamento", "good"], Planned: ["A começar", "accent"], "On Hold": ["Em espera", "warn"], Completed: ["Concluído", "neutral"], Cancelled: ["Cancelado", "bad"] };
   function statusPill(s) { var x = STATUS[s] || [s, "neutral"]; return '<span class="pill ' + x[1] + '">' + esc(x[0]) + "</span>"; }
 
   var COMMON_FIELDS = {
-    sector: { label: "Setor", opts: ["Residencial", "Comercial", "Multifamily", "Industrial", "Institucional"] },
-    buildingRes: { label: "Tipo de imóvel", opts: ["Single family", "Two-family", "Three-family", "Townhouse", "Condo / apartamento", "Multifamily (4+ unidades)", "ADU"] },
-    buildingCom: { label: "Tipo de imóvel", opts: ["Escritório", "Loja / retail", "Restaurante", "Galpão / warehouse", "Escola", "Clínica / saúde", "Igreja", "Uso misto", "Outro"] },
+    sector: { label: "Tipo", opts: ["Residencial", "Comercial"] },
+    buildingRes: { label: "Residencial", opts: ["Single family", "Two-family", "Multifamily"] },
     bedrooms: { label: "Quartos", opts: ["Studio", "1", "2", "3", "4", "5", "6+"] },
     bathrooms: { label: "Banheiros", opts: ["1", "1.5", "2", "2.5", "3", "3.5", "4+"] },
     floors: { label: "Andares", opts: ["1", "2", "3", "4", "5+"] },
@@ -66,7 +66,7 @@
   var TRADE = {
     electrical: {
       stepName: "Elétrica",
-      workType: ["New Construction", "Remodel / Renovação", "Addition (ampliação)", "Service upgrade", "Reparo / service call", "Fit-out comercial", "Fire alarm"],
+      workType: ["New Construction", "Remodel / Renovação", "Addition (ampliação)", "Service upgrade", "Reparo / service call", "Fire alarm"],
       fields: {
         wiring: { label: "Fiação / método", multi: true, opts: ["Romex (NM-B)", "MC Cable", "EMT (conduíte)", "PVC", "Rigid / IMC", "BX existente", "Knob & tube existente"] },
         serviceType: { label: "Serviço (service)", opts: ["Sem mudança no serviço", "Novo serviço", "Upgrade (100A → 200A)", "Upgrade (outro)", "Troca de painel apenas", "Subpainel novo"] },
@@ -118,7 +118,7 @@
 
   // ═══════════ state ═══════════
   var S = {
-    user: null, company: storeGet("ee_company") || "eternity", view: "dashboard", params: {},
+    user: null, company: "eternity", view: "dashboard", params: {},
     projects: [], fin: {}, users: [], time: [], expenses: [],
     filters: { preset: "all", from: "", to: "", projectId: "", userId: "" },
     gastoCat: "all", draft: null, draftFiles: [], wizStep: 0, modal: null, open: null, loc: null, installEvt: null
@@ -144,12 +144,12 @@
   function loadData() {
     var isAdmin = S.user.role === "admin";
     var co = isAdmin ? S.company : S.user.companyId;
-    var jobs = [API.listProjects(co), API.listTime({ companyId: isAdmin ? co : null }), API.listExpenses({ companyId: isAdmin ? co : null })];
+    var jobs = [API.listProjects(co), API.listTime({ companyId: isAdmin ? co : null }), API.listExpenses({ companyId: isAdmin ? co : null }), API.listNotices ? API.listNotices().catch(function () { return []; }) : Promise.resolve([])];
     if (isAdmin) { jobs.push(API.getFinancials()); jobs.push(API.listUsers()); }
     var CK = "ee_cache_" + S.user.id + "_" + co;
     return Promise.all(jobs).then(function (r) {
-      S.projects = r[0]; S.time = r[1]; S.expenses = r[2];
-      if (isAdmin) { S.fin = r[3] || {}; S.users = r[4] || []; }
+      S.projects = r[0]; S.time = r[1]; S.expenses = r[2]; S.notices = (r[3] || []).filter(function (n) { return n.companyId === co; });
+      if (isAdmin) { S.fin = r[4] || {}; S.users = r[5] || []; checkNewNotices(); }
       S.offline = false;
       if (isAdmin) return Promise.all(EXT.load.map(function (f) { return f(co).catch(function () {}); }));
       if (API.mode === "live") storeSet(CK, JSON.stringify({ p: S.projects, t: S.time.slice(0, 600), e: S.expenses.slice(0, 600), f: S.fin, u: S.users, at: new Date().toISOString() }));
@@ -164,6 +164,12 @@
     });
   }
 
+  function checkNewNotices() {
+    var seen = storeGet("ee_notice_seen") || "", fresh = (S.notices || []).filter(function (n) { return !n.resolved && n.createdAt > seen; });
+    if (fresh.length && S.view !== "avisos") setTimeout(function () { toast(fresh.length === 1 ? "Aviso novo de " + (fresh[0].authorName || "funcionário") + ": " + fresh[0].text.slice(0, 80) : fresh.length + " avisos novos da equipe. Veja em Avisos."); }, 900);
+  }
+  function markNoticesSeen() { var last = (S.notices || []).reduce(function (a, n) { return n.createdAt > a ? n.createdAt : a; }, ""); if (last) storeSet("ee_notice_seen", last); }
+
   // ═══════════ metrics ═══════════
   function inPeriod(iso) { var f = S.filters; if (!iso) return false; var d = isoLocal(new Date(String(iso).length === 10 ? iso + "T12:00:00" : iso)); return (!f.from || d >= f.from) && (!f.to || d <= f.to); }
   function metrics() {
@@ -173,22 +179,24 @@
     var inScope = function (pid) { return f.projectId ? pid === f.projectId : (pid ? !!ids[pid] : true); };
     var T = S.time.filter(function (t) { return t.companyId === S.company && inScope(t.projectId) && (!f.userId || t.userId === f.userId); });
     var E = S.expenses.filter(function (x) { return x.companyId === S.company && inScope(x.projectId); });
-    var m = { scope: scope, contract: 0, budget: 0, estHours: 0, period: blank(), all: blank(), T: T, E: E };
-    scope.forEach(function (p) { var fi = S.fin[p.id] || {}; m.contract += fi.contractValue || 0; m.budget += fi.budget || 0; m.estHours += fi.estHours || 0; });
+    var m = { scope: scope, contract: 0, budget: 0, matBudget: 0, labBudget: 0, estHours: 0, period: blank(), all: blank(), T: T, E: E };
+    scope.forEach(function (p) { var fi = S.fin[p.id] || {}; m.contract += fi.contractValue || 0; m.budget += fi.budget || 0; m.matBudget += fi.materialBudget || 0; m.labBudget += fi.laborBudget || 0; m.estHours += fi.estHours || 0; });
     function blank() { var o = { hours: 0, labor: 0, revenue: 0, exp: 0, byCat: {}, byUser: {} }; EXPENSE_CATS.forEach(function (c) { o.byCat[c.id] = 0; }); return o; }
-    function addT(o, t) { var h = hoursOf(t); o.hours += h; o.labor += h * (t.rate || 0); o.byCat.labor += h * (t.rate || 0); var u = o.byUser[t.userId] || (o.byUser[t.userId] = { hours: 0, cost: 0, rate: t.rate }); u.hours += h; u.cost += h * (t.rate || 0); }
-    function addE(o, x) { if (x.kind === "revenue") o.revenue += x.amount; else { o.exp += x.amount; o.byCat[x.category in o.byCat ? x.category : "outros"] += x.amount; } }
+    function addT(o, t) { var h = hoursOf(t); o.hours += h; o.labor += h * (t.rate || 0); var u = o.byUser[t.userId] || (o.byUser[t.userId] = { hours: 0, cost: 0, rate: t.rate }); u.hours += h; u.cost += h * (t.rate || 0); }
+    function addE(o, x) { if (x.kind === "revenue") o.revenue += x.amount; else { o.exp += x.amount; o.byCat[catKey(x.category)] += x.amount; } }
     T.forEach(function (t) { addT(m.all, t); if (inPeriod(t.checkIn)) addT(m.period, t); });
     E.forEach(function (x) { addE(m.all, x); if (inPeriod(x.date)) addE(m.period, x); });
     [m.period, m.all].forEach(function (o) { o.cost = o.labor + o.exp; o.profit = o.revenue - o.cost; });
+    var tDone = 0, tAll = 0; scope.forEach(function (p) { (p.tasks || []).forEach(function (t) { tAll++; if (t.done) tDone++; }); });
+    m.tDone = tDone; m.tAll = tAll;
     return m;
   }
   function projectStats(p) {
-    var fi = S.fin[p.id] || {}, labor = 0, exp = 0, hours = 0, rev = 0;
+    var fi = S.fin[p.id] || {}, labor = 0, exp = 0, hours = 0, rev = 0, mat = 0;
     S.time.forEach(function (t) { if (t.projectId === p.id) { var h = hoursOf(t); hours += h; labor += h * (t.rate || 0); } });
-    S.expenses.forEach(function (x) { if (x.projectId === p.id) { if (x.kind === "revenue") rev += x.amount; else exp += x.amount; } });
+    S.expenses.forEach(function (x) { if (x.projectId === p.id) { if (x.kind === "revenue") rev += x.amount; else { exp += x.amount; if (x.category === "material") mat += x.amount; } } });
     var done = (p.tasks || []).filter(function (t) { return t.done; }).length, total = (p.tasks || []).length;
-    return { contract: fi.contractValue || 0, budget: fi.budget || 0, estHours: fi.estHours || 0, labor: labor, exp: exp, cost: labor + exp, hours: hours, revenue: rev, done: done, total: total };
+    return { contract: fi.contractValue || 0, budget: fi.budget || 0, matBudget: fi.materialBudget || 0, labBudget: fi.laborBudget || 0, estHours: fi.estHours || 0, labor: labor, exp: exp, material: mat, cost: labor + exp, hours: hours, revenue: rev, done: done, total: total, progress: pct(done, total) };
   }
 
   // ═══════════ charts (SVG) ═══════════
@@ -253,33 +261,30 @@
   function loginView() {
     if (S.setup) return setupView();
     return '<div class="login"><form class="login-card" id="loginForm">' +
-      '<div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">Eternity Electric · Blue Star HVAC</div></div></div>' +
+      '<div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">Gestão de obras</div></div></div>' +
       '<label class="field"><span>Usuário</span><input type="text" id="lgUser" autocomplete="username" autocapitalize="none" required></label>' +
       '<label class="field"><span>Senha</span><input type="password" id="lgPass" autocomplete="current-password" required></label>' +
       '<div class="err" id="lgErr" hidden></div>' +
       '<button class="btn block" type="submit">Entrar</button>' +
-      (API.mode === "demo" ? '<div class="login-hint"><b>Modo demonstração</b> (dados de exemplo)<br>Administrador: <b>bruno</b> / 1234<br>Funcionário Eternity: <b>joao</b> / 1234<br>Funcionário Blue Star: <b>pedro</b> / 1234</div>' : '<div class="login-hint">Esqueceu a senha? Peça ao administrador para criar uma nova.</div>') +
+      (API.mode === "demo" ? '<div class="login-hint"><b>Modo demonstração</b> (dados de exemplo)<br>Administrador: <b>bruno</b> / 1234<br>Funcionário: <b>joao</b> / 1234</div>' : '<div class="login-hint">Esqueceu a senha? Peça ao administrador para criar uma nova.</div>') +
       "</form></div>";
   }
 
   // ═══════════ admin shell ═══════════
-  var ADMIN_NAV_BASE = [["dashboard", "Painel", "dash"], ["gastos", "Gastos", "money"], ["projects", "Projetos", "folder"], ["proposals", "Propostas", "doc"], ["prices", "Preços", "tag"], ["time", "Ponto", "clock"], ["team", "Equipe", "team"], ["reports", "Relatórios", "report"]];
+  var ADMIN_NAV_BASE = [["dashboard", "Painel", "dash"], ["gastos", "Despesas", "money"], ["projects", "Projetos", "folder"], ["proposals", "Propostas", "doc"], ["notas", "Notas", "receipt"], ["avisos", "Avisos", "bell"], ["prices", "Preços", "tag"], ["time", "Ponto", "clock"], ["team", "Equipe", "team"], ["reports", "Relatórios", "report"]];
   var ADMIN_NAV = ADMIN_NAV_BASE;
-  function navActive(v) { var map = { project: "projects", projectForm: "projects", proposalForm: "proposals" }; return map[v] || v; }
-  function coSwitch() {
-    return '<div class="co-switch" role="group" aria-label="Empresa">' + API.companies.map(function (c) {
-      return '<button data-act="company" data-id="' + c.id + '" class="' + (S.company === c.id ? "on" : "") + '">' + esc(c.short) + "</button>";
-    }).join("") + "</div>";
-  }
+  function navActive(v) { var map = { project: "projects", projectForm: "projects", proposalForm: "proposals", hours: "dashboard" }; return map[v] || v; }
+  function navLabel(n) { var c = n[0] === "avisos" ? openNotices().length : 0; return esc(n[1]) + (c ? ' <span class="nav-badge">' + c + "</span>" : ""); }
+  function coSwitch() { return ""; } // app só da Eternity
   function adminShell() {
     var cur = navActive(S.view);
     var co = API.companies.find(function (c) { return c.id === S.company; });
     var side = '<aside class="sidebar"><div class="brand"><div class="brand-mark">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div><div class="brand-name">Eternity Electric</div><div class="brand-sub">' + (co.trade === "hvac" ? "Blue Star HVAC" : "Elétrica") + "</div></div></div>" +
-      coSwitch() + '<nav class="nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + esc(n[1]) + "</button>"; }).join("") + "</nav>" +
+      coSwitch() + '<nav class="nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + navLabel(n) + "</button>"; }).join("") + "</nav>" +
       '<div class="side-foot"><span>' + esc(S.user.name) + " · Administrador</span>" + installBtn() + '<button data-act="logout">Sair</button></div></aside>';
     var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div class="brand-name" style="font-size:17px">Eternity Electric</div></div>' + coSwitch() + "</header>";
-    var mob = '<nav class="mobile-nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + "<span>" + esc(n[1]) + "</span></button>"; }).join("") + "</nav>";
-    var body = Object.assign({ dashboard: dashboardView, gastos: gastosView, projects: projectsView, project: projectView, projectForm: wizardView, time: timeView, team: teamView, reports: reportsView }, EXT.views)[S.view] || dashboardView;
+    var mob = '<nav class="mobile-nav">' + ADMIN_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + "<span>" + navLabel(n) + "</span></button>"; }).join("") + "</nav>";
+    var body = Object.assign({ dashboard: dashboardView, gastos: gastosView, hours: hoursView, notas: notasView, avisos: avisosView, projects: projectsView, project: projectView, projectForm: wizardView, time: timeView, team: teamView, reports: reportsView }, EXT.views)[S.view] || dashboardView;
     return '<div class="shell">' + side + '<div class="main">' + top + demoFlag() + body() + "</div></div>" + mob;
   }
   function offlineFlag() { return S.offline ? '<div class="demo-flag">Sem internet: mostrando os dados salvos em ' + fmtDate(S.offline) + " " + fmtTime(S.offline) + ". O ponto continua funcionando e é enviado quando a conexão voltar.</div>" : ""; }
@@ -309,98 +314,103 @@
       '<div class="kpi-sub">' + o.sub + "</div>" + (o.act ? '<div class="kpi-go">Ver detalhes →</div>' : "") + "</div>" +
       ring(o.pct, 66, o.ringOpts) + "</" + tag + ">";
   }
+  function limitLine(spent, limit) { return limit > 0 ? fmtPct(pct(spent, limit)) + " do limite de " + money(limit) : "sem limite definido"; }
   function dashboardView() {
     var m = metrics(), P = m.period, A = m.all, f = S.filters;
     var sel = f.projectId ? projectById(f.projectId) : null;
-    var active = m.scope.filter(function (p) { return p.status === "Active"; }).length;
     var margin = P.revenue > 0 ? pct(P.profit, P.revenue) : 0;
-    var tDone = 0, tAll = 0; m.scope.forEach(function (p) { (p.tasks || []).forEach(function (t) { tAll++; if (t.done) tDone++; }); });
+    var progress = pct(m.tDone, m.tAll);
 
-    var banner = '<div class="proj-banner"><div class="bolt-badge">' + (tradeOf(S.company) === "hvac" ? ICON.flake : ICON.bolt) + "</div><div style=\"min-width:0\">" +
-      '<div class="label">' + (sel ? "Projeto selecionado" : "Todos os projetos · " + esc(companyName(S.company))) + "</div>" +
+    var banner = '<div class="proj-banner"><div class="bolt-badge">' + ICON.bolt + "</div><div style=\"min-width:0\">" +
+      '<div class="label">' + (sel ? "Projeto selecionado" : "Todos os projetos") + "</div>" +
       '<div class="pname">' + esc(sel ? sel.name : m.scope.length + " projetos") + "</div>" +
       '<div class="pmeta">' + (sel ? esc([sel.client, sel.address].filter(Boolean).join(" · ")) : "Período: " + periodLabel()) + "</div></div>" +
-      '<div class="pval"><div class="label">Valor da obra</div><div class="kpi-value">' + money(m.contract) + '</div><div class="pmeta">Orçamento ' + money(m.budget) + "</div></div></div>";
+      '<div class="pval"><div class="label">Orçamento</div><div class="kpi-value">' + money(m.contract) + '</div><div class="pmeta">Limite de gastos ' + money(m.budget) + "</div></div></div>";
 
+    var hoursRing = m.labBudget > 0 ? pct(P.labor, m.labBudget) : pct(P.hours, m.estHours);
     var cards = '<div class="kpis">' +
-      kpi({ label: "Projetos ativos", value: active + ' <span class="muted" style="font-size:17px">de ' + m.scope.length + "</span>", sub: "projetos em andamento", pct: pct(active, m.scope.length), ringOpts: { color: "var(--accent)" }, act: "nav", id: "projects" }) +
-      kpi({ label: "Horas trabalhadas", value: hrs(P.hours), cls: "v-info", sub: "das " + hrs(m.estHours) + " previstas", pct: pct(P.hours, m.estHours), act: "gastos", id: "labor" }) +
-      kpi({ label: "Mão de obra", value: money(P.labor), sub: fmtPct(pct(P.labor, m.budget)) + " do orçamento", pct: pct(P.labor, m.budget), act: "gastos", id: "labor" }) +
-      kpi({ label: "Despesas (material, gasolina…)", value: money(P.exp), cls: "v-bad", sub: fmtPct(pct(P.exp, m.budget)) + " do orçamento", pct: pct(P.exp, m.budget), act: "gastos", id: "all" }) +
-      kpi({ label: "Custo total", value: money(P.cost), cls: "v-bad", sub: "mão de obra + despesas", pct: pct(P.cost, m.budget), act: "gastos", id: "all" }) +
-      kpi({ label: "Receita recebida", value: money(P.revenue), cls: "v-good", sub: fmtPct(pct(P.revenue, m.contract)) + " do valor da obra", pct: pct(P.revenue, m.contract), ringOpts: { color: "var(--good)" }, act: "gastos", id: "receita" }) +
+      kpi({ label: "Horas trabalhadas", value: hrs(P.hours), cls: "v-info", sub: "Mão de obra " + money(P.labor) + " · " + (m.labBudget > 0 ? limitLine(P.labor, m.labBudget) : "das " + hrs(m.estHours) + " previstas"), pct: hoursRing, act: "hours" }) +
+      kpi({ label: "Material", value: money(P.byCat.material), sub: limitLine(P.byCat.material, m.matBudget), pct: pct(P.byCat.material, m.matBudget), act: "gastos", id: "material" }) +
+      kpi({ label: "Despesas", value: money(P.exp), cls: "v-bad", sub: "material, permit, equipamento e outros", pct: pct(P.exp, m.contract), ringOpts: { color: "var(--c1)" }, act: "gastos", id: "material" }) +
+      kpi({ label: "Custo total", value: money(P.cost), cls: "v-bad", sub: "mão de obra + despesas · " + limitLine(P.cost, m.budget), pct: pct(P.cost, m.budget) }) +
+      kpi({ label: "Receita recebida", value: money(P.revenue), cls: "v-good", sub: fmtPct(pct(P.revenue, m.contract)) + " do orçamento", pct: pct(P.revenue, m.contract), ringOpts: { color: "var(--good)" } }) +
       kpi({ label: "Lucro bruto", value: money(P.profit), cls: P.profit >= 0 ? "v-good" : "v-bad", sub: "receita − custo total", pct: Math.abs(margin), ringOpts: { color: P.profit >= 0 ? "var(--good)" : "var(--bad)", text: fmtPct(margin) } }) +
-      kpi({ label: "Tarefas concluídas", value: tDone + ' <span class="muted" style="font-size:17px">de ' + tAll + "</span>", sub: "progresso da obra", pct: pct(tDone, tAll), ringOpts: { color: "var(--info)" }, act: sel ? "openProject" : "nav", id: sel ? sel.id : "projects" }) +
+      kpi({ label: "Progresso da obra", value: fmtPct(progress), sub: m.tDone + " de " + m.tAll + " tarefas concluídas", pct: progress, ringOpts: { color: "var(--info)" }, act: sel ? "openProject" : "nav", id: sel ? sel.id : "projects" }) +
       "</div>";
 
-    // Budget (always project-to-date)
+    // Limites (sempre acumulado da obra)
     var used = pct(A.cost, m.budget), remaining = m.budget - A.cost;
-    var budget = '<div class="section-title"><h3>Orçamento e metas</h3><span class="muted small">acumulado da obra, independente do período</span></div>' +
+    var mini = function (label, spent, limit, act, id) {
+      return '<' + (act ? 'button data-act="' + act + '" data-id="' + (id || "") + '"' : "div") + ' class="panel kpi" style="grid-template-columns:minmax(0,1fr) auto"><div><div class="label">' + label + '</div><div class="kpi-value">' + money(spent) + '</div><div class="kpi-sub">' + (limit > 0 ? "de " + money(limit) + " · restam " + money(limit - spent) : "defina o limite em Editar → Valores") + "</div></div>" + ring(pct(spent, limit), 58) + "</" + (act ? "button" : "div") + ">";
+    };
+    var budget = '<div class="section-title"><h3>Orçamento e limites de gasto</h3><span class="muted small">acumulado da obra, independente do período</span></div>' +
       '<div class="budget"><div class="panel budget-ring">' +
-      ring(used, 210, { stroke: 20, fontSize: 44, sub: "do orçamento", subSize: 15 }) +
+      ring(used, 210, { stroke: 20, fontSize: 44, sub: "do limite de gastos", subSize: 15 }) +
       '<div class="cap">' + esc(sel ? sel.name : "Todos os projetos") + "</div>" +
-      '<div class="muted">Valor da obra <b style="color:var(--ink)" class="num">' + money(m.contract) + "</b> · Orçamento <b style=\"color:var(--ink)\" class=\"num\">" + money(m.budget) + "</b></div></div>" +
+      '<div class="muted">Orçamento <b style="color:var(--ink)" class="num">' + money(m.contract) + '</b> · Limite de gastos <b style="color:var(--ink)" class="num">' + money(m.budget) + "</b></div></div>" +
       '<div class="budget-list">' +
-      '<div class="panel"><div class="label">Valor da obra (contrato)</div><div class="kpi-value v-info">' + money(m.contract) + "</div></div>" +
-      '<button class="panel kpi" data-act="gastos" data-id="all" style="grid-template-columns:minmax(0,1fr) auto"><div><div class="label">Gasto até agora</div><div class="kpi-value">' + money(A.cost) + '</div><div class="kpi-sub">Mão de obra ' + money(A.labor) + " · Despesas " + money(A.exp) + '</div><div class="kpi-go">Ver gastos separados →</div></div>' + ring(used, 58) + "</button>" +
-      '<div class="panel"><div class="label">Restante do orçamento</div><div class="kpi-value ' + (remaining >= 0 ? "v-good" : "v-bad") + '">' + money(remaining) + "</div></div>" +
-      '<div class="panel"><div class="label">Lucro previsto (valor da obra − gasto até agora)</div><div class="kpi-value">' + money(m.contract - A.cost) + '</div><div class="kpi-sub">Recebido até agora: ' + money(A.revenue) + " (" + fmtPct(pct(A.revenue, m.contract)) + ")</div></div>" +
+      mini("Material gasto", A.byCat.material, m.matBudget, "gastos", "material") +
+      mini("Mão de obra (horas)", A.labor, m.labBudget, "hours") +
+      '<div class="panel"><div class="label">Restante do limite de gastos</div><div class="kpi-value ' + (remaining >= 0 ? "v-good" : "v-bad") + '">' + money(remaining) + '</div><div class="kpi-sub">Gasto até agora ' + money(A.cost) + "</div></div>" +
+      '<div class="panel"><div class="label">Lucro previsto (orçamento − gasto até agora)</div><div class="kpi-value">' + money(m.contract - A.cost) + '</div><div class="kpi-sub">Recebido até agora: ' + money(A.revenue) + " (" + fmtPct(pct(A.revenue, m.contract)) + ")</div></div>" +
       "</div></div>";
 
-    // Breakdown
     var catRows = EXPENSE_CATS.map(function (c) { return { id: c.id, label: c.label, value: P.byCat[c.id] || 0, color: c.color, act: "gastos" }; }).filter(function (r) { return r.value > 0; });
     var userRows = Object.keys(P.byUser).map(function (id) { return { id: id, label: userName(id), value: P.byUser[id].hours, color: "var(--c2)" }; }).sort(function (a, b) { return b.value - a.value; });
-    var userCost = Object.keys(P.byUser).map(function (id) { return { id: id, label: userName(id), value: P.byUser[id].cost, color: "var(--c1)" }; }).sort(function (a, b) { return b.value - a.value; });
     var breakdown = '<div class="section-title"><h3>Para onde foi o dinheiro</h3><span class="muted small">' + periodLabel() + "</span></div>" +
-      '<div class="grid2"><div class="panel"><h3>Gastos por categoria</h3>' + bars(catRows, money) + '</div><div class="panel"><h3>Horas por funcionário</h3>' + bars(userRows, hrs) + "</div></div>" +
-      '<div class="grid2" style="margin-top:12px"><div class="panel"><h3>Custo de mão de obra por funcionário</h3>' + bars(userCost, money) + "</div>" + projectsTable() + "</div>";
+      '<div class="grid2"><div class="panel"><h3>Despesas por categoria</h3>' + bars(catRows, money) + '</div><div class="panel"><h3>Horas por funcionário</h3>' + bars(userRows, hrs) + "</div></div>" +
+      '<div style="margin-top:12px">' + projectsTable() + "</div>";
 
-    return '<div class="page-head"><div><h1>Painel</h1><p>Visão geral de projetos, mão de obra e finanças</p></div></div>' + filtersBar() + banner + cards + budget + breakdown;
+    return '<div class="page-head"><div><h1>Painel</h1><p>Visão geral das obras, gastos e progresso</p></div></div>' + filtersBar() + banner + cards + budget + breakdown;
   }
   function projectsTable() {
     var list = companyProjects().filter(function (p) { return p.status !== "Cancelled"; });
-    return '<div class="panel" style="padding:0;overflow:hidden"><h3 style="padding:16px 16px 0">Orçamento por projeto</h3><div style="overflow-x:auto"><table><thead><tr><th>Projeto</th><th class="n">Valor</th><th class="n">Gasto</th><th class="n">Usado</th></tr></thead><tbody>' +
-      list.map(function (p) { var s = projectStats(p); return '<tr class="click" data-act="pickProject" data-id="' + p.id + '"><td>' + esc(p.name) + '</td><td class="n">' + money(s.contract) + '</td><td class="n">' + money(s.cost) + '</td><td class="n">' + ring(pct(s.cost, s.budget), 40, { stroke: 5, fontSize: 11 }) + "</td></tr>"; }).join("") +
+    return '<div class="panel" style="padding:0;overflow:hidden"><h3 style="padding:16px 16px 0">Obras: progresso e gastos</h3><div style="overflow-x:auto"><table><thead><tr><th>Projeto</th><th class="n">Orçamento</th><th class="n">Gasto</th><th class="n">Progresso</th><th class="n">Limite usado</th></tr></thead><tbody>' +
+      list.map(function (p) { var s = projectStats(p); return '<tr class="click" data-act="pickProject" data-id="' + p.id + '"><td>' + esc(p.name) + '</td><td class="n">' + money(s.contract) + '</td><td class="n">' + money(s.cost) + '</td><td class="n">' + ring(s.progress, 40, { stroke: 5, fontSize: 11, color: "var(--info)" }) + '</td><td class="n">' + ring(pct(s.cost, s.budget), 40, { stroke: 5, fontSize: 11 }) + "</td></tr>"; }).join("") +
       "</tbody></table></div></div>";
   }
 
-  // ═══════════ gastos (expense breakdown) ═══════════
+  // ═══════════ horas trabalhadas da obra selecionada ═══════════
+  function hoursView() {
+    var f = S.filters, sel = f.projectId ? projectById(f.projectId) : null;
+    var T = S.time.filter(function (t) { return t.companyId === S.company && (!f.projectId || t.projectId === f.projectId) && (!f.userId || t.userId === f.userId) && inPeriod(t.checkIn); });
+    var hours = 0, cost = 0, by = {};
+    T.forEach(function (t) { var h = hoursOf(t), c = h * (t.rate || 0); hours += h; cost += c; var u = by[t.userId] || (by[t.userId] = { hours: 0, cost: 0, days: {} }); u.hours += h; u.cost += c; u.days[isoLocal(new Date(t.checkIn))] = 1; });
+    var fi = sel ? S.fin[sel.id] || {} : {};
+    var rows = Object.keys(by).map(function (id) { return { id: id, name: userName(id), hours: by[id].hours, cost: by[id].cost, days: Object.keys(by[id].days).length }; }).sort(function (a, b) { return b.hours - a.hours; });
+    var head = '<div class="page-head"><div><button class="btn ghost sm" data-act="nav" data-id="dashboard" style="margin-bottom:10px">← Painel</button><h1>Horas trabalhadas</h1><p>' + (sel ? esc(sel.name) : "Escolha a obra abaixo para ver só as horas dela") + " · " + periodLabel() + "</p></div></div>";
+    return head + filtersBar() +
+      '<div class="kpis" style="margin-bottom:14px">' +
+      kpi({ label: "Horas", value: hrs(hours), cls: "v-info", sub: sel && fi.estHours ? "das " + hrs(fi.estHours) + " previstas" : "no período", pct: sel ? pct(hours, fi.estHours || 0) : 0 }) +
+      kpi({ label: "Mão de obra", value: money(cost), sub: sel ? limitLine(cost, fi.laborBudget || 0) : "todas as obras", pct: sel ? pct(cost, fi.laborBudget || 0) : 0 }) +
+      kpi({ label: "Funcionários", value: String(rows.length), sub: "trabalharam no período", pct: 100, ringOpts: { color: "var(--c2)", text: String(rows.length) } }) +
+      "</div>" +
+      '<div class="panel" style="padding:0;margin-bottom:14px"><h3 style="padding:16px 16px 0">Por funcionário</h3><div style="overflow-x:auto"><table><thead><tr><th>Funcionário</th><th class="n">Dias</th><th class="n">Horas</th><th class="n">Custo</th></tr></thead><tbody>' +
+      (rows.length ? rows.map(function (r) { return "<tr><td>" + esc(r.name) + '</td><td class="n">' + r.days + '</td><td class="n">' + hrs(r.hours) + '</td><td class="n"><b>' + money(r.cost) + "</b></td></tr>"; }).join("") : '<tr><td colspan="4" class="empty">Nenhuma hora registrada.</td></tr>') +
+      "</tbody></table></div></div>" +
+      '<div class="section-title"><h3>Registros de ponto</h3><span class="muted small">' + T.length + " registros</span></div>" + timeTable(T.slice(0, 300), true);
+  }
+
+  // ═══════════ despesas (por categoria) ═══════════
   function gastosView() {
     var m = metrics(), P = m.period, f = S.filters;
-    var cat = S.gastoCat;
+    var cat = EXPENSE_CATS.some(function (c) { return c.id === S.gastoCat; }) ? S.gastoCat : "material";
     var segs = EXPENSE_CATS.map(function (c) { return { id: c.id, value: P.byCat[c.id] || 0, color: c.color }; });
-    var tiles = '<div class="cat-grid">' +
-      '<button class="cat' + (cat === "all" ? " on" : "") + '" data-act="gastoCat" data-id="all"><span class="label">Todos os gastos</span><span class="amt">' + money(P.cost) + '</span><span class="muted small">100% · ' + periodLabel() + "</span></button>" +
-      EXPENSE_CATS.map(function (c) { var v = P.byCat[c.id] || 0; return '<button class="cat' + (cat === c.id ? " on" : "") + '" data-act="gastoCat" data-id="' + c.id + '"><span class="label"><span class="swatch" style="background:' + c.color + '"></span>' + esc(c.label) + '</span><span class="amt">' + money(v) + '</span><span class="muted small">' + fmtPct(pct(v, P.cost)) + " do total" + (c.id === "labor" ? " · " + hrs(P.hours) : "") + "</span></button>"; }).join("") +
-      '<button class="cat' + (cat === "receita" ? " on" : "") + '" data-act="gastoCat" data-id="receita"><span class="label"><span class="swatch" style="background:var(--good)"></span>Receita (entradas)</span><span class="amt v-good">' + money(P.revenue) + '</span><span class="muted small">pagamentos recebidos</span></button>' +
-      "</div>";
-
-    var detail;
-    if (cat === "labor") {
-      var rows = Object.keys(P.byUser).map(function (id) { var u = P.byUser[id]; return { id: id, name: userName(id), hours: u.hours, rate: u.hours ? u.cost / u.hours : u.rate, cost: u.cost }; }).sort(function (a, b) { return b.cost - a.cost; });
-      var entries = m.T.filter(function (t) { return inPeriod(t.checkIn) && t.checkOut; });
-      detail = '<div class="panel" style="padding:0"><h3 style="padding:16px 16px 0">Mão de obra por funcionário</h3><div style="overflow-x:auto"><table><thead><tr><th>Funcionário</th><th class="n">Horas</th><th class="n">Valor/hora</th><th class="n">Custo</th><th class="n">% do total</th></tr></thead><tbody>' +
-        (rows.length ? rows.map(function (r) { return "<tr><td>" + esc(r.name) + '</td><td class="n">' + hrs(r.hours) + '</td><td class="n">' + money(r.rate, 2) + '</td><td class="n"><b>' + money(r.cost) + '</b></td><td class="n">' + fmtPct(pct(r.cost, P.labor)) + "</td></tr>"; }).join("") : '<tr><td colspan="5" class="empty">Nenhuma hora registrada no período.</td></tr>') +
-        "</tbody></table></div></div>" +
-        '<div class="section-title"><h3>Registros de ponto</h3><span class="muted small">' + entries.length + " registros</span></div>" + timeTable(entries.slice(0, 200), false);
-    } else {
-      var list = m.E.filter(function (x) { return inPeriod(x.date) && (cat === "all" ? x.kind !== "revenue" : cat === "receita" ? x.kind === "revenue" : x.kind !== "revenue" && x.category === cat); });
-      var total = list.reduce(function (a, x) { return a + x.amount; }, 0);
-      detail = (cat === "all" && P.labor > 0 ? '<div class="panel" style="margin-bottom:12px" data-act="gastoCat" data-id="labor"><div class="spread"><div><div class="label">Mão de obra (horas trabalhadas)</div><div class="kpi-value">' + money(P.labor) + '</div><div class="kpi-sub">' + hrs(P.hours) + ' · toque para ver por funcionário</div></div><button class="btn ghost sm" data-act="gastoCat" data-id="labor">Ver horas →</button></div></div>' : "") +
-        '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Categoria</th><th>Projeto</th><th>Fornecedor / descrição</th><th>Lançado por</th><th class="n">Valor</th><th></th></tr></thead><tbody>' +
-        (list.length ? list.map(function (x) {
-          var p = projectById(x.projectId);
-          return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(catLabel(x.category)) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(x.vendor || "") + (x.note ? '<div class="muted small">' + esc(x.note) + "</div>" : "") + "</td><td>" + esc(userName(x.createdBy)) + '</td><td class="n"><b>' + money(x.amount, 2) + '</b></td><td class="n">' +
-            (x.receipt ? '<button class="btn ghost sm" data-act="viewReceipt" data-id="' + x.id + '">Recibo</button> ' : "") + '<button class="btn ghost sm" data-act="delExpense" data-id="' + x.id + '" aria-label="Apagar">✕</button></td></tr>';
-        }).join("") + '<tr><td colspan="5"><b>Total</b></td><td class="n"><b>' + money(total, 2) + "</b></td><td></td></tr>" : '<tr><td colspan="7" class="empty">Nenhum lançamento nesta categoria no período.</td></tr>') +
-        "</tbody></table></div>";
-    }
-
-    return '<div class="page-head"><div><h1>Gastos</h1><p>Separados por categoria: mão de obra, material, gasolina e mais</p></div><button class="btn" data-act="newExpense">+ Novo lançamento</button></div>' +
-      filtersBar({ noUser: cat !== "labor" }) +
-      '<div class="split"><div class="panel donut-wrap" style="flex-direction:column;align-items:center;gap:10px">' + donut(segs, 220, money(P.cost, 0), "gasto total") +
+    var tiles = '<div class="cat-grid">' + EXPENSE_CATS.map(function (c) { var v = P.byCat[c.id] || 0; return '<button class="cat' + (cat === c.id ? " on" : "") + '" data-act="gastoCat" data-id="' + c.id + '"><span class="label"><span class="swatch" style="background:' + c.color + '"></span>' + esc(c.label) + '</span><span class="amt">' + money(v) + '</span><span class="muted small">' + fmtPct(pct(v, P.exp)) + " das despesas</span></button>"; }).join("") + "</div>";
+    var list = m.E.filter(function (x) { return inPeriod(x.date) && x.kind !== "revenue" && catKey(x.category) === cat; });
+    var total = list.reduce(function (a, x) { return a + x.amount; }, 0);
+    var detail = '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Projeto</th><th>Fornecedor / descrição</th><th>Lançado por</th><th class="n">Valor</th><th></th></tr></thead><tbody>' +
+      (list.length ? list.map(function (x) {
+        var p = projectById(x.projectId);
+        return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(x.vendor || "") + (x.category !== cat ? ' <span class="pill neutral">' + esc(catLabel(x.category)) + "</span>" : "") + (x.note ? '<div class="muted small">' + esc(x.note) + "</div>" : "") + "</td><td>" + esc(userName(x.createdBy)) + '</td><td class="n"><b>' + money(x.amount, 2) + '</b></td><td class="n">' +
+          (x.receipt ? '<button class="btn ghost sm" data-act="viewReceipt" data-id="' + x.id + '">Nota</button> ' : "") + '<button class="btn ghost sm" data-act="delExpense" data-id="' + x.id + '" aria-label="Apagar">✕</button></td></tr>';
+      }).join("") + '<tr><td colspan="4"><b>Total</b></td><td class="n"><b>' + money(total, 2) + "</b></td><td></td></tr>" : '<tr><td colspan="6" class="empty">Nenhuma despesa nesta categoria no período.</td></tr>') +
+      "</tbody></table></div>";
+    return '<div class="page-head"><div><h1>Despesas</h1><p>Material, permit, equipamento e outros — as notas lançadas entram aqui sozinhas</p></div><button class="btn ghost" data-act="newExpense">+ Lançamento manual</button></div>' +
+      filtersBar({ noUser: true }) +
+      '<div class="split"><div class="panel donut-wrap" style="flex-direction:column;align-items:center;gap:10px">' + donut(segs, 220, money(P.exp, 0), "despesas") +
       '<div class="muted small" style="text-align:center">' + esc(f.projectId ? (projectById(f.projectId) || {}).name : "Todos os projetos") + "<br>" + periodLabel() + "</div></div>" + tiles + "</div>" +
-      '<div class="section-title"><h3>' + esc(cat === "all" ? "Todos os lançamentos" : catLabel(cat)) + "</h3></div>" + detail;
+      '<div class="section-title"><h3>' + esc(catLabel(cat)) + "</h3></div>" + detail;
   }
 
   // ═══════════ projects ═══════════
@@ -412,15 +422,15 @@
         var s = projectStats(p), d = p.details || {};
         return '<button class="pcard" data-act="openProject" data-id="' + p.id + '"><div class="spread"><h2>' + esc(p.name) + "</h2>" + statusPill(p.status) + "</div>" +
           '<div class="muted small">' + esc([p.client, p.address].filter(Boolean).join(" · ")) + "</div>" +
-          '<div class="chips">' + [d.sector, d.workType, d.building].filter(Boolean).map(function (x) { return '<span class="pill neutral">' + esc(x) + "</span>"; }).join("") + "</div>" +
+          '<div class="chips">' + [d.sector, d.workType, d.building, d.unitsCount ? d.unitsCount + " unid." : ""].filter(Boolean).map(function (x) { return '<span class="pill neutral">' + esc(x) + "</span>"; }).join("") + "</div>" +
           '<div class="spread"><div style="flex:1;min-width:120px"><div class="spread small"><span class="muted">Tarefas</span><b>' + s.done + "/" + s.total + '</b></div><div class="progress"><div style="width:' + pct(s.done, s.total) + '%"></div></div></div>' +
-          '<div class="row" style="gap:8px">' + ring(pct(s.cost, s.budget), 46, { stroke: 6, fontSize: 12 }) + '<div class="small"><div class="muted">Valor da obra</div><b class="num">' + money(s.contract) + "</b></div></div></div></button>";
+          '<div class="row" style="gap:8px">' + ring(pct(s.cost, s.budget), 46, { stroke: 6, fontSize: 12 }) + '<div class="small"><div class="muted">Orçamento</div><b class="num">' + money(s.contract) + "</b></div></div></div></button>";
       }).join("") + "</div>" : '<div class="panel empty">Nenhum projeto ainda. Toque em “Novo projeto” para cadastrar o primeiro ' + (isHvac ? "trabalho de HVAC" : "trabalho elétrico") + ".</div>");
   }
 
   function specRows(p) {
     var d = p.details || {}, trade = TRADE[tradeOf(p.companyId)];
-    var rows = [["Setor", d.sector], ["Tipo de trabalho", d.workType], ["Imóvel", d.building], ["Quartos", d.bedrooms], ["Banheiros", d.bathrooms], ["Andares", d.floors], ["Área (sq ft)", d.sqft], ["Unidades", d.unitsCount || d.units],
+    var rows = [["Tipo", d.sector], ["Tipo de trabalho", d.workType], ["Imóvel", d.building], ["Quartos", d.bedrooms], ["Banheiros", d.bathrooms], ["Andares", d.floors], ["Área (sq ft)", d.sqft], ["Unidades", d.unitsCount || d.units],
       ["Permit", d.permit + (d.permitNo ? " · " + d.permitNo : "")], ["Paredes", d.walls], ["Ocupação", d.occupied], ["Acesso", (d.access || []).join(", ")]];
     Object.keys(trade.fields).forEach(function (k) { var v = d[k]; rows.push([trade.fields[k].label, Array.isArray(v) ? v.join(", ") : v]); });
     trade.text.forEach(function (t) { if (t.key !== "unitsCount") rows.push([t.label, d[t.key]]); });
@@ -432,7 +442,8 @@
     if (!p) return '<div class="panel empty">Projeto não encontrado. <button class="btn ghost sm" data-act="nav" data-id="' + (S.user.role === "admin" ? "projects" : "jobs") + '">Voltar</button></div>';
     var admin = S.user.role === "admin";
     var tab = S.params.tab || "overview";
-    var tabs = [["overview", "Visão geral"], ["scope", "Escopo e tarefas"], ["files", "Plantas e arquivos (" + (p.files || []).length + ")"]];
+    var pn = (S.notices || []).filter(function (n) { return n.projectId === p.id && !n.resolved; }).length;
+    var tabs = [["overview", "Visão geral"], ["scope", "Tarefas"], ["avisos", "Avisos" + (pn ? " (" + pn + ")" : "")], ["files", "Plantas e arquivos (" + (p.files || []).length + ")"]];
     if (admin) { tabs.push(["money", "Financeiro"]); tabs.push(["ptime", "Ponto"]); }
     var s = projectStats(p);
     var maps = p.address ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.address) + '" target="_blank" rel="noopener">Abrir no mapa</a>' : "";
@@ -447,7 +458,7 @@
         (p.teamNotes ? '<div class="panel" style="border-left:4px solid var(--accent)"><h3>Recado para a equipe</h3><div class="prose">' + esc(p.teamNotes) + "</div></div>" : "") +
         '<div class="spread"><h3>Ficha da obra</h3><span class="muted small">Início ' + fmtDate(p.startDate) + " · Previsão " + fmtDate(p.estCompletion) + "</span></div>" +
         (specs.length ? '<div class="specs">' + specs.map(function (r) { return '<div class="spec"><div class="label">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + "</div></div>"; }).join("") + "</div>" : '<div class="panel empty">Sem detalhes cadastrados.</div>') +
-        '<div class="panel"><div class="spread"><h3 style="margin:0">Progresso das tarefas</h3><b>' + s.done + " de " + s.total + '</b></div><div class="progress" style="margin-top:10px;height:10px"><div style="width:' + pct(s.done, s.total) + '%"></div></div></div>' +
+        '<div class="panel"><div class="spread"><h3 style="margin:0">Progresso da obra</h3><b>' + fmtPct(s.progress) + " · " + s.done + " de " + s.total + ' tarefas</b></div><div class="progress" style="margin-top:10px;height:10px"><div style="width:' + s.progress + '%"></div></div></div>' +
         "</div>";
     } else if (tab === "scope") {
       var groups = {}, order = Object.keys(TRADE[tradeOf(p.companyId)].tasks).concat(["Outros"]);
@@ -462,16 +473,20 @@
         }).join("") : '<div class="panel empty">Nenhuma tarefa cadastrada.</div>') + "</div></div>";
     } else if (tab === "files") {
       body = filesBlock(p, admin);
+    } else if (tab === "avisos") {
+      body = noticesBlock(p);
     } else if (tab === "money" && admin) {
       var fi = S.fin[p.id] || {};
-      var segs = EXPENSE_CATS.map(function (c) { var v = c.id === "labor" ? s.labor : S.expenses.filter(function (x) { return x.projectId === p.id && x.kind !== "revenue" && x.category === c.id; }).reduce(function (a, x) { return a + x.amount; }, 0); return { id: c.id, label: c.label, value: v, color: c.color }; });
+      var segs = [{ id: "labor", label: "Mão de obra (horas)", value: s.labor, color: "var(--c2)" }].concat(EXPENSE_CATS.map(function (c) { var v = S.expenses.filter(function (x) { return x.projectId === p.id && x.kind !== "revenue" && catKey(x.category) === c.id; }).reduce(function (a, x) { return a + x.amount; }, 0); return { id: c.id, label: c.label, value: v, color: c.color }; }));
       body = '<div class="kpis">' +
-        kpi({ label: "Valor da obra", value: money(s.contract), sub: "contrato", pct: 100, ringOpts: { color: "var(--info)", text: "100%" } }) +
-        kpi({ label: "Gasto até agora", value: money(s.cost), sub: "do orçamento de " + money(s.budget), pct: pct(s.cost, s.budget), act: "gastosFor", id: p.id }) +
-        kpi({ label: "Horas", value: hrs(s.hours), sub: "de " + hrs(s.estHours) + " previstas", pct: pct(s.hours, s.estHours) }) +
-        kpi({ label: "Recebido", value: money(s.revenue), cls: "v-good", sub: "do valor da obra", pct: pct(s.revenue, s.contract), ringOpts: { color: "var(--good)" } }) +
-        kpi({ label: "Lucro previsto", value: money(s.contract - s.cost), sub: "valor da obra − gasto", pct: pct(s.contract - s.cost, s.contract), ringOpts: { color: "var(--good)" } }) +
+        kpi({ label: "Gasto até agora", value: money(s.cost), sub: limitLine(s.cost, s.budget), pct: pct(s.cost, s.budget), act: "gastosFor", id: p.id }) +
+        kpi({ label: "Material", value: money(s.material), sub: limitLine(s.material, s.matBudget), pct: pct(s.material, s.matBudget), act: "gastosFor", id: p.id }) +
+        kpi({ label: "Mão de obra (horas)", value: money(s.labor), sub: hrs(s.hours) + " · " + limitLine(s.labor, s.labBudget), pct: pct(s.labor, s.labBudget), act: "hoursFor", id: p.id }) +
+        kpi({ label: "Recebido", value: money(s.revenue), cls: "v-good", sub: "do orçamento de " + money(s.contract), pct: pct(s.revenue, s.contract), ringOpts: { color: "var(--good)" } }) +
+        kpi({ label: "Lucro previsto", value: money(s.contract - s.cost), sub: "orçamento − gasto", pct: pct(s.contract - s.cost, s.contract), ringOpts: { color: "var(--good)" } }) +
         '</div><div class="split" style="margin-top:14px"><div class="panel donut-wrap">' + donut(segs, 220, money(s.cost, 0), "gasto total") + '</div><div class="panel"><h3>Gastos por categoria</h3>' + bars(segs.filter(function (x) { return x.value > 0; }).map(function (x) { return { id: x.id, label: x.label, value: x.value, color: x.color }; }), money) + "</div></div>" +
+        '<div class="panel" style="margin-top:14px"><div class="spread"><div><h3 style="margin:0">Relatório diário para o cliente</h3><div class="muted small">' + (fi.clientEmail ? esc(fi.clientEmail) + (fi.dailyReport === false ? " · desligado" : " · enviado todo dia às 18h quando houver trabalho") + (fi.lastReportAt ? " · último: " + fmtDate(fi.lastReportAt) : "") : "Coloque o e-mail do cliente em Editar → Obra.") + "</div></div>" +
+        (fi.clientEmail ? '<button class="btn ghost sm" data-act="reportNow" data-id="' + p.id + '">Enviar relatório agora</button>' : "") + "</div></div>" +
         (fi.contractValue == null ? '<p class="muted">Valores ainda não cadastrados. Use “Editar” → etapa “Valores”.</p>' : "");
     } else if (tab === "ptime" && admin) {
       body = timeTable(S.time.filter(function (t) { return t.projectId === p.id; }).slice(0, 300), true);
@@ -492,7 +507,7 @@
 
   // ═══════════ project wizard ═══════════
   function blankProject() {
-    return { id: null, companyId: S.company, name: "", client: "", address: "", lat: null, lng: null, radius: 150, status: "Active", startDate: todayISO(), estCompletion: "", details: { access: [], wiring: [], extras: [], equipment: [] }, scope: "", teamNotes: "", tasks: [], fin: { contractValue: "", budget: "", estHours: "" } };
+    return { id: null, companyId: S.company, name: "", client: "", address: "", lat: null, lng: null, radius: 150, status: "Active", startDate: todayISO(), estCompletion: "", details: { access: [], wiring: [], extras: [], equipment: [] }, scope: "", teamNotes: "", tasks: [], fin: { contractValue: "", materialBudget: "", laborBudget: "", estHours: "", clientEmail: "", clientPhone: "", dailyReport: "Sim" } };
   }
   function wizSteps() { var t = TRADE[tradeOf(S.draft.companyId)]; return ["Obra", "Tipo", "Condições", t.stepName, "Tarefas", "Escopo e plantas", "Valores"]; }
   function chooser(path, def, multi) {
@@ -514,14 +529,18 @@
         '<div class="row" style="align-items:flex-end">' + '<div style="flex:1 1 260px">' + inputF("address", "Endereço da obra") + '</div><button type="button" class="btn ghost" data-act="geocode">Buscar no mapa</button></div>' +
         '<div class="muted small" id="geoStatus">' + (d.lat ? "Localização: " + Number(d.lat).toFixed(5) + ", " + Number(d.lng).toFixed(5) + " — usada para detectar a obra quando o funcionário bate o ponto." : "Busque o endereço para o app reconhecer a obra pelo GPS do funcionário.") + "</div>" +
         '<div class="grid4 keep2">' + inputF("lat", "Latitude", "number", 'step="any"') + inputF("lng", "Longitude", "number", 'step="any"') + inputF("radius", "Raio do ponto (metros)", "number") + "</div>" +
-        '<div class="grid2">' + inputF("startDate", "Início", "date") + inputF("estCompletion", "Previsão de término", "date") + "</div></div>";
+        '<div class="grid2">' + inputF("startDate", "Início", "date") + inputF("estCompletion", "Previsão de término", "date") + "</div>" +
+        '<div class="panel" style="background:var(--surface-2)"><h3>Cliente: relatório diário da obra</h3><p class="muted small" style="margin:0 0 10px">O cliente recebe por e-mail, todo fim de dia em que houver trabalho, o progresso da obra e as tarefas concluídas. Só você vê estes dados.</p>' +
+        '<div class="grid2">' + inputF("fin.clientEmail", "E-mail do cliente", "email", 'autocapitalize="none" inputmode="email"') + inputF("fin.clientPhone", "Telefone do cliente", "tel") + "</div>" +
+        chooser("fin.dailyReport", { label: "Enviar relatório diário", opts: ["Sim", "Não"] }) + "</div></div>";
     } else if (step === 1) {
-      var res = d.details.sector === "Residencial" || d.details.sector === "Multifamily" || !d.details.sector;
-      body = '<div class="stack">' + chooser("details.sector", COMMON_FIELDS.sector) + chooser("details.workType", { label: "Tipo de trabalho", opts: trade.workType }) +
-        chooser("details.building", res ? COMMON_FIELDS.buildingRes : COMMON_FIELDS.buildingCom) +
-        (res ? chooser("details.bedrooms", COMMON_FIELDS.bedrooms) + chooser("details.bathrooms", COMMON_FIELDS.bathrooms) : "") +
+      var sec = d.details.sector, res = sec !== "Comercial", multi = res && d.details.building === "Multifamily";
+      var unitsSel = function (label, max) { var v = String(d.details.unitsCount || ""), o = '<option value="">—</option>'; for (var i = 1; i <= max; i++) o += '<option' + (v === String(i) ? " selected" : "") + ">" + i + "</option>"; return '<label class="field" style="max-width:260px"><span>' + label + '</span><select data-bind="details.unitsCount" id="w-units">' + o + "</select></label>"; };
+      body = '<div class="stack">' + chooser("details.workType", { label: "Tipo de trabalho", opts: trade.workType }) + chooser("details.sector", COMMON_FIELDS.sector) +
+        (sec === "Residencial" ? chooser("details.building", COMMON_FIELDS.buildingRes) + (multi ? unitsSel("Unidades (apartamentos)", 200) : "") + chooser("details.bedrooms", COMMON_FIELDS.bedrooms) + chooser("details.bathrooms", COMMON_FIELDS.bathrooms) : "") +
+        (sec === "Comercial" ? unitsSel("Unidades (apartamentos) — até 200", 200) : "") +
         chooser("details.floors", COMMON_FIELDS.floors) +
-        '<div class="grid2">' + inputF("details.sqft", "Área (sq ft)", "number") + inputF("details.unitsCount", "Unidades (se for multifamily)", "number") + "</div></div>";
+        '<div class="grid2">' + inputF("details.sqft", "Área (sq ft)", "number") + "</div></div>";
     } else if (step === 2) {
       body = '<div class="stack">' + chooser("details.permit", COMMON_FIELDS.permit) + inputF("details.permitNo", "Nº do permit / cidade") +
         chooser("details.walls", COMMON_FIELDS.walls) + chooser("details.occupied", COMMON_FIELDS.occupied) + chooser("details.access", COMMON_FIELDS.access, true) + "</div>";
@@ -547,13 +566,16 @@
         (d.id && (projectById(d.id) || {}).files && projectById(d.id).files.length ? '<div class="muted small" style="margin-top:6px">Já enviados: ' + projectById(d.id).files.map(function (f) { return esc(f.name); }).join(", ") + "</div>" : "") +
         "</div></div>";
     } else if (step === 6) {
+      var lim = (Number(d.fin.materialBudget) || 0) + (Number(d.fin.laborBudget) || 0);
       body = '<div class="stack"><p class="muted" style="margin:0">Só o administrador vê estes valores. Os funcionários nunca veem preço, orçamento ou lucro.</p>' +
-        '<div class="grid3">' + inputF("fin.contractValue", "Valor da obra (contrato) $", "number", 'step="0.01" inputmode="decimal"') + inputF("fin.budget", "Orçamento de custo $", "number", 'step="0.01" inputmode="decimal"') + inputF("fin.estHours", "Horas previstas", "number", 'inputmode="decimal"') + "</div>" +
+        '<div class="grid2">' + inputF("fin.contractValue", "Orçamento da obra (valor do contrato) $", "number", 'step="0.01" inputmode="decimal"') + inputF("fin.estHours", "Horas previstas", "number", 'inputmode="decimal"') + "</div>" +
+        '<div class="grid2">' + inputF("fin.materialBudget", "Quanto quero gastar em material (limite) $", "number", 'step="0.01" inputmode="decimal"') + inputF("fin.laborBudget", "Quanto quero gastar em mão de obra (limite) $", "number", 'step="0.01" inputmode="decimal"') + "</div>" +
+        '<p class="muted small" style="margin:0">O painel acompanha o gasto de material (pelas notas) e de mão de obra (pelas horas do ponto) contra estes limites.</p>' +
         '<div class="panel"><h3>Resumo</h3><div class="specs">' +
-        [["Projeto", d.name || "—"], ["Tipo", [d.details.sector, d.details.workType].filter(Boolean).join(" · ") || "—"], ["Tarefas", d.tasks.length], ["Arquivos para enviar", S.draftFiles.length], ["Lucro previsto", money((Number(d.fin.contractValue) || 0) - (Number(d.fin.budget) || 0))]].map(function (r) { return '<div class="spec"><div class="label">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + "</div></div>"; }).join("") +
+        [["Projeto", d.name || "—"], ["Tipo", [d.details.sector, d.details.building, d.details.workType].filter(Boolean).join(" · ") || "—"], ["Tarefas", d.tasks.length], ["Arquivos para enviar", S.draftFiles.length], ["Limite de gastos", money(lim)], ["Lucro previsto", money((Number(d.fin.contractValue) || 0) - lim)]].map(function (r) { return '<div class="spec"><div class="label">' + esc(r[0]) + '</div><div class="v">' + esc(r[1]) + "</div></div>"; }).join("") +
         "</div></div></div>";
     }
-    return '<div class="page-head"><div><button class="btn ghost sm" data-act="cancelWizard" style="margin-bottom:10px">← Cancelar</button><h1>' + (d.id ? "Editar projeto" : "Novo projeto") + "</h1><p>" + esc(companyName(d.companyId)) + "</p></div></div>" +
+    return '<div class="page-head"><div><button class="btn ghost sm" data-act="cancelWizard" style="margin-bottom:10px">← Cancelar</button><h1>' + (d.id ? "Editar projeto" : "Novo projeto") + "</h1><p>Eternity Electric</p></div></div>" +
       '<div class="steps">' + steps.map(function (s, i) { return '<button data-act="wizGo" data-id="' + i + '" class="' + (i === step ? "on" : i < step ? "done" : "") + '">' + (i + 1) + ". " + esc(s) + "</button>"; }).join("") + "</div>" +
       '<div class="panel">' + body + '<div class="err" id="wizErr" hidden></div></div>' +
       '<div class="wiz-foot"><button class="btn ghost" data-act="wizGo" data-id="' + Math.max(0, step - 1) + '"' + (step === 0 ? " disabled" : "") + ">← Voltar</button>" +
@@ -577,7 +599,7 @@
     var list = S.time.filter(function (t) { return t.companyId === S.company && inPeriod(t.checkIn) && (!f.projectId || t.projectId === f.projectId) && (!f.userId || t.userId === f.userId); });
     var now = S.time.filter(function (t) { return t.companyId === S.company && !t.checkOut; });
     var tot = list.reduce(function (a, t) { return a + hoursOf(t); }, 0), cost = list.reduce(function (a, t) { return a + hoursOf(t) * (t.rate || 0); }, 0);
-    return '<div class="page-head"><div><h1>Registro de ponto</h1><p>Entradas e saídas com foto e GPS</p></div></div>' + filtersBar() +
+    return '<div class="page-head"><div><h1>Registro de ponto</h1><p>Entradas e saídas com foto e GPS · pagamento da semana</p></div></div>' + payrollPanel() + filtersBar() +
       '<div class="grid3 keep2" style="margin-bottom:14px"><div class="panel"><div class="label">Trabalhando agora</div><div class="kpi-value v-good">' + now.length + '</div><div class="kpi-sub">' + (now.map(function (t) { return esc(userName(t.userId)); }).join(", ") || "ninguém") + '</div></div><div class="panel"><div class="label">Horas no período</div><div class="kpi-value v-info">' + hrs(tot) + '</div></div><div class="panel"><div class="label">Custo no período</div><div class="kpi-value">' + money(cost) + "</div></div></div>" +
       timeTable(list.slice(0, 400), true);
   }
@@ -586,9 +608,9 @@
   function teamView() {
     var list = S.users.filter(function (u) { return u.companyId === S.company || u.role === "admin"; });
     return '<div class="page-head"><div><h1>Equipe</h1><p>' + esc(companyName(S.company)) + '</p></div><button class="btn" data-act="newUser">+ Novo funcionário</button></div>' +
-      '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Usuário</th><th>Função</th><th>Empresa</th><th class="n">Valor/hora</th><th>Status</th><th></th></tr></thead><tbody>' +
+      '<div class="table-wrap"><table><thead><tr><th>Nome</th><th>Usuário</th><th>Função</th><th class="n">Valor/hora</th><th>Status</th><th></th></tr></thead><tbody>' +
       list.map(function (u) {
-        return "<tr><td><b>" + esc(u.name) + "</b></td><td>" + esc(u.username) + "</td><td>" + (u.role === "admin" ? "Administrador" : "Funcionário") + "</td><td>" + esc(companyName(u.companyId)) + '</td><td class="n">' + (u.role === "admin" ? "—" : money(u.rate, 2)) + "</td><td>" + (u.active ? '<span class="pill good">Ativo</span>' : '<span class="pill neutral">Inativo</span>') + '</td><td><button class="btn ghost sm" data-act="editUser" data-id="' + u.id + '">Editar</button></td></tr>';
+        return "<tr><td><b>" + esc(u.name) + "</b></td><td>" + esc(u.username) + "</td><td>" + (u.role === "admin" ? "Administrador" : "Funcionário") + '</td><td class="n">' + (u.role === "admin" ? "—" : money(u.rate, 2)) + "</td><td>" + (u.active ? '<span class="pill good">Ativo</span>' : '<span class="pill neutral">Inativo</span>') + '</td><td><button class="btn ghost sm" data-act="editUser" data-id="' + u.id + '">Editar</button></td></tr>';
       }).join("") + "</tbody></table></div>";
   }
 
@@ -624,7 +646,7 @@
   }
 
   // ═══════════ employee shell ═══════════
-  var EMP_NAV = [["punch", "Ponto", "clock"], ["jobs", "Obras", "folder"], ["myexp", "Gastos", "receipt"], ["me", "Perfil", "user"]];
+  var EMP_NAV = [["punch", "Ponto", "clock"], ["jobs", "Obras", "folder"], ["notas", "Notas", "receipt"], ["me", "Perfil", "user"]];
   function employeeShell() {
     var cur = S.view === "project" ? "jobs" : S.view;
     var co = API.companies.find(function (c) { return c.id === S.user.companyId; }) || API.companies[0];
@@ -632,7 +654,7 @@
       EMP_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + esc(n[1]) + "</button>"; }).join("") + '</nav><div class="side-foot"><span>' + esc(S.user.name) + "</span>" + installBtn() + '<button data-act="logout">Sair</button></div></aside>';
     var top = '<header class="topbar"><div class="brand"><div class="brand-mark" style="width:30px;height:30px">' + (co.trade === "hvac" ? ICON.flake : ICON.bolt) + '</div><div><div class="brand-name" style="font-size:17px">Eternity Electric</div><div class="brand-sub">' + (co.trade === "hvac" ? "Blue Star HVAC" : "Elétrica") + "</div></div></div></header>";
     var mob = '<nav class="mobile-nav">' + EMP_NAV.map(function (n) { return '<button data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '">' + ICON[n[2]] + "<span>" + esc(n[1]) + "</span></button>"; }).join("") + "</nav>";
-    var body = ({ punch: punchView, jobs: jobsView, project: projectView, myexp: myExpView, me: meView })[S.view] || punchView;
+    var body = ({ punch: punchView, jobs: jobsView, project: projectView, notas: notasView, myexp: myExpView, me: meView })[S.view] || punchView;
     return '<div class="shell">' + side + '<div class="main">' + top + offlineFlag() + (API.mode === "demo" ? '<div class="demo-flag">Modo demonstração — dados de exemplo.</div>' : "") + body() + "</div></div>" + mob;
   }
 
@@ -724,6 +746,119 @@
     return '<div class="panel" style="background:var(--surface-2)"><h3>Instalar no celular</h3>' + (S.installEvt ? '<button class="btn" data-act="install" style="margin-top:6px">Instalar o app</button>' : '<div class="small">iPhone: abra no Safari → botão Compartilhar → “Adicionar à Tela de Início”.<br>Android: menu ⋮ do Chrome → “Instalar app”.</div>') + "</div>";
   }
 
+  // ═══════════ pagamento da semana (domingo a sábado) ═══════════
+  function weekRange(offset) {
+    var d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - d.getDay() + 7 * (offset || 0));
+    var end = new Date(d); end.setDate(d.getDate() + 6);
+    return { from: isoLocal(d), to: isoLocal(end) };
+  }
+  function payrollFor(w) {
+    var rows = {};
+    S.time.forEach(function (t) {
+      if (t.companyId !== S.company) return;
+      var day = isoLocal(new Date(t.checkIn)); if (day < w.from || day > w.to) return;
+      var u = userById(t.userId); if (u && u.role === "admin") return;
+      var r = rows[t.userId] || (rows[t.userId] = { id: t.userId, name: userName(t.userId), hours: 0, pay: 0, days: {}, open: 0, rate: t.rate || 0 });
+      if (!t.checkOut) { r.open++; return; }
+      var h = hoursOf(t); r.hours += h; r.pay += h * (t.rate || 0); r.days[day] = 1;
+    });
+    var list = Object.keys(rows).map(function (k) { var r = rows[k]; r.nDays = Object.keys(r.days).length; return r; }).sort(function (a, b) { return b.pay - a.pay; });
+    return { list: list, total: list.reduce(function (a, r) { return a + r.pay; }, 0), hours: list.reduce(function (a, r) { return a + r.hours; }, 0) };
+  }
+  function payrollPanel() {
+    var off = S.payWeek || 0, w = weekRange(off), pr = payrollFor(w);
+    var isSat = new Date().getDay() === 6;
+    return '<div class="panel" style="margin-bottom:14px"><div class="spread"><div><h3 style="margin:0">Pagamento da semana</h3><div class="muted small">Domingo ' + fmtDate(w.from) + " a sábado " + fmtDate(w.to) + " · todo sábado à noite chega no seu e-mail</div></div>" +
+      '<div class="chips"><button type="button" class="chip' + (off === 0 ? " on" : "") + '" data-act="payWeek" data-id="0">Esta semana</button><button type="button" class="chip' + (off === -1 ? " on" : "") + '" data-act="payWeek" data-id="-1">Semana passada</button></div></div>' +
+      '<div class="table-wrap" style="margin-top:10px"><table><thead><tr><th>Funcionário</th><th class="n">Dias</th><th class="n">Horas</th><th class="n">Valor/hora</th><th class="n">A pagar</th></tr></thead><tbody>' +
+      (pr.list.length ? pr.list.map(function (r) { return "<tr><td><b>" + esc(r.name) + "</b>" + (r.open ? ' <span class="pill warn">ponto sem saída</span>' : "") + '</td><td class="n">' + r.nDays + '</td><td class="n">' + hrs(r.hours) + '</td><td class="n">' + money(r.rate, 2) + '</td><td class="n"><b>' + money(r.pay, 2) + "</b></td></tr>"; }).join("") +
+        '<tr class="total-row"><td><b>Total' + (off === 0 && !isSat ? " até agora" : "") + '</b></td><td></td><td class="n"><b>' + hrs(pr.hours) + '</b></td><td></td><td class="n"><b>' + money(pr.total, 2) + "</b></td></tr>"
+        : '<tr><td colspan="5" class="empty">Nenhuma hora nesta semana.</td></tr>') + "</tbody></table></div>" +
+      '<div class="row" style="margin-top:10px"><button class="btn ghost sm" data-act="payEmail">Mandar para o meu e-mail agora</button></div></div>';
+  }
+
+  // ═══════════ avisos ═══════════
+  function openNotices() { return (S.notices || []).filter(function (n) { return !n.resolved; }); }
+  function noticeCard(n, withProject) {
+    var p = projectById(n.projectId), admin = S.user.role === "admin";
+    return '<div class="notice' + (n.resolved ? " done" : "") + '"><div class="spread"><div><b>' + esc(n.authorName || userName(n.userId)) + "</b>" + (withProject ? ' · <a href="#" data-act="openProject" data-id="' + esc(n.projectId || "") + '">' + esc(p ? p.name : "Sem obra") + "</a>" : "") +
+      '<div class="muted small">' + fmtDate(n.createdAt) + " " + fmtTime(n.createdAt) + (n.resolved ? " · resolvido" : "") + "</div></div>" +
+      (admin ? '<div class="row">' + (n.photo ? '<button class="btn ghost sm" data-act="noticePhoto" data-id="' + n.id + '">Foto</button>' : "") + '<button class="btn ' + (n.resolved ? "ghost" : "") + ' sm" data-act="noticeResolve" data-id="' + n.id + '">' + (n.resolved ? "Reabrir" : "Resolvido ✓") + '</button><button class="btn ghost sm" data-act="noticeDel" data-id="' + n.id + '" aria-label="Apagar">✕</button></div>'
+        : (n.photo ? '<button class="btn ghost sm" data-act="noticePhoto" data-id="' + n.id + '">Foto</button>' : "")) +
+      '</div><div class="notice-text">' + esc(n.text) + "</div></div>";
+  }
+  function noticesBlock(p) {
+    var list = (S.notices || []).filter(function (n) { return n.projectId === p.id; });
+    return '<form class="panel stack" id="noticeForm" data-pid="' + p.id + '"><h3 style="margin:0">Novo aviso</h3><p class="muted small" style="margin:0">Algo que precisa ser feito, material faltando, problema na obra… O administrador recebe na hora.</p>' +
+      '<textarea id="nText" rows="3" required placeholder="Ex.: Falta 2 caixas de 4 polegadas no 2º andar. Cliente pediu mais uma tomada na cozinha."></textarea>' +
+      '<label class="field"><span>Foto (opcional)</span><input type="file" id="nPhoto" accept="image/*" capture="environment"></label>' +
+      '<button class="btn" type="submit">Enviar aviso</button></form>' +
+      '<div class="section-title"><h3>Avisos desta obra</h3></div>' +
+      (list.length ? '<div class="stack" style="gap:8px">' + list.map(function (n) { return noticeCard(n, false); }).join("") + "</div>" : '<div class="panel empty">Nenhum aviso ainda.</div>');
+  }
+  function avisosView() {
+    var show = S.noticeFilter || "open", list = (S.notices || []).filter(function (n) { return show === "all" || !n.resolved; });
+    return '<div class="page-head"><div><h1>Avisos</h1><p>O que a equipe reportou nas obras · você recebe um e-mail a cada aviso novo</p></div></div>' +
+      '<div class="chips" style="margin-bottom:12px"><button type="button" class="chip' + (show === "open" ? " on" : "") + '" data-act="noticeFilter" data-id="open">Abertos (' + openNotices().length + ')</button><button type="button" class="chip' + (show === "all" ? " on" : "") + '" data-act="noticeFilter" data-id="all">Todos</button></div>' +
+      (list.length ? '<div class="stack" style="gap:8px">' + list.map(function (n) { return noticeCard(n, true); }).join("") + "</div>" : '<div class="panel empty">Nenhum aviso ' + (show === "open" ? "aberto" : "") + ".</div>");
+  }
+
+  // ═══════════ notas (foto da nota → obra + categoria) ═══════════
+  var NOTA_CATS = [["material", "Material"], ["permit", "Permit"], ["outros", "Outros"], ["equipamento", "Equipamento / aluguel"]];
+  function notasView() {
+    var n = S.nota, admin = S.user.role === "admin";
+    var jobs = S.projects.filter(function (p) { return p.status !== "Cancelled" && p.status !== "Completed" && (admin ? p.companyId === S.company : true); });
+    var top;
+    if (!n) {
+      top = '<label class="nota-cam"><input type="file" id="notaFile" accept="image/*" capture="environment" hidden>' + ICON.receipt + "<b>Tirar foto da nota</b><span>O app lê a nota e descobre de qual obra ela é</span></label>";
+    } else {
+      var a = n.ai || {};
+      top = '<form class="panel stack" id="notaForm"><div class="nota-row"><img src="' + esc(n.preview) + '" alt="Foto da nota" class="nota-img"><div class="stack" style="gap:10px;flex:1;min-width:0">' +
+        (n.status === "lendo" ? '<div class="pill accent"><span class="spin" aria-hidden="true"></span> Lendo a nota…</div>'
+          : n.status === "erro" ? '<div class="pill warn">' + esc(n.msg || "Não consegui ler a nota. Preencha abaixo.") + "</div>"
+            : '<div class="pill good">' + (a.project_id ? "Obra identificada pela nota" : "Nota lida — escolha a obra") + "</div>" + (a.summary_pt ? '<div class="small muted">' + esc(a.summary_pt) + "</div>" : "")) +
+        '<label class="field"><span>Obra</span><select id="nfProj" required><option value="">Escolha a obra</option>' + jobs.map(function (j) { return '<option value="' + j.id + '"' + (n.projectId === j.id ? " selected" : "") + ">" + esc(j.name) + "</option>"; }).join("") + "</select></label>" +
+        '<div><span class="label">Tipo</span><div class="chips" style="margin-top:6px">' + NOTA_CATS.map(function (c) { return '<button type="button" class="chip' + (n.category === c[0] ? " on" : "") + '" data-act="notaCat" data-id="' + c[0] + '">' + c[1] + "</button>"; }).join("") + "</div></div>" +
+        '<div class="grid2"><label class="field"><span>Valor total $</span><input type="number" id="nfAmt" step="0.01" inputmode="decimal" required value="' + esc(n.amount == null ? "" : n.amount) + '"></label>' +
+        '<label class="field"><span>Data</span><input type="date" id="nfDate" required value="' + esc(n.date || todayISO()) + '"></label></div>' +
+        '<label class="field"><span>Loja / fornecedor</span><input type="text" id="nfVendor" value="' + esc(n.vendor || "") + '"></label>' +
+        '<div class="row"><button class="btn" type="submit"' + (n.status === "lendo" || n.saving ? " disabled" : "") + '>Salvar nota</button><button type="button" class="btn ghost" data-act="notaCancel">Cancelar</button></div></div></div></form>';
+    }
+    var mine = S.expenses.filter(function (x) { return x.receipt && x.kind !== "revenue" && (admin || x.createdBy === S.user.id); }).slice(0, 40);
+    return '<div class="page-head"><div><h1>Notas</h1><p>Foto da nota de compra → entra na obra certa e no gasto da categoria</p></div></div>' + top +
+      '<div class="section-title"><h3>' + (admin ? "Últimas notas" : "Minhas notas") + '</h3></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Obra</th><th>Tipo</th><th>Loja</th>' + (admin ? "<th>Lançado por</th>" : "") + '<th class="n">Valor</th><th></th></tr></thead><tbody>' +
+      (mine.length ? mine.map(function (x) { var p = projectById(x.projectId); return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(catLabel(x.category)) + "</td><td>" + esc(x.vendor || "") + "</td>" + (admin ? "<td>" + esc(userName(x.createdBy)) + "</td>" : "") + '<td class="n"><b>' + money(x.amount, 2) + '</b></td><td class="n"><button class="btn ghost sm" data-act="viewReceipt" data-id="' + x.id + '">Ver</button></td></tr>'; }).join("")
+        : '<tr><td colspan="7" class="empty">Nenhuma nota ainda.</td></tr>') + "</tbody></table></div>";
+  }
+  function startNota(file) {
+    var reader = new FileReader();
+    compress(file, 1600).then(function (blob) {
+      reader.onload = function () {
+        S.nota = { preview: reader.result, status: "lendo", category: "material", date: todayISO() }; render();
+        API.uploadReceipt(blob).then(function (path) {
+          S.nota.path = path;
+          return API.readReceipt(path);
+        }).then(function (res) {
+          if (!S.nota) return;
+          if (res && res.ok) {
+            var a = res.result || {}; S.nota.ai = a; S.nota.status = "pronto";
+            if (a.project_id) S.nota.projectId = a.project_id;
+            if (a.total != null) S.nota.amount = a.total;
+            if (a.date && /^\d{4}-\d{2}-\d{2}$/.test(a.date)) S.nota.date = a.date;
+            if (a.vendor) S.nota.vendor = a.vendor;
+            if (a.category) S.nota.category = a.category;
+            if (a.readable === false) { S.nota.status = "erro"; S.nota.msg = "A foto ficou difícil de ler. Confira os dados ou tire outra foto."; }
+          } else {
+            S.nota.status = "erro";
+            S.nota.msg = { NO_KEY: "A leitura automática ainda não está ligada. Preencha abaixo.", DEMO: "Modo demonstração: preencha abaixo.", NOT_DEPLOYED: "A leitura automática ainda não foi instalada. Preencha abaixo." }[res && res.error] || "Não consegui ler a nota agora. Preencha abaixo.";
+          }
+          render();
+        }).catch(function (e) { if (!S.nota) return; S.nota.status = "erro"; S.nota.msg = (e && e.message) || "Erro ao enviar a foto."; render(); });
+      };
+      reader.readAsDataURL(blob);
+    });
+  }
+
   // ═══════════ modals ═══════════
   function modalView() {
     var m = S.modal, inner = "";
@@ -733,7 +868,7 @@
       var u = m.user || { name: "", username: "", role: "employee", companyId: S.company, rate: "", active: true };
       inner = '<form id="userForm" class="stack"><label class="field"><span>Nome completo</span><input type="text" id="uName" value="' + esc(u.name) + '" required></label>' +
         '<div class="grid2"><label class="field"><span>Usuário (login)</span><input type="text" id="uUser" value="' + esc(u.username) + '" autocapitalize="none" ' + (u.id ? "disabled" : "required") + '></label><label class="field"><span>' + (u.id ? "Nova senha (deixe vazio para manter)" : "Senha inicial") + '</span><input type="text" id="uPass" ' + (u.id ? "" : 'required minlength="6"') + "></label></div>" +
-        '<div class="grid3"><label class="field"><span>Empresa</span><select id="uCo">' + API.companies.map(function (c) { return '<option value="' + c.id + '"' + (u.companyId === c.id ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("") + '</select></label><label class="field"><span>Função</span><select id="uRole"><option value="employee"' + (u.role !== "admin" ? " selected" : "") + '>Funcionário</option><option value="admin"' + (u.role === "admin" ? " selected" : "") + '>Administrador</option></select></label><label class="field"><span>Valor/hora $</span><input type="number" id="uRate" step="0.01" value="' + esc(u.rate) + '"></label></div>' +
+        '<input type="hidden" id="uCo" value="eternity"><div class="grid2"><label class="field"><span>Função</span><select id="uRole"><option value="employee"' + (u.role !== "admin" ? " selected" : "") + '>Funcionário</option><option value="admin"' + (u.role === "admin" ? " selected" : "") + '>Administrador</option></select></label><label class="field"><span>Valor/hora $</span><input type="number" id="uRate" step="0.01" value="' + esc(u.rate) + '"></label></div>' +
         (u.id ? '<label class="row"><input type="checkbox" id="uActive"' + (u.active ? " checked" : "") + "> Ativo (pode entrar no app)</label>" : "") +
         '<div class="err" id="uErr" hidden></div><button class="btn" type="submit">' + (u.id ? "Salvar" : "Criar funcionário") + "</button></form>";
     } else if (m.type === "time") {
@@ -783,13 +918,32 @@
   // ═══════════ actions ═══════════
   function refresh() { return loadData().then(render).catch(function (e) { toast(e.message || "Erro ao carregar."); }); }
   var A = {
-    nav: function (el) { var v = el.dataset.id; if (v === "dashboard" || v === "gastos") S.gastoCat = S.gastoCat || "all"; go(v); if (v === "punch") locate(); },
+    nav: function (el) { var v = el.dataset.id; if (v === "avisos") markNoticesSeen(); go(v); if (v === "punch") locate(); },
     company: function (el) { S.company = el.dataset.id; storeSet("ee_company", S.company); S.filters.projectId = ""; S.filters.userId = ""; if (S.view === "project" || S.view === "projectForm") S.view = "projects"; refresh(); },
     logout: function () { API.signOut().then(function () { S.user = null; S.view = "dashboard"; render(); }); },
     resetDemo: function () { API.reset().then(function () { S.user = null; render(); toast("Exemplos restaurados. Entre novamente."); }); },
     install: function () { if (S.installEvt) { S.installEvt.prompt(); S.installEvt = null; render(); } },
-    gastos: function (el) { S.gastoCat = el.dataset.id || "all"; go("gastos"); },
-    gastosFor: function (el) { S.filters.projectId = el.dataset.id; S.gastoCat = "all"; go("gastos"); },
+    gastos: function (el) { S.gastoCat = el.dataset.id || "material"; go("gastos"); },
+    gastosFor: function (el) { S.filters.projectId = el.dataset.id; S.gastoCat = "material"; go("gastos"); },
+    hours: function () { go("hours"); },
+    hoursFor: function (el) { S.filters.projectId = el.dataset.id; go("hours"); },
+    reportNow: function (el) {
+      toast("Enviando relatório…");
+      API.services("dailyReports", { projectId: el.dataset.id }).then(function (r) {
+        var x = r && r.results && r.results[0];
+        if (r && r.ok && x && x.sent) { toast("Relatório enviado para " + x.sent + "."); return refresh(); }
+        toast(svcError(r, x && x.error));
+      });
+    },
+    payWeek: function (el) { S.payWeek = Number(el.dataset.id); render(); },
+    payEmail: function () { toast("Enviando…"); API.services("weeklyPayroll", { email: true }).then(function (r) { toast(r && r.ok ? "Enviado para o seu e-mail." : svcError(r)); }); },
+    noticeFilter: function (el) { S.noticeFilter = el.dataset.id; render(); },
+    noticeResolve: function (el) { var n = S.notices.find(function (x) { return x.id === el.dataset.id; }); API.resolveNotice(n.id, !n.resolved).then(refresh); },
+    noticeDel: function (el) { S.modal = { type: "confirm", title: "Apagar aviso", text: "Apagar este aviso?", act: "noticeDelOk", id: el.dataset.id, okLabel: "Apagar" }; render(); },
+    noticeDelOk: function (el) { API.deleteNotice(el.dataset.id).then(function () { S.modal = null; return refresh(); }); },
+    noticePhoto: function (el) { var n = S.notices.find(function (x) { return x.id === el.dataset.id; }); API.photoUrl(n.photo, "notice-photos").then(function (u) { S.modal = { type: "image", title: "Foto do aviso", urls: u ? [[n.authorName || "", u]] : [] }; render(); }); },
+    notaCat: function (el) { S.nota.category = el.dataset.id; render(); },
+    notaCancel: function () { S.nota = null; render(); },
     gastoCat: function (el) { S.gastoCat = el.dataset.id; render(); },
     pickProject: function (el) { S.filters.projectId = el.dataset.id; render(); window.scrollTo(0, 0); },
     openProject: function (el) { go("project", { id: el.dataset.id, tab: "overview" }); },
@@ -797,7 +951,7 @@
     newProject: function () { S.draft = blankProject(); S.draftFiles = []; S.wizStep = 0; go("projectForm"); },
     editProject: function (el) {
       var p = projectById(el.dataset.id), fi = S.fin[p.id] || {};
-      S.draft = JSON.parse(JSON.stringify(p)); S.draft.fin = { contractValue: fi.contractValue || "", budget: fi.budget || "", estHours: fi.estHours || "" };
+      S.draft = JSON.parse(JSON.stringify(p)); S.draft.fin = { contractValue: fi.contractValue || "", materialBudget: fi.materialBudget || "", laborBudget: fi.laborBudget || "", budget: fi.budget || "", estHours: fi.estHours || "", clientEmail: fi.clientEmail || "", clientPhone: fi.clientPhone || "", dailyReport: fi.dailyReport === false ? "Não" : "Sim" };
       ["access", "wiring", "extras", "equipment"].forEach(function (k) { if (!Array.isArray(S.draft.details[k])) S.draft.details[k] = S.draft.details[k] ? [S.draft.details[k]] : []; });
       S.draftFiles = []; S.wizStep = 0; go("projectForm");
     },
@@ -911,6 +1065,10 @@
     }
   };
 
+  function svcError(r, extra) {
+    var e = r && r.error;
+    return ({ NO_EMAIL_KEY: "O envio de e-mail ainda não foi ligado (falta a chave do Resend no Supabase).", NO_KEY: "A IA ainda não foi ligada.", NOT_DEPLOYED: "Esse serviço ainda não foi instalado no Supabase.", DEMO: "Modo demonstração: nada foi enviado.", OFFLINE: "Sem conexão agora.", FORBIDDEN: "Sem permissão." })[e] || ("Não deu certo" + (extra || (r && r.detail) ? ": " + (extra || r.detail) : "."));
+  }
   function locate() { S.loc = null; getLoc(9000).then(function (l) { S.loc = l; if (S.view === "punch") render(); }); }
 
   function doPunch(file) {
@@ -949,6 +1107,8 @@
     if (el.dataset.act === "task") { A.task(el); return; }
     if (el.dataset.act === "punchProject") { S.params.projectId = el.value; return; }
     if (el.id === "selfie" && el.files[0]) { doPunch(el.files[0]); return; }
+    if (el.id === "notaFile" && el.files[0]) { startNota(el.files[0]); return; }
+    if (S.nota && /^nf/.test(el.id)) { notaField(el); return; }
     if (el.dataset.act === "wizFiles") { S.draftFiles = S.draftFiles.concat([].slice.call(el.files)); render(); return; }
     if (el.dataset.act === "uploadFiles") {
       var files = [].slice.call(el.files), pid = el.dataset.id;
@@ -957,11 +1117,30 @@
         .then(refresh).then(function () { toast("Arquivos enviados."); }).catch(function (e) { toast(e.message || "Erro ao enviar."); });
     }
   });
-  document.addEventListener("input", function (ev) { var el = ev.target; for (var ii = 0; ii < EXT.input.length; ii++) { if (EXT.input[ii](el, ev)) return; } if (el.dataset.bind && S.draft && el.tagName !== "SELECT") set(S.draft, el.dataset.bind, el.value); });
+  function notaField(el) { var k = { nfProj: "projectId", nfAmt: "amount", nfDate: "date", nfVendor: "vendor" }[el.id]; if (k && S.nota) S.nota[k] = el.value; }
+  document.addEventListener("input", function (ev) { var el = ev.target; if (S.nota && /^nf/.test(el.id)) notaField(el); for (var ii = 0; ii < EXT.input.length; ii++) { if (EXT.input[ii](el, ev)) return; } if (el.dataset.bind && S.draft && el.tagName !== "SELECT") set(S.draft, el.dataset.bind, el.value); });
   document.addEventListener("submit", function (ev) {
     ev.preventDefault();
     var f = ev.target;
     if (EXT.submit[f.id]) { EXT.submit[f.id](f, ev); return; }
+    if (f.id === "noticeForm") {
+      var txt = $("#nText").value.trim(); if (!txt) return;
+      var btn = f.querySelector("button[type=submit]"); btn.disabled = true;
+      compress($("#nPhoto").files[0], 1200).then(function (ph) { return API.addNotice({ projectId: f.dataset.pid, text: txt, photo: ph || null }); })
+        .then(function () { return refresh(); }).then(function () { toast("Aviso enviado. O administrador foi avisado."); })
+        .catch(function (e) { btn.disabled = false; toast(e.message || "Erro ao enviar aviso."); });
+      return;
+    }
+    if (f.id === "notaForm") {
+      var n = S.nota, amt = Number(n.amount);
+      if (!n.projectId) { toast("Escolha a obra da nota."); return; }
+      if (!(amt > 0)) { toast("Informe o valor da nota."); return; }
+      n.saving = true; render();
+      API.addExpense({ companyId: S.user.role === "admin" ? S.company : S.user.companyId, kind: "expense", category: n.category || "material", amount: amt, projectId: n.projectId, date: n.date || todayISO(), vendor: n.vendor || "", note: n.ai && n.ai.summary_pt ? n.ai.summary_pt : "", receiptPath: n.path || null, ai: n.ai || null })
+        .then(function () { var p = projectById(n.projectId); S.nota = null; return refresh().then(function () { toast("Nota salva em " + (p ? p.name : "obra") + " · " + catLabel(n.category) + " " + money(amt, 2)); }); })
+        .catch(function (e) { n.saving = false; render(); toast(e.message || "Erro ao salvar a nota."); });
+      return;
+    }
     if (f.id === "setupForm") {
       var se = $("#suErr"); se.hidden = true;
       API.setupAdmin({ name: $("#suName").value.trim(), username: $("#suUser").value, password: $("#suPass").value })
@@ -1013,7 +1192,8 @@
     companyName: companyName, tradeOf: tradeOf, companyProjects: companyProjects, projectById: projectById, statusPill: statusPill, ICON: ICON, refresh: refresh,
     blankProject: blankProject, TRADE: TRADE, storeGet: storeGet, storeSet: storeSet, ring: ring };
 
-  // boot
+  // boot (o link da proposta para o cliente é tratado em proposals.js)
+  if (/[?&]proposta=/.test(location.search)) return;
   $("#app").innerHTML = '<div class="login"><div class="brand"><div class="brand-mark">' + ICON.bolt + '</div><div class="brand-name">Eternity Electric</div></div></div>';
   API.init().then(function () { return API.session(); }).then(function (u) {
     if (u) return afterLogin(u);

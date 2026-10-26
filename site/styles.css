@@ -341,3 +341,35 @@ tr.click:hover td { background: var(--surface-2); }
 .doc-box { border: 1px solid var(--line); border-radius: 10px; overflow: hidden auto; max-height: 78vh; background: #fff; }
 .doc-inner { overflow: hidden; }
 .doc-inner iframe { width: 816px; border: 0; display: block; transform-origin: 0 0; pointer-events: none; }
+
+/* ── avisos, notas ── */
+.nav-badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11px; font-weight: 700; margin-left: 6px; line-height: 1; }
+.mobile-nav .nav-badge { position: absolute; top: 2px; right: 8px; margin: 0; }
+.mobile-nav button { position: relative; }
+.notice { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--warn); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+.notice.done { border-left-color: var(--good); opacity: .75; }
+.notice-text { white-space: pre-wrap; font-size: 15px; }
+.nota-cam { display: grid; place-items: center; gap: 6px; text-align: center; padding: 28px 16px; border: 2px dashed var(--accent); border-radius: 14px; background: var(--accent-soft); cursor: pointer; color: var(--ink); }
+.nota-cam svg { width: 44px; height: 44px; color: var(--accent); }
+.nota-cam b { font-size: 18px; }
+.nota-cam span { font-size: 13px; color: var(--muted); }
+.nota-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.nota-img { width: 140px; max-height: 220px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); flex: none; }
+@media (max-width: 640px) { .nota-img { width: 100%; max-height: 260px; object-fit: contain; background: var(--surface-2); } }
+tr.total-row td { border-top: 2px solid var(--line); }
+/* promoções */
+.deal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.deal-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: auto 1fr; color: var(--ink); text-decoration: none; }
+.deal-img { aspect-ratio: 1 / 1; background: #fff; display: grid; place-items: center; overflow: hidden; }
+.deal-img img { width: 100%; height: 100%; object-fit: contain; }
+.deal-img .noimg { color: var(--muted); font-size: 12px; }
+.deal-body { padding: 10px 12px; display: grid; gap: 4px; align-content: start; }
+.deal-title { font-size: 13.5px; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.deal-price { font-size: 18px; font-weight: 700; color: var(--good); }
+.deal-was { font-size: 12.5px; color: var(--muted); text-decoration: line-through; margin-left: 6px; font-weight: 500; }
+/* proposta pública */
+#print-root.pub { display: block; max-width: 8.5in; margin: 0 auto; background: #FBF7F1; padding: .45in .6in; box-shadow: 0 2px 18px rgba(0,0,0,.08); }
+@media (max-width: 700px) { #print-root.pub { padding: 18px 14px; } }
+.pub-bar { max-width: 8.5in; margin: 0 auto; display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 14px 4px; flex-wrap: wrap; }
+.pub-accept { max-width: 8.5in; margin: 16px auto 40px; background: #fff; border: 2px solid #B08A4A; border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; color: #2B241D; }
+@media print { body.printing #pub-after { display: none !important; } }
