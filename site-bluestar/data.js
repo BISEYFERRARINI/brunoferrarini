@@ -669,7 +669,15 @@
         if (d.id) row.id = d.id;
         return sb.from("deals").upsert(row).then(chk);
       },
-      deleteDeal: function (id) { return sb.from("deals").delete().eq("id", id).then(chk); }
+      deleteDeal: function (id) { return sb.from("deals").delete().eq("id", id).then(chk); },
+      // promoções coletadas (substitui as automáticas de uma loja)
+      replaceAutoDeals: function (store, items) {
+        var now = new Date().toISOString();
+        return sb.from("deals").delete().eq("source", "auto").eq("store", store).then(chk).then(function () {
+          if (!items.length) return [];
+          return sb.from("deals").insert(items.map(function (d) { return { store: store, title: String(d.title).slice(0, 300), price: d.price == null ? null : Number(d.price), was_price: d.was_price == null ? null : Number(d.was_price), image_url: d.image_url || null, url: d.url || null, note: d.note || null, valid_until: d.valid_until || null, source: "auto", fetched_at: now }; })).then(chk);
+        });
+      }
     };
   }
 
