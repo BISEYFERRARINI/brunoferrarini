@@ -223,9 +223,27 @@
         if (i >= 0) { rec.files = db.projects[i].files; db.projects[i] = rec; } else { rec.files = []; db.projects.unshift(rec); }
         persist(); return P(clone(rec));
       },
-      deleteProject: function (id) {
+      deleteProject: function (id, opts) {
+        var all = opts && opts.all;
         db.projects = db.projects.filter(function (p) { return p.id !== id; });
-        delete db.financials[id]; persist(); return P();
+        delete db.financials[id];
+        db.notices = (db.notices || []).filter(function (x) { return x.projectId !== id; });
+        db.schedule = (db.schedule || []).filter(function (x) { return x.projectId !== id; });
+        if (all) {
+          db.time = db.time.filter(function (x) { return x.projectId !== id; });
+          db.expenses = db.expenses.filter(function (x) { return x.projectId !== id; });
+          db.events = (db.events || []).filter(function (x) { return x.projectId !== id; });
+        } else {
+          db.time.forEach(function (x) { if (x.projectId === id) x.projectId = null; });
+          db.expenses.forEach(function (x) { if (x.projectId === id) x.projectId = null; });
+          (db.events || []).forEach(function (x) { if (x.projectId === id) x.projectId = null; });
+        }
+        persist(); return P();
+      },
+      projectFootprint: function (id) {
+        var f = function (a) { return (a || []).filter(function (x) { return x.projectId === id; }).length; };
+        var p = db.projects.find(function (x) { return x.id === id; }) || {};
+        return P({ time: f(db.time), expenses: f(db.expenses), events: f(db.events), notices: f(db.notices), schedule: f(db.schedule), files: (p.files || []).length, tasks: (p.tasks || []).length });
       },
       getFinancials: function () { return P(clone(db.financials)); },
       saveFinancials: function (projectId, f) { db.financials[projectId] = finOut(f); persist(); return P(); },
@@ -526,7 +544,33 @@
           .then(function () { return sb.from("projects").select("*, project_tasks(*), project_files(*)").eq("id", id).single(); })
           .then(function (r) { return mapProject(chk(r)); });
       },
-      deleteProject: function (id) { return sb.from("projects").delete().eq("id", id).then(chk); },
+      // opts.all = true → apaga também ponto, gastos/notas (com fotos), compromissos da agenda e arquivos
+      deleteProject: function (id, opts) {
+        var all = opts && opts.all, ok = function (r) { return r; };
+        var files = sb.from("project_files").select("path").eq("project_id", id).then(function (r) {
+          var paths = (r.data || []).map(function (f) { return f.path; }).filter(Boolean);
+          return paths.length ? sb.storage.from("project-files").remove(paths).then(ok, ok) : null;
+        }, ok);
+        var extra = !all ? Promise.resolve() : Promise.all([
+          sb.from("expenses").select("receipt_path").eq("project_id", id).then(function (r) {
+            var paths = (r.data || []).map(function (x) { return x.receipt_path; }).filter(Boolean);
+            return (paths.length ? sb.storage.from("receipts").remove(paths).then(ok, ok) : Promise.resolve()).then(function () { return sb.from("expenses").delete().eq("project_id", id).then(chk); });
+          }),
+          sb.from("time_entries").delete().eq("project_id", id).then(chk),
+          sb.from("calendar_events").delete().eq("project_id", id).then(ok, ok),
+          sb.from("notices").select("photo_path").eq("project_id", id).then(function (r) {
+            var paths = (r.data || []).map(function (x) { return x.photo_path; }).filter(Boolean);
+            return paths.length ? sb.storage.from("notice-photos").remove(paths).then(ok, ok) : null;
+          }, ok)
+        ]);
+        return Promise.all([files, extra]).then(function () { return sb.from("projects").delete().eq("id", id).then(chk); });
+      },
+      projectFootprint: function (id) {
+        var c = function (t) { return sb.from(t).select("id", { count: "exact", head: true }).eq("project_id", id).then(function (r) { return r.count || 0; }, function () { return 0; }); };
+        return Promise.all([c("time_entries"), c("expenses"), c("calendar_events"), c("notices"), c("work_schedule"), c("project_files"), c("project_tasks")]).then(function (n) {
+          return { time: n[0], expenses: n[1], events: n[2], notices: n[3], schedule: n[4], files: n[5], tasks: n[6] };
+        });
+      },
       getFinancials: function () {
         return sb.from("project_financials").select("*").then(function (r) {
           var out = {}; chk(r).forEach(function (f) { out[f.project_id] = { contractValue: Number(f.contract_value) || 0, budget: Number(f.budget) || 0, estHours: Number(f.est_hours) || 0, materialBudget: Number(f.material_budget) || 0, laborBudget: Number(f.labor_budget) || 0, clientEmail: f.client_email || "", clientPhone: f.client_phone || "", dailyReport: f.daily_report !== false, lastReportAt: f.last_report_at }; }); return out;

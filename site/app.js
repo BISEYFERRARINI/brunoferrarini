@@ -452,7 +452,7 @@
     var maps = p.address ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.address) + '" target="_blank" rel="noopener">Abrir no mapa</a>' : "";
     var head = '<div class="page-head"><div style="min-width:0"><button class="btn ghost sm" data-act="nav" data-id="' + (admin ? "projects" : "jobs") + '" style="margin-bottom:10px">← ' + (admin ? "Projetos" : "Obras") + '</button>' +
       '<h1>' + esc(p.name) + '</h1><p>' + esc([p.client, p.address].filter(Boolean).join(" · ")) + (maps ? " · " + maps : "") + "</p></div>" +
-      '<div class="row">' + statusPill(p.status) + (admin ? '<button class="btn ghost" data-act="editProject" data-id="' + p.id + '">Editar</button>' : "") + "</div></div>";
+      '<div class="row">' + statusPill(p.status) + (admin ? '<button class="btn ghost" data-act="editProject" data-id="' + p.id + '">Editar</button><button class="btn ghost danger-text" data-act="askDelProject" data-id="' + p.id + '" title="Apagar projeto">Apagar</button>' : "") + "</div></div>";
     var tabsHtml = '<div class="tabs">' + tabs.map(function (t) { return '<button data-act="ptab" data-id="' + t[0] + '" class="' + (tab === t[0] ? "on" : "") + '">' + esc(t[1]) + "</button>"; }).join("") + "</div>";
     var body = "";
     if (tab === "overview") {
@@ -1010,6 +1010,21 @@
       inner = shiftModal(m);
     } else if (EXT.modals && EXT.modals[m.type]) {
       inner = EXT.modals[m.type](m);
+    } else if (m.type === "delProject") {
+      var fp = m.fp, ln = function (n, a, b) { return n ? "<li>" + n + " " + (n === 1 ? a : b) + "</li>" : ""; };
+      var always = fp ? ln(fp.tasks, "tarefa", "tarefas") + ln(fp.files, "planta/arquivo", "plantas/arquivos") + ln(fp.notices, "aviso", "avisos") + ln(fp.schedule, "dia de escala", "dias de escala") : "";
+      var linked = fp ? ln(fp.time, "registro de ponto (horas)", "registros de ponto (horas)") + ln(fp.expenses, "gasto/nota/recebimento", "gastos/notas/recebimentos") + ln(fp.events, "compromisso na agenda", "compromissos na agenda") : "";
+      var opt = function (id, t, d) { return '<label class="del-opt' + (m.mode === id ? " on" : "") + '"><input type="radio" name="delmode" data-act="delMode" data-id="' + id + '"' + (m.mode === id ? " checked" : "") + '><div><b>' + t + '</b><div class="small muted">' + d + "</div></div></label>"; };
+      inner = '<p>Você vai apagar <b>' + esc(m.name) + "</b>. Isso não pode ser desfeito.</p>" +
+        (!fp ? '<p class="muted small">Contando o que está ligado a este projeto…</p>' :
+          (always ? '<div class="small"><b>Sempre apagado junto:</b><ul style="margin:4px 0 10px 18px">' + always + "</ul></div>" : "") +
+          (linked ? '<div class="small"><b>Também ligado a este projeto:</b><ul style="margin:4px 0 10px 18px">' + linked + "</ul></div>" : '<p class="small muted">Não há ponto, gastos nem agenda ligados a este projeto.</p>')) +
+        '<div class="stack" style="gap:8px;margin:10px 0">' +
+        opt("keep", "Apagar só o projeto", "Horas, gastos/notas e agenda continuam salvos (ficam “sem projeto”) — os relatórios e a folha não mudam.") +
+        opt("all", "Apagar o projeto e tudo ligado a ele", "Apaga também as horas, os gastos/notas (com fotos), recebimentos e compromissos da agenda deste projeto.") +
+        "</div>" +
+        '<label class="label">Digite <b>APAGAR</b> para confirmar</label><input type="text" id="delConfirm" autocomplete="off" placeholder="APAGAR" style="margin-bottom:12px">' +
+        '<div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="closeModal">Cancelar</button><button class="btn danger" data-act="delProject" data-id="' + m.id + '">Apagar</button></div>';
     } else if (m.type === "confirm") {
       inner = '<p>' + esc(m.text) + '</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-act="closeModal">Cancelar</button><button class="btn danger" data-act="' + m.act + '" data-id="' + m.id + '">' + esc(m.okLabel || "Confirmar") + "</button></div>";
     }
@@ -1179,8 +1194,19 @@
       }).then(function (saved) { S.draft = null; S.draftFiles = []; return loadData().then(function () { go("project", { id: saved.id, tab: "overview" }); toast("Projeto salvo."); }); })
         .catch(function (e) { if (err) { err.textContent = e.message || "Erro ao salvar."; err.hidden = false; } });
     },
-    askDelProject: function (el) { var p = projectById(el.dataset.id); S.modal = { type: "confirm", title: "Apagar projeto", text: "Apagar “" + p.name + "”? As tarefas e plantas deste projeto também serão apagadas. Os registros de ponto e gastos continuam salvos.", act: "delProject", id: p.id, okLabel: "Apagar" }; render(); },
-    delProject: function (el) { API.deleteProject(el.dataset.id).then(function () { S.modal = null; return loadData(); }).then(function () { go("projects"); toast("Projeto apagado."); }); },
+    askDelProject: function (el) {
+      var p = projectById(el.dataset.id); if (!p) return;
+      S.modal = { type: "delProject", title: "Apagar projeto", id: p.id, name: p.name, fp: null, mode: "keep" }; render();
+      (API.projectFootprint ? API.projectFootprint(p.id) : Promise.resolve(null)).then(function (fp) { if (S.modal && S.modal.type === "delProject") { S.modal.fp = fp || {}; render(); } });
+    },
+    delMode: function (el) { if (S.modal) { S.modal.mode = el.dataset.id; render(); } },
+    delProject: function (el) {
+      var m = S.modal || {}, id = el.dataset.id, all = m.mode === "all";
+      var ci = document.getElementById("delConfirm"); if (m.type === "delProject" && (!ci || ci.value.trim().toUpperCase() !== "APAGAR")) { toast("Digite APAGAR para confirmar."); return; }
+      el.disabled = true; el.textContent = "Apagando…";
+      API.deleteProject(id, { all: all }).then(function () { S.modal = null; return loadData(); }).then(function () { go("projects"); toast(all ? "Projeto e tudo ligado a ele apagados." : "Projeto apagado. Ponto e gastos continuam salvos."); })
+        .catch(function (e) { el.disabled = false; el.textContent = "Apagar"; toast("Não consegui apagar: " + (e && e.message || e)); });
+    },
     task: function (el) {
       var done = el.checked;
       API.setTaskDone(el.dataset.pid, el.dataset.id, done, S.user.name).then(function () {
@@ -1263,6 +1289,7 @@
     }
     if (el.dataset.bind && S.draft) { set(S.draft, el.dataset.bind, el.value); if (el.tagName === "SELECT") render(); return; }
     if (el.dataset.act === "task") { A.task(el); return; }
+    if (el.dataset.act === "delMode") { A.delMode(el); return; }
     if (el.dataset.act === "punchProject") { S.params.projectId = el.value; return; }
     if (el.id === "selfie" && el.files[0]) { doPunch(el.files[0]); return; }
     if (el.id === "notaFile" && el.files[0]) { startNota(el.files[0]); return; }

@@ -407,3 +407,9 @@ tr.total-row td { border-top: 2px solid var(--line); }
 .sched-chip { text-align: left; font-size: 12.5px; background: var(--surface); border: 1px solid var(--accent); border-radius: 6px; padding: 4px 6px; cursor: pointer; color: var(--ink); }
 .sched-add { border: 1px dashed var(--line); background: none; border-radius: 6px; color: var(--muted); cursor: pointer; padding: 2px; }
 .today-card { border-left: 4px solid var(--accent); }
+
+/* apagar projeto */
+.del-opt { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; }
+.del-opt.on { border-color: var(--bad, #c0392b); background: rgba(192,57,43,.06); }
+.del-opt input { margin-top: 3px; }
+.btn.danger-text { color: var(--bad, #c0392b); }
