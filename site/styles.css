@@ -373,3 +373,11 @@ tr.total-row td { border-top: 2px solid var(--line); }
 .pub-bar { max-width: 8.5in; margin: 0 auto; display: flex; gap: 10px; justify-content: space-between; align-items: center; padding: 14px 4px; flex-wrap: wrap; }
 .pub-accept { max-width: 8.5in; margin: 16px auto 40px; background: #fff; border: 2px solid #B08A4A; border-radius: 12px; padding: 18px 20px; display: grid; gap: 12px; color: #2B241D; }
 @media print { body.printing #pub-after { display: none !important; } }
+@media (max-width: 700px) {
+  #print-root.pub { overflow-x: hidden; }
+  #print-root.pub img { max-width: 100% !important; height: auto; }
+  #print-root.pub table { max-width: 100%; }
+  #print-root.pub td, #print-root.pub th { padding-left: 6px !important; padding-right: 6px !important; }
+  #print-root.pub .box { padding: 12px !important; }
+}
+.pub-accept label.row { display: flex; }
