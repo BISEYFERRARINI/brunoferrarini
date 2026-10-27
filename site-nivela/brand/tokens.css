@@ -1,0 +1,155 @@
+/* ════════════════════════════════════════════════════════════════════
+   Nivela · tokens de design (v1)
+   Troca direta do bloco de variáveis do styles.css: TODOS os nomes antigos
+   continuam existindo (--bg, --surface, --surface-2, --ink, --muted, --line,
+   --nav-bg, --nav-ink, --nav-active, --accent, --accent-soft, --accent-ink,
+   --track, --good/-soft, --warn/-soft, --bad/-soft, --info, --c1..--c7,
+   --shadow, --f-display, --f-body, --r). Os novos estão marcados com "novo".
+
+   Como usar:  <link rel="stylesheet" href="brand/tokens.css"> ANTES do styles.css
+   e apague do styles.css o bloco :root / dark / data-company do topo.
+
+   Duas camadas de cor:
+   • Marca do PRODUTO (--brand*): verdigris + cobre. Aparece no login, ícone,
+     landing, e-mails do sistema, "powered by". Nunca muda.
+   • Marca da EMPRESA DO CLIENTE (--accent): botões primários, aba ativa,
+     anéis, barra de progresso. Muda por empresa (onboarding → cor da empresa).
+     Padrão = verdigris do produto enquanto o cliente não escolhe.
+   Contraste AA conferido: ver docs/02-design-system.md §2.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── fontes (auto-hospedadas: funcionam offline no PWA; Inter = SIL OFL 1.1) ── */
+@font-face { font-family: "Inter"; font-weight: 400; font-style: normal; font-display: swap; src: url("fonts/inter-400.woff") format("woff"); }
+@font-face { font-family: "Inter"; font-weight: 500; font-style: normal; font-display: swap; src: url("fonts/inter-500.woff") format("woff"); }
+@font-face { font-family: "Inter"; font-weight: 600; font-style: normal; font-display: swap; src: url("fonts/inter-600.woff") format("woff"); }
+@font-face { font-family: "Inter"; font-weight: 700; font-style: normal; font-display: swap; src: url("fonts/inter-700.woff") format("woff"); }
+@font-face { font-family: "Inter Display"; font-weight: 600; font-style: normal; font-display: swap; src: url("fonts/inter-display-600.woff") format("woff"); }
+@font-face { font-family: "Inter Display"; font-weight: 700; font-style: normal; font-display: swap; src: url("fonts/inter-display-700.woff") format("woff"); }
+
+:root {
+  /* ── marca do produto (novo) ── */
+  --brand: #0B7B6A;            /* verdigris */
+  --brand-ink: #FFFFFF;
+  --brand-strong: #0D2B27;     /* verdigris noite */
+  --brand-bright: #2CC4A7;     /* verdigris em fundo escuro */
+  --copper: #D9773A;           /* cobre: só detalhe/ilustração, nunca texto pequeno em branco */
+
+  /* ── superfícies e texto ── */
+  --bg: #F3F5F4;               /* concreto claro */
+  --surface: #FFFFFF;
+  --surface-2: #F7F9F8;
+  --surface-3: #EDF1EF;        /* novo: hover de linha, trilho de segmentado */
+  --ink: #102421;              /* 16.2:1 em --surface */
+  --muted: #566663;            /* 6.0:1 em --surface, 5.5:1 em --bg */
+  --line: #DCE3E1;             /* divisória decorativa */
+  --line-strong: #8E9E9A;      /* novo: borda de input/checkbox (≥3:1 com halo) */
+  --track: #E3E9E7;
+
+  /* ── navegação (barra lateral escura) ── */
+  --nav-bg: #0D2B27;
+  --nav-ink: #B4C9C4;          /* 8.7:1 */
+  --nav-active: #174039;
+  --nav-line: rgba(255,255,255,.08); /* novo */
+
+  /* ── cor de destaque da EMPRESA do cliente (trocável) ── */
+  --accent: #0B7B6A;
+  --accent-ink: #FFFFFF;       /* texto sobre --accent: calcule preto/branco por luminância */
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  --accent-text: color-mix(in srgb, var(--accent) 62%, var(--ink)); /* novo: accent usado como TEXTO/link, sempre AA */
+  --accent-line: color-mix(in srgb, var(--accent) 45%, var(--line)); /* novo: borda de cartão selecionado */
+
+  /* ── estados ── */
+  --good: #147A3D;  --good-soft: #E3F1E8;
+  --warn: #A14F00;  --warn-soft: #FBEEDD;
+  --bad:  #B42318;  --bad-soft:  #FBE7E5;
+  --info: #1F5FD1;  --info-soft: #E5EDFB; /* --info-soft novo */
+
+  /* ── gráficos (categorias). c1 segue a empresa ── */
+  --c1: var(--accent); --c2: #2F6FDB; --c3: #C8692F; --c4: #7C4DDB; --c5: #D23B3B; --c6: #6B7C79; --c7: #C2378A;
+
+  /* ── tipografia ── */
+  --f-display: "Inter Display", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --t-xs: 12px; --t-sm: 13px; --t-base: 15px; --t-md: 17px; --t-lg: 20px; --t-xl: 24px; --t-2xl: 30px; --t-3xl: 38px; /* novo */
+  --lh-tight: 1.15; --lh: 1.5; /* novo */
+  --track-tight: -0.02em; /* novo: títulos display */
+
+  /* ── espaçamento (base 4) — novo ── */
+  --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px; --s-12: 48px;
+
+  /* ── raios ── */
+  --r-sm: 6px;    /* novo: chips de tabela, checkbox */
+  --r: 10px;      /* botões, inputs, cartões pequenos */
+  --r-lg: 14px;   /* novo: painéis, modal */
+  --r-xl: 20px;   /* novo: folha inferior (bottom sheet), cartão de ponto */
+  --r-pill: 999px;/* novo */
+
+  /* ── sombras (só onde algo flutua) ── */
+  --shadow-sm: 0 1px 2px rgba(16,36,33,.06);                                   /* novo: cartões */
+  --shadow: 0 1px 2px rgba(16,36,33,.05), 0 2px 8px rgba(16,36,33,.04);
+  --shadow-lg: 0 12px 32px rgba(16,36,33,.16), 0 2px 6px rgba(16,36,33,.08);   /* novo: modal, menu, toast */
+  --overlay: rgba(6,17,15,.56); /* novo: fundo de modal */
+  --focus: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); /* novo: halo de foco */
+
+  /* ── toque, movimento, camadas — novo ── */
+  --tap: 44px;          /* alvo mínimo de toque */
+  --tap-lg: 56px;       /* botões de campo (bater ponto, câmera) */
+  --bottom-nav-h: 64px;
+  --ease: cubic-bezier(.2,.7,.2,1);
+  --dur: 160ms;
+  --z-nav: 30; --z-modal: 50; --z-toast: 80;
+}
+
+/* Empresas do seed de demonstração (continuam funcionando como hoje).
+   Em produção isto vira style="--accent:…" no <html>, vindo da empresa. */
+:root[data-company="eternity"] { --accent: #C98200; --accent-ink: #1A1200; }
+:root[data-company="bluestar"] { --accent: #1F6FD1; --accent-ink: #FFFFFF; --c2: #C98200; }
+
+/* ── escuro ── */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --brand: #2CC4A7; --brand-ink: #04201B; --brand-strong: #06110F; --brand-bright: #2CC4A7;
+    --bg: #0A1513; --surface: #10201D; --surface-2: #0D1B18; --surface-3: #162925;
+    --ink: #E4EDEB; --muted: #93A8A3; --line: #213934; --line-strong: #5D7570; --track: #1D332F;
+    --nav-bg: #06110F; --nav-ink: #A6BDB8; --nav-active: #143029; --nav-line: rgba(255,255,255,.06);
+    --accent: #2CC4A7; --accent-ink: #04201B;
+    --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
+    --accent-text: color-mix(in srgb, var(--accent) 62%, var(--ink));
+    --good: #4ADE80; --good-soft: #143224; --warn: #F5B544; --warn-soft: #2E2A18;
+    --bad: #F7837A; --bad-soft: #35201D; --info: #7EA8FF; --info-soft: #17243D;
+    --c2: #6EA2FF; --c3: #E8925A; --c4: #B394FF; --c5: #F7837A; --c6: #93A8A3; --c7: #F472B6;
+    --shadow-sm: 0 1px 0 rgba(0,0,0,.3);
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+    --shadow-lg: 0 16px 40px rgba(0,0,0,.55);
+    --overlay: rgba(0,0,0,.66);
+    color-scheme: dark;
+  }
+  :root[data-company="eternity"]:not([data-theme="light"]) { --accent: #F2B233; --accent-ink: #1A1200; }
+  :root[data-company="bluestar"]:not([data-theme="light"]) { --accent: #5B9BFF; --accent-ink: #06101F; --c2: #F2B233; }
+}
+:root[data-theme="dark"] {
+  --brand: #2CC4A7; --brand-ink: #04201B; --brand-strong: #06110F; --brand-bright: #2CC4A7;
+  --bg: #0A1513; --surface: #10201D; --surface-2: #0D1B18; --surface-3: #162925;
+  --ink: #E4EDEB; --muted: #93A8A3; --line: #213934; --line-strong: #5D7570; --track: #1D332F;
+  --nav-bg: #06110F; --nav-ink: #A6BDB8; --nav-active: #143029; --nav-line: rgba(255,255,255,.06);
+  --accent: #2CC4A7; --accent-ink: #04201B;
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --accent-text: color-mix(in srgb, var(--accent) 62%, var(--ink));
+  --good: #4ADE80; --good-soft: #143224; --warn: #F5B544; --warn-soft: #2E2A18;
+  --bad: #F7837A; --bad-soft: #35201D; --info: #7EA8FF; --info-soft: #17243D;
+  --c2: #6EA2FF; --c3: #E8925A; --c4: #B394FF; --c5: #F7837A; --c6: #93A8A3; --c7: #F472B6;
+  --shadow-sm: 0 1px 0 rgba(0,0,0,.3);
+  --shadow: 0 1px 2px rgba(0,0,0,.4);
+  --shadow-lg: 0 16px 40px rgba(0,0,0,.55);
+  --overlay: rgba(0,0,0,.66);
+  color-scheme: dark;
+}
+:root[data-theme="dark"][data-company="eternity"] { --accent: #F2B233; --accent-ink: #1A1200; }
+:root[data-theme="dark"][data-company="bluestar"] { --accent: #5B9BFF; --accent-ink: #06101F; --c2: #F2B233; }
+
+/* Fallback para navegadores sem color-mix (Safari < 16.2, Chrome < 111) */
+@supports not (color: color-mix(in srgb, red 50%, blue)) {
+  :root { --accent-soft: #E2F1EE; --accent-text: var(--ink); --accent-line: var(--accent); --focus: 0 0 0 3px rgba(11,123,106,.35); }
+}
+
+@media (prefers-reduced-motion: reduce) { :root { --dur: 0ms; } }

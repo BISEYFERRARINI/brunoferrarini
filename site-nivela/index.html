@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nivela</title>
+<meta name="description" content="Nivela — gestão de obras para empreiteiros: ponto com foto e GPS, projetos, propostas, despesas e equipe.">
+<meta name="theme-color" content="#0D2B27" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#06110F" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nivela">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="brand/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="brand/apple-touch-icon-180.png">
+<link rel="preload" href="brand/fonts/inter-400.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="brand/fonts/inter-600.woff" as="font" type="font/woff" crossorigin>
+<link rel="stylesheet" href="brand/tokens.css">
+<link rel="stylesheet" href="styles.css">
+<script>
+  /* tema salvo (claro/escuro/automático) aplicado antes de pintar, para não piscar */
+  (function () { try { var t = localStorage.getItem("nivela_theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
+</script>
+</head>
+<body>
+<a class="skip" href="#conteudo">Pular para o conteúdo</a>
+<div id="app" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="i18n.js"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="proposals.js"></script>
+<script src="settings.js"></script>
+<script src="onboarding.js"></script>
+<script src="help.js"></script>
+</body>
+</html>
