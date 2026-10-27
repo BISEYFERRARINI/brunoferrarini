@@ -96,9 +96,15 @@
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
     star: '<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>'
   };
+  // ícones dos ramos: um ramo pode trazer o próprio SVG (trades.js → icon: { svg }) e vira o ícone "trade-<id>"
+  function iconPath(name) {
+    if (!ICON_PATHS[name] && /^trade-/.test(name)) { var td = (NV.TRADES || {})[name.slice(6)]; if (td && td.iconSvg) ICON_PATHS[name] = td.iconSvg; }
+    return ICON_PATHS[name] || "";
+  }
+  (NV.tradeList ? NV.tradeList() : []).forEach(function (d) { if (d.iconSvg) iconPath(d.icon); });
   function ic(name, size, cls) {
     var px = size || 20;
-    return '<svg class="i' + (cls ? " " + cls : "") + '" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + (ICON_PATHS[name] || "") + "</svg>";
+    return '<svg class="i' + (cls ? " " + cls : "") + '" width="' + px + '" height="' + px + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + iconPath(name) + "</svg>";
   }
   var ICON = {}; Object.keys(ICON_PATHS).forEach(function (k) { ICON[k] = ic(k); }); // compatível com o ICON antigo (EE.ICON)
 
@@ -128,114 +134,10 @@
     occupied: { label: t("catalog.occupancy", "Ocupação"), opts: ["Desocupado", "Ocupado (família morando)", "Comercial em funcionamento"] },
     access: { label: t("catalog.access", "Acesso"), multi: true, opts: ["Porão acessível", "Sótão acessível", "Crawl space", "Sem acesso por cima/baixo", "Precisa de elevador / andaime"] }
   };
-  var TRADE = {
-    electrical: {
-      stepName: t("catalog.electrical", "Elétrica"),
-      workType: ["New Construction", "Remodel / Renovação", "Addition (ampliação)", "Service upgrade", "Reparo / service call", "Fire alarm"],
-      fields: {
-        wiring: { label: t("catalog.wiringMethod", "Fiação / método"), multi: true, opts: ["Romex (NM-B)", "MC Cable", "EMT (conduíte)", "PVC", "Rigid / IMC", "BX existente", "Knob & tube existente"] },
-        serviceType: { label: t("catalog.service", "Serviço (service)"), opts: ["Sem mudança no serviço", "Novo serviço", "Upgrade (100A → 200A)", "Upgrade (outro)", "Troca de painel apenas", "Subpainel novo"] },
-        serviceAmps: { label: t("catalog.amperage", "Amperagem"), opts: ["60A", "100A", "150A", "200A", "320/400A", "600A+"] },
-        phase: { label: t("catalog.voltagePhase", "Tensão / fase"), opts: ["Monofásico 120/240V", "Trifásico 120/208V", "Trifásico 277/480V"] },
-        serviceFeed: { label: t("catalog.serviceEntrance", "Entrada do serviço"), opts: ["Aéreo", "Subterrâneo"] },
-        utility: { label: t("catalog.utility", "Concessionária"), opts: ["Eversource", "National Grid", "Unitil", "Municipal (light dept.)", "Outra"] },
-        fireAlarm: { label: "Fire alarm", opts: ["Sim", "Não", "Só detectores interligados"] },
-        lowVoltage: { label: t("catalog.lowVoltageDataTv", "Low voltage (dados/TV/câmeras)"), opts: ["Sim", "Não"] },
-        extras: { label: t("catalog.specialItems", "Itens especiais"), multi: true, opts: ["Carregador EV", "Gerador / transfer switch", "Solar", "Piscina / spa", "Snow melt", "Aquecimento elétrico (baseboard)", "Circuitos de mini-split", "Iluminação externa / paisagismo"] }
-      },
-      text: [{ key: "panel", label: t("catalog.panelBrandModel", "Painel (marca / modelo)") }, { key: "unitsCount", label: t("catalog.unitsMultifamily", "Unidades (multifamily)") }],
-      tasks: {
-        "Serviço": ["Upgrade / instalação de serviço", "Troca de painel", "Meter socket", "Aterramento (ground rods / bonding)", "Coordenação com a concessionária", "Subpainel"],
-        "Rough-in": ["Rough-in elétrico", "Caixas e furação", "Circuitos dedicados da cozinha", "Circuito do banheiro (GFCI)", "Circuitos AFCI dos quartos", "Detectores de fumaça / CO", "Iluminação recessed", "Ventilador de teto", "Exaustor de banheiro", "Circuito da condensadora (HVAC)", "Circuito 240V (secadora / fogão)", "Carregador EV", "Gerador / transfer switch", "Low voltage (dados / TV)", "Fire alarm — rough"],
-        "Acabamento": ["Instalar tomadas e interruptores", "Trocar tomadas", "Trocar interruptores", "Instalar luminárias", "Tampas e placas", "Identificar circuitos do painel", "Fire alarm — dispositivos e teste"],
-        "Inspeções": ["Inspeção de serviço", "Inspeção rough", "Inspeção final", "Inspeção de fire alarm"]
-      }
-    },
-    hvac: {
-      stepName: "HVAC",
-      workType: ["New Construction", "Substituição de equipamento", "Sistema novo (casa existente)", "Ampliação", "Manutenção / service call", "Comercial (RTU)"],
-      fields: {
-        equipment: { label: t("catalog.equipment", "Equipamento"), multi: true, opts: ["Heat pump ductless (mini-split)", "Mini-split multi-zona", "Heat pump ducted", "Air handler", "Fornalha a gás (furnace)", "Fornalha a óleo", "Caldeira (boiler)", "Central AC (condensadora)", "RTU (rooftop)", "ERV / HRV"] },
-        fuel: { label: t("catalog.fuel", "Combustível"), opts: ["Elétrico (heat pump)", "Gás natural", "Propano", "Óleo"] },
-        brand: { label: t("catalog.brand", "Marca"), opts: ["Mitsubishi", "Fujitsu", "Daikin", "Viessmann", "Carrier", "Lennox", "Bosch", "Trane", "Outra"] },
-        zones: { label: t("catalog.zones", "Zonas"), opts: ["1", "2", "3", "4", "5+"] },
-        ducts: { label: t("catalog.ductwork", "Dutos"), opts: ["Dutos novos (sheet metal)", "Aproveitar dutos existentes", "Sem dutos (ductless)", "Misto"] },
-        condensate: { label: t("catalog.condensate", "Condensado"), opts: ["Gravidade", "Bomba de condensado"] },
-        refrigerant: { label: t("catalog.refrigerant", "Refrigerante"), opts: ["R-410A", "R-454B", "R-32"] },
-        gasPiping: { label: t("catalog.gasPiping", "Tubulação de gás"), opts: ["Sim", "Não"] },
-        manualJ: { label: t("catalog.manualJLoadCalc", "Manual J (cálculo de carga)"), opts: ["Sim, feito", "A fazer", "Não precisa"] },
-        rebate: { label: "Rebate", opts: ["Sim, Mass Save", "Sim, outro", "Não", "Verificar"] },
-        electricalBy: { label: t("catalog.electricalBy", "Elétrica feita por"), opts: ["Eternity Electric", "Outro eletricista", "Cliente"] }
-      },
-      text: [{ key: "capacity", label: t("catalog.capacityBtuTons", "Capacidade (BTU / ton)") }, { key: "lineSet", label: t("catalog.lineSetLength", "Line set (comprimento)") }, { key: "thermostat", label: t("catalog.thermostatS", "Termostato(s)") }],
-      tasks: {
-        "Remoção": ["Remover equipamento antigo", "Recuperar refrigerante", "Descarte de equipamento"],
-        "Equipamento": ["Instalar condensadora / heat pump", "Pad / suporte da condensadora", "Instalar air handler", "Instalar evaporadoras (mini-split)", "Instalar fornalha (furnace)", "Instalar caldeira (boiler)"],
-        "Distribuição": ["Dutos novos (sheet metal)", "Isolamento e vedação de dutos", "Registros supply / return", "Line set", "Dreno / bomba de condensado", "Tubulação de gás", "Ventilação / exaustão (flue)"],
-        "Controles": ["Termostatos", "Zoneamento", "Controles Wi-Fi"],
-        "Comissionamento": ["Teste de pressão (nitrogênio)", "Vácuo", "Carga de refrigerante", "Start-up e teste", "Manual J / cálculo de carga", "Documentação Mass Save"],
-        "Inspeções": ["Permit mecânico", "Inspeção de gás", "Inspeção final"]
-      }
-    },
-    // Plumbing (encanador): DWV + água + aquecedor + gás (gas fitter licenciado) — termos usados nos EUA/MA (248 CMR)
-    plumbing: {
-      stepName: "Plumbing",
-      workType: ["New Construction", "Remodel / Renovação", "Banheiro / cozinha", "Troca de aquecedor de água", "Reparo / service call", "Gás (gas fitting)", "Comercial"],
-      fields: {
-        pipeMaterial: { label: t("catalog.piping", "Tubulação"), multi: true, opts: ["PEX", "Cobre (copper)", "CPVC", "PVC (DWV)", "ABS (DWV)", "Ferro fundido existente", "Galvanizado existente"] },
-        waterSource: { label: t("catalog.water", "Água"), opts: ["Rede da cidade (municipal)", "Poço (well)"] },
-        sewer: { label: t("catalog.sewer", "Esgoto"), opts: ["Rede da cidade (sewer)", "Fossa séptica (septic / Title 5)"] },
-        waterHeater: { label: t("catalog.waterHeater", "Aquecedor de água"), opts: ["Sem mudança", "Tanque a gás", "Tanque elétrico", "Tankless a gás", "Heat pump water heater", "Indireto (com caldeira)"] },
-        fuel: { label: t("catalog.fuel", "Combustível"), opts: ["Gás natural", "Propano", "Elétrico", "Óleo"] },
-        fixtures: { label: t("catalog.fixtures", "Peças (fixtures)"), multi: true, opts: ["Vaso sanitário", "Pia de banheiro", "Banheira", "Chuveiro", "Pia de cozinha", "Lava-louças", "Máquina de lavar roupa", "Torneira externa (sillcock)", "Linha da geladeira", "Sump pump", "Bomba de esgoto (ejector)"] },
-        gasPiping: { label: t("catalog.gasPiping", "Tubulação de gás"), opts: ["Sim", "Não"] },
-        waterMain: { label: t("catalog.waterService", "Entrada de água"), opts: ["Sem mudança", "Trocar entrada (main)", "Novo hidrômetro", "Válvula redutora de pressão (PRV)"] },
-        backflow: { label: "Backflow", opts: ["Sim (comercial / irrigação)", "Não"] }
-      },
-      text: [{ key: "fixtureCount", label: t("catalog.noOfFixtures", "Nº de peças (fixtures)") }, { key: "heaterSize", label: t("catalog.waterHeaterGallonsBtu", "Aquecedor (galões / BTU)") }],
-      tasks: {
-        "Demolição": ["Remover peças antigas", "Cortar e tampar tubulação antiga"],
-        "Esgoto (DWV)": ["Esgoto subterrâneo (underground)", "Teste do underground", "Tubulação de esgoto e ventilação (DWV)", "Ventilação pelo telhado (vent)"],
-        "Rough-in": ["Rough-in de água (supply)", "Manifold PEX", "Caixa da lavadora / geladeira", "Válvulas de chuveiro / banheira", "Instalar banheira / base do chuveiro", "Tubulação de gás", "Teste de pressão da água", "Teste de pressão do gás"],
-        "Equipamentos": ["Instalar aquecedor de água", "Expansion tank", "Ventilação do aquecedor", "Bomba de recirculação", "Sump pump / ejector", "Backflow preventer"],
-        "Acabamento": ["Instalar vasos sanitários", "Instalar pias e torneiras", "Acabamento do chuveiro (trim)", "Ligar lava-louças / disposal", "Torneiras externas", "Teste final de vazamento"],
-        "Inspeções": ["Permit de plumbing", "Permit de gás", "Inspeção do underground", "Inspeção rough", "Inspeção de gás", "Inspeção final"]
-      }
-    },
-    // General Contractor: coordena a obra inteira e os subempreiteiros
-    gc: {
-      stepName: t("catalog.jobGc", "Obra (GC)"),
-      workType: ["New Construction", "Reforma completa (gut)", "Cozinha", "Banheiro", "Addition (ampliação)", "Porão (basement finish)", "Telhado / siding", "Comercial (tenant fit-out)"],
-      fields: {
-        structure: { label: t("catalog.structure", "Estrutura"), opts: ["Wood frame", "Steel frame", "Concreto / alvenaria", "Misto"] },
-        foundation: { label: t("catalog.foundation", "Fundação"), opts: ["Sem mudança", "Nova fundação", "Slab", "Porão (full basement)", "Crawl space"] },
-        subs: { label: t("catalog.subsOnTheJob", "Subempreiteiros na obra"), multi: true, opts: ["Elétrica", "Plumbing", "HVAC", "Drywall", "Pintura", "Piso", "Telhado", "Siding", "Janelas e portas", "Armários / bancadas", "Isolamento", "Escavação"] },
-        roofing: { label: t("catalog.roofing", "Telhado"), opts: ["Sem mudança", "Shingles (asfalto)", "EPDM / plano", "Metal"] },
-        siding: { label: "Siding", opts: ["Sem mudança", "Vinil", "Fiber cement", "Madeira (cedar)"] },
-        insulation: { label: t("catalog.insulation", "Isolamento"), opts: ["Fiberglass", "Spray foam", "Cellulose", "Mineral wool"] },
-        drawings: { label: t("catalog.designDrawings", "Projeto / plantas"), opts: ["Arquiteto contratado", "Plantas prontas", "Design-build (nós desenhamos)", "Sem plantas"] },
-        energyCode: { label: "Energy code", opts: ["Base", "Stretch code", "Specialized code", "Verificar"] },
-        dumpster: { label: "Dumpster", opts: ["Sim", "Não"] }
-      },
-      text: [{ key: "architect", label: t("catalog.architectEngineer", "Arquiteto / engenheiro") }, { key: "hers", label: t("catalog.hersBlowerDoorTarget", "HERS / blower door (meta)") }],
-      tasks: {
-        "Pré-obra": ["Permit de construção", "Contratos dos subempreiteiros", "Cronograma", "Pedido de itens demorados (janelas, armários)", "Dumpster e proteção do local"],
-        "Estrutura": ["Demolição", "Escavação / fundação", "Framing (estrutura)", "Telhado", "Janelas e portas externas", "Siding / acabamento externo"],
-        "Rough-ins": ["Elétrica rough-in", "Plumbing rough-in", "HVAC rough-in", "Inspeção de framing", "Inspeção dos rough-ins"],
-        "Fechamento": ["Isolamento", "Inspeção de isolamento", "Drywall", "Blower door / HERS"],
-        "Acabamento": ["Pintura", "Piso", "Armários e bancadas", "Portas internas e trim", "Azulejo / revestimento", "Acabamentos de elétrica, plumbing e HVAC"],
-        "Entrega": ["Punch list", "Limpeza final", "Inspeção final / CO (habite-se)", "Entrega ao cliente"]
-      }
-    }
-  };
-  // grupo da ficha técnica e campos "Sistemas e extras" por ramo (elétrica/HVAC continuam como antes)
-  TRADE.electrical.group = [t("common.electricalService", "Serviço elétrico"), "bolt"]; TRADE.electrical.sysKeys = ["fireAlarm", "lowVoltage", "extras"];
-  TRADE.hvac.group = [t("common.hvacSystem", "Sistema HVAC"), "flake"]; TRADE.hvac.sysKeys = [];
-  TRADE.plumbing.group = ["Plumbing", "drop"]; TRADE.plumbing.sysKeys = ["fixtures", "backflow"];
-  TRADE.gc.group = [t("common.job", "Obra"), "hammer"]; TRADE.gc.sysKeys = ["subs", "energyCode", "dumpster"];
-  TRADE.general = TRADE.gc; // o banco multiempresa chama o GC de "general"
-  function tradeDef(t) { return TRADE[t] || TRADE.electrical; }
-  var MULTI_KEYS = ["access", "wiring", "extras", "equipment", "pipeMaterial", "fixtures", "subs"];
+  // Ramos (electrical, hvac, plumbing, gc, …): registro dirigido por dados em trades.js (NV.TRADES; formato em docs/ramos/ESQUEMA.md).
+  // Cada definição traz workType, fields (ficha técnica), text, tasks, suggest, group, sysKeys, stepName, kind, proposal e prices.
+  var TRADE = NV.TRADES;
+  function tradeDef(id) { return NV.tradeDef(id); }
   // Marca do PRODUTO (Nivela) x marca da EMPRESA do cliente (vem de API.companies / config; trocável por applyBrand)
   var PRODUCT = "Nivela";
   var APPCO = API.companies[0], BRAND = APPCO.name, BRAND_ICON = '<img src="icons/mark-' + APPCO.id + '.png" alt="">';
@@ -245,7 +147,7 @@
     var c = API.companies.find(function (x) { return x.id === id; }) || APPCO, o = id === APPCO.id ? BRAND_OVR : {};
     return { id: c.id, name: o.name || c.name, trade: c.trade, logo: o.logo !== undefined ? o.logo : (c.logo || KNOWN_LOGOS[c.id] || "") };
   }
-  function tradeLabel(t) { return { hvac: "HVAC", electrical: NV.t("catalog.electrical", "Elétrica"), plumbing: "Plumbing", general: "General contractor", gc: "General contractor" }[t] || NV.t("catalog.electrical", "Elétrica"); }
+  function tradeLabel(id) { return NV.tradeLabel(id); }
   function initials(name) { return String(name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join("").toUpperCase(); }
   function coLogo(b) { return '<span class="co-logo">' + (b.logo ? '<img src="' + esc(b.logo) + '" alt="">' : '<span class="co-ini">' + esc(initials(b.name)) + "</span>") + "</span>"; }
   function luminance(hex) {
@@ -335,6 +237,13 @@
     var meta = document.querySelectorAll('meta[name="theme-color"]'); meta.forEach(function (m) { m.setAttribute("content", currentTheme() === "dark" ? "#06110F" : "#0D2B27"); });
   }
   function tradeOf(companyId) { var c = API.companies.find(function (x) { return x.id === companyId; }); return c ? c.trade : "electrical"; }
+  // opções da empresa (Configurações → Empresa), ex.: { noGas: true } — "Não fazemos gás". Demo: no registro da empresa; Supabase: companies.settings
+  function coFlags(companyId) {
+    var c = API.companies.find(function (x) { return x.id === companyId; }) || {}, o = {};
+    NV.tradeDef(c.trade).companyFlags.forEach(function (f) { o[f.key] = !!(c[f.key] || (c.settings || {})[f.key]); });
+    if (c.preset) o._preset = true; // empresa pré-configurada (Eternity / Blue Star): vê as opções antigas da ficha (ex.: "Eternity Electric")
+    return o;
+  }
   function companyName(id) { var c = API.companies.find(function (x) { return x.id === id; }); return c ? c.name : id; }
 
   // ═══════════ state ═══════════
@@ -928,7 +837,7 @@
   function tagsOf(d, extra) { return [d.sector, d.workType, d.building, d.unitsCount ? d.unitsCount + t("projects.unitsShort", " unid.") : ""].concat(extra || []).filter(Boolean).map(function (x) { return '<span class="tag">' + esc(tv(x)) + "</span>"; }).join(""); }
   function projectsView() {
     var list = companyProjects(), fin = can("finance");
-    var tr = tradeOf(S.company), kind = { hvac: t("projects.hvacWork", "trabalho de HVAC"), plumbing: t("proj.kind.plumbing", "trabalho de plumbing"), gc: t("proj.kind.gc", "trabalho (obra)") }[tr] || t("projects.electricalWork", "trabalho elétrico");
+    var kind = tradeDef(tradeOf(S.company)).kind;
     return t("projects.projects", '<div class="page-head"><div><h1>Projetos</h1><p>') + esc(companyName(S.company)) + " · " + list.length + t("projects.projects2", ' projetos</p></div><button class="btn" data-act="newProject">') + ic("plus") + t("projects.newProject", "Novo projeto</button></div>") +
       (list.length ? '<div class="proj-list">' + list.map(function (p) {
         var s = projectStats(p), d = p.details || {}, lim = pct(s.cost, s.budget);
@@ -1083,7 +992,7 @@
   function wizSteps() { var tr = tradeDef(tradeOf(S.draft.companyId)), st = [t("projects.job", "Obra"), t("projects.type", "Tipo"), t("projects.conditions", "Condições"), tr.stepName, t("projects.tasks2", "Tarefas"), t("projects.scopeAndDrawings", "Escopo e plantas")]; if (can("finance")) st.push(t("projects.budget", "Valores")); return st; } // gerente: sem a etapa Valores
   function chooser(path, def, multi) {
     var v = get(S.draft, path);
-    return '<div class="opt-block"><span class="label">' + esc(def.label) + '</span><div class="chips">' + def.opts.map(function (o) {
+    return '<div class="opt-block"><span class="label">' + esc(def.label) + "</span>" + (def.hint ? '<p class="muted small opt-hint">' + esc(def.hint) + "</p>" : "") + '<div class="chips">' + def.opts.map(function (o) {
       var on = multi ? (v || []).indexOf(o) >= 0 : v === o;
       return '<button type="button" class="chip' + (on ? " on" : "") + '" data-act="' + (multi ? "toggleOpt" : "pickOpt") + '" data-path="' + path + '" data-val="' + esc(o) + '">' + esc(tv(o)) + "</button>";
     }).join("") + "</div></div>";
@@ -1118,8 +1027,10 @@
       body = '<div class="stack">' + chooser("details.permit", COMMON_FIELDS.permit) + inputF("details.permitNo", t("projects.permitNoTown", "Nº do permit / cidade")) +
         chooser("details.walls", COMMON_FIELDS.walls) + chooser("details.occupied", COMMON_FIELDS.occupied) + chooser("details.access", COMMON_FIELDS.access, true) + "</div>";
     } else if (step === 3) {
-      body = '<div class="stack">' + Object.keys(trade.fields).map(function (k) { return chooser("details." + k, trade.fields[k], trade.fields[k].multi); }).join("") +
-        '<div class="grid2">' + trade.text.filter(function (t) { return t.key !== "unitsCount"; }).map(function (t) { return inputF("details." + t.key, t.label); }).join("") + "</div></div>";
+      var flags = coFlags(d.companyId); // opções escondidas para a empresa (ex.: "Não fazemos gás" → sem "Tubulação de gás: Sim"); o valor já gravado continua
+      var warns = NV.tradeWarnings(trade.id, d.details || {}, flags); // avisos da ficha (ex.: pintura "Exterior" com tetos) — só aviso, não bloqueia
+      body = '<div class="stack">' + warns.map(function (w) { return '<div class="trade-warn note-box" role="status">' + ic("info", 18) + " <span>" + esc(w) + "</span></div>"; }).join("") + Object.keys(trade.fields).map(function (k) { var f = trade.fields[k]; return chooser("details." + k, f.coHide || f.legacy ? Object.assign({}, f, { opts: NV.tradeOpts(trade.id, k, flags, d.details[k]) }) : f, f.multi); }).join("") +
+        '<div class="grid2">' + trade.text.filter(function (t) { return t.key !== "unitsCount"; }).map(function (t) { return inputF("details." + t.key, t.label, t.type === "number" ? "number" : null, t.type === "number" ? 'inputmode="decimal" step="any"' : ""); }).join("") + "</div></div>";
     } else if (step === 4) {
       // modelos de tarefa: grupo gravado em PT (valor), rótulo novo no idioma de quem cria; tarefas já salvas em PT continuam reconhecidas
       var have = {}; d.tasks.forEach(function (t) { have[t.group + "|" + t.label] = true; });
@@ -1729,7 +1640,7 @@
     editProject: function (el) {
       var p = projectById(el.dataset.id), fi = S.fin[p.id] || {};
       S.draft = JSON.parse(JSON.stringify(p)); S.draft.fin = { contractValue: fi.contractValue || "", materialBudget: fi.materialBudget || "", laborBudget: fi.laborBudget || "", budget: fi.budget || "", estHours: fi.estHours || "", clientEmail: fi.clientEmail || "", clientPhone: fi.clientPhone || "", dailyReport: fi.dailyReport === false ? t("projects.no", "Não") : t("projects.yes", "Sim") };
-      MULTI_KEYS.forEach(function (k) { if (!Array.isArray(S.draft.details[k])) S.draft.details[k] = S.draft.details[k] ? [S.draft.details[k]] : []; });
+      NV.tradeMultiKeys(tradeOf(p.companyId)).forEach(function (k) { if (!Array.isArray(S.draft.details[k])) S.draft.details[k] = S.draft.details[k] ? [S.draft.details[k]] : []; });
       S.draftFiles = []; S.wizStep = 0; markWizClean(); go("projectForm", {}, true);
     },
     // Cancelar também pergunta se houver alterações (Salvar / Descartar / Continuar editando)
@@ -1745,82 +1656,11 @@
       var gs = $("#customGroup"); if (gs) gs.value = g; var f = $("#customTask"); if (f) try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); }
     },
     suggestTasks: function () {
-      var d = S.draft.details || {}, tr = tradeOf(S.draft.companyId), hv = tr === "hvac", add = [];
-      var has = function (arr, v) { return (arr || []).indexOf(v) >= 0; };
-      var newish = /New Construction|Addition|Sistema novo/.test(d.workType || "") || /Abertas|Parcial/.test(d.walls || "");
-      if (tr === "plumbing") {
-        var fx = d.fixtures || [], gut = newish || /Remodel|Banheiro/.test(d.workType || "");
-        if (/Remodel|Banheiro|Troca/.test(d.workType || "")) add.push(["Demolição", "Remover peças antigas"], ["Demolição", "Cortar e tampar tubulação antiga"]);
-        if (/New Construction/.test(d.workType || "")) add.push(["Esgoto (DWV)", "Esgoto subterrâneo (underground)"], ["Esgoto (DWV)", "Teste do underground"], ["Inspeções", "Inspeção do underground"]);
-        if (gut) add.push(["Esgoto (DWV)", "Tubulação de esgoto e ventilação (DWV)"], ["Esgoto (DWV)", "Ventilação pelo telhado (vent)"], ["Rough-in", "Rough-in de água (supply)"], ["Rough-in", "Teste de pressão da água"], ["Inspeções", "Inspeção rough"], ["Acabamento", "Teste final de vazamento"]);
-        if (has(d.pipeMaterial, "PEX") && gut) add.push(["Rough-in", "Manifold PEX"]);
-        if (has(fx, "Chuveiro") || has(fx, "Banheira")) add.push(["Rough-in", "Válvulas de chuveiro / banheira"], ["Acabamento", "Acabamento do chuveiro (trim)"]);
-        if (has(fx, "Banheira")) add.push(["Rough-in", "Instalar banheira / base do chuveiro"]);
-        if (has(fx, "Vaso sanitário")) add.push(["Acabamento", "Instalar vasos sanitários"]);
-        if (has(fx, "Pia de banheiro") || has(fx, "Pia de cozinha")) add.push(["Acabamento", "Instalar pias e torneiras"]);
-        if (has(fx, "Lava-louças")) add.push(["Acabamento", "Ligar lava-louças / disposal"]);
-        if (has(fx, "Máquina de lavar roupa") || has(fx, "Linha da geladeira")) add.push(["Rough-in", "Caixa da lavadora / geladeira"]);
-        if (has(fx, "Torneira externa (sillcock)")) add.push(["Acabamento", "Torneiras externas"]);
-        if (has(fx, "Sump pump") || has(fx, "Bomba de esgoto (ejector)")) add.push(["Equipamentos", "Sump pump / ejector"]);
-        if (d.waterHeater && d.waterHeater !== "Sem mudança") { add.push(["Equipamentos", "Instalar aquecedor de água"], ["Equipamentos", "Expansion tank"]); if (/gás|Tankless/.test(d.waterHeater)) add.push(["Equipamentos", "Ventilação do aquecedor"]); }
-        if (d.gasPiping === "Sim") add.push(["Rough-in", "Tubulação de gás"], ["Rough-in", "Teste de pressão do gás"], ["Inspeções", "Permit de gás"], ["Inspeções", "Inspeção de gás"]);
-        if (/Sim/.test(d.backflow || "")) add.push(["Equipamentos", "Backflow preventer"]);
-        if (/Sim/.test(d.permit || "")) add.push(["Inspeções", "Permit de plumbing"], ["Inspeções", "Inspeção final"]);
-      } else if (tr === "gc") {
-        var subs = d.subs || [], big = /New Construction|Addition|gut/.test(d.workType || "");
-        add.push(["Pré-obra", "Cronograma"], ["Entrega", "Punch list"], ["Entrega", "Limpeza final"], ["Entrega", "Entrega ao cliente"]);
-        if (/Sim/.test(d.permit || "")) add.push(["Pré-obra", "Permit de construção"], ["Entrega", "Inspeção final / CO (habite-se)"]);
-        if (subs.length) add.push(["Pré-obra", "Contratos dos subempreiteiros"]);
-        if (d.dumpster === "Sim") add.push(["Pré-obra", "Dumpster e proteção do local"]);
-        if (!/New Construction/.test(d.workType || "")) add.push(["Estrutura", "Demolição"]);
-        if (big || (d.foundation && d.foundation !== "Sem mudança")) add.push(["Estrutura", "Escavação / fundação"]);
-        if (big) add.push(["Estrutura", "Framing (estrutura)"], ["Rough-ins", "Inspeção de framing"], ["Pré-obra", "Pedido de itens demorados (janelas, armários)"]);
-        if (d.roofing && d.roofing !== "Sem mudança") add.push(["Estrutura", "Telhado"]);
-        if (d.siding && d.siding !== "Sem mudança") add.push(["Estrutura", "Siding / acabamento externo"]);
-        if (has(subs, "Janelas e portas")) add.push(["Estrutura", "Janelas e portas externas"]);
-        if (has(subs, "Elétrica")) add.push(["Rough-ins", "Elétrica rough-in"]);
-        if (has(subs, "Plumbing")) add.push(["Rough-ins", "Plumbing rough-in"]);
-        if (has(subs, "HVAC")) add.push(["Rough-ins", "HVAC rough-in"]);
-        if (has(subs, "Elétrica") || has(subs, "Plumbing") || has(subs, "HVAC")) add.push(["Rough-ins", "Inspeção dos rough-ins"], ["Acabamento", "Acabamentos de elétrica, plumbing e HVAC"]);
-        if (has(subs, "Isolamento") || d.insulation) add.push(["Fechamento", "Isolamento"], ["Fechamento", "Inspeção de isolamento"]);
-        if (has(subs, "Drywall")) add.push(["Fechamento", "Drywall"]);
-        if (/Stretch|Specialized/.test(d.energyCode || "") || d.hers) add.push(["Fechamento", "Blower door / HERS"]);
-        if (has(subs, "Pintura")) add.push(["Acabamento", "Pintura"]);
-        if (has(subs, "Piso")) add.push(["Acabamento", "Piso"]);
-        if (has(subs, "Armários / bancadas") || /Cozinha/.test(d.workType || "")) add.push(["Acabamento", "Armários e bancadas"]);
-        if (/Banheiro|Cozinha/.test(d.workType || "")) add.push(["Acabamento", "Azulejo / revestimento"]);
-      } else if (!hv) {
-        if (d.serviceType && d.serviceType !== "Sem mudança no serviço") { add.push(["Serviço", "Upgrade / instalação de serviço"], ["Serviço", "Aterramento (ground rods / bonding)"], ["Serviço", "Coordenação com a concessionária"]); if (/Novo|Upgrade/.test(d.serviceType)) add.push(["Serviço", "Meter socket"], ["Serviço", "Troca de painel"]); if (/Troca de painel/.test(d.serviceType)) add.push(["Serviço", "Troca de painel"]); if (/Subpainel/.test(d.serviceType)) add.push(["Serviço", "Subpainel"]); add.push(["Inspeções", "Inspeção de serviço"]); }
-        if (newish) { add.push(["Rough-in", "Rough-in elétrico"], ["Rough-in", "Caixas e furação"], ["Rough-in", "Detectores de fumaça / CO"], ["Acabamento", "Instalar tomadas e interruptores"], ["Acabamento", "Instalar luminárias"], ["Acabamento", "Tampas e placas"], ["Acabamento", "Identificar circuitos do painel"], ["Inspeções", "Inspeção rough"]);
-          if (d.bedrooms) add.push(["Rough-in", "Circuitos AFCI dos quartos"]); if (d.bathrooms) add.push(["Rough-in", "Circuito do banheiro (GFCI)"], ["Rough-in", "Exaustor de banheiro"]); if (/Residencial|Multifamily/.test(d.sector || "")) add.push(["Rough-in", "Circuitos dedicados da cozinha"], ["Rough-in", "Circuito 240V (secadora / fogão)"]); }
-        else if (/Remodel|Reparo/.test(d.workType || "")) add.push(["Acabamento", "Trocar tomadas"], ["Acabamento", "Trocar interruptores"]);
-        if (has(d.extras, "Carregador EV")) add.push(["Rough-in", "Carregador EV"]);
-        if (has(d.extras, "Gerador / transfer switch")) add.push(["Rough-in", "Gerador / transfer switch"]);
-        if (has(d.extras, "Circuitos de mini-split")) add.push(["Rough-in", "Circuito da condensadora (HVAC)"]);
-        if (d.lowVoltage === "Sim") add.push(["Rough-in", "Low voltage (dados / TV)"]);
-        if (d.fireAlarm === "Sim") add.push(["Rough-in", "Fire alarm — rough"], ["Acabamento", "Fire alarm — dispositivos e teste"], ["Inspeções", "Inspeção de fire alarm"]);
-        if (d.fireAlarm === "Só detectores interligados") add.push(["Rough-in", "Detectores de fumaça / CO"]);
-      } else {
-        var eq = d.equipment || [];
-        if (/Substituição/.test(d.workType || "")) add.push(["Remoção", "Remover equipamento antigo"], ["Remoção", "Recuperar refrigerante"], ["Remoção", "Descarte de equipamento"]);
-        if (eq.some(function (x) { return /Heat pump|Mini-split|Central AC/.test(x); })) add.push(["Equipamento", "Instalar condensadora / heat pump"], ["Equipamento", "Pad / suporte da condensadora"], ["Distribuição", "Line set"], ["Distribuição", "Dreno / bomba de condensado"], ["Comissionamento", "Teste de pressão (nitrogênio)"], ["Comissionamento", "Vácuo"], ["Comissionamento", "Carga de refrigerante"]);
-        if (eq.some(function (x) { return /ductless|Mini-split/.test(x); })) add.push(["Equipamento", "Instalar evaporadoras (mini-split)"]);
-        if (has(eq, "Air handler") || has(eq, "Heat pump ducted")) add.push(["Equipamento", "Instalar air handler"]);
-        if (eq.some(function (x) { return /Fornalha/.test(x); })) add.push(["Equipamento", "Instalar fornalha (furnace)"], ["Distribuição", "Ventilação / exaustão (flue)"]);
-        if (has(eq, "Caldeira (boiler)")) add.push(["Equipamento", "Instalar caldeira (boiler)"], ["Distribuição", "Ventilação / exaustão (flue)"]);
-        if (/novos/.test(d.ducts || "")) add.push(["Distribuição", "Dutos novos (sheet metal)"], ["Distribuição", "Registros supply / return"]);
-        if (/existentes/.test(d.ducts || "")) add.push(["Distribuição", "Isolamento e vedação de dutos"]);
-        if (d.gasPiping === "Sim") add.push(["Distribuição", "Tubulação de gás"], ["Inspeções", "Inspeção de gás"]);
-        if (Number(d.zones) > 1 || d.zones === "5+") add.push(["Controles", "Zoneamento"]);
-        add.push(["Controles", "Termostatos"], ["Comissionamento", "Start-up e teste"]);
-        if (d.manualJ === "A fazer") add.push(["Comissionamento", "Manual J / cálculo de carga"]);
-        if (/Mass Save/.test(d.rebate || "")) add.push(["Comissionamento", "Documentação Mass Save"]);
-      }
-      if (tr !== "plumbing" && tr !== "gc" && /Sim/.test(d.permit || "")) add.push([hv ? t("projects.inspections", "Inspeções") : t("projects.inspections", "Inspeções"), hv ? t("projects.mechanicalPermit", "Permit mecânico") : t("projects.finalInspection", "Inspeção final")]);
-      if (hv && /Sim/.test(d.permit || "")) add.push(["Inspeções", "Inspeção final"]);
+      // regras do ramo (trades.js → suggest): lista [[grupo, tarefa], …] na ordem em que as regras disparam
+      var tr = tradeDef(tradeOf(S.draft.companyId)), add = NV.tradeSuggest(tr.id, S.draft.details || {}, coFlags(S.draft.companyId));
       var n = 0;
       add.forEach(function (a) { if (!S.draft.tasks.some(function (t) { return t.group === a[0] && (t.label === a[1] || t.label === tv(a[1])); })) { S.draft.tasks.push({ id: null, group: a[0], label: tv(a[1]), done: false }); n++; } });
-      render(); toast(n ? n + t("projects.suggestedTasksAddedReview", " tarefas sugeridas adicionadas. Revise a lista.") : t("projects.fillInTheType", "Preencha as etapas Tipo, Condições e ") + (hv ? "HVAC" : tr === "plumbing" || tr === "gc" ? tradeDef(tr).stepName : t("projects.electrical", "Elétrica")) + t("projects.stepsToGetSuggestions", " para receber sugestões."));
+      render(); toast(n ? n + t("projects.suggestedTasksAddedReview", " tarefas sugeridas adicionadas. Revise a lista.") : t("projects.fillInTheType", "Preencha as etapas Tipo, Condições e ") + tr.stepName + t("projects.stepsToGetSuggestions", " para receber sugestões."));
     },
     rmDraftFile: function (el) { S.draftFiles.splice(Number(el.dataset.id), 1); render(); },
     geocode: function () {
@@ -2148,7 +1988,7 @@
   }
 
   window.EE = { S: S, EXT: EXT, API: API, render: render, go: go, guardLeave: guardLeave, statusLabel: statusLabel, toast: toast, esc: esc, money: money, fmtDate: fmtDate, fmtPct: fmtPct, pct: pct, todayISO: todayISO,
-    companyName: companyName, tradeOf: tradeOf, companyProjects: companyProjects, projectById: projectById, statusPill: statusPill, ICON: ICON, refresh: refresh,
+    companyName: companyName, tradeOf: tradeOf, coFlags: coFlags, companyProjects: companyProjects, projectById: projectById, statusPill: statusPill, ICON: ICON, refresh: refresh,
     blankProject: blankProject, TRADE: TRADE, storeGet: storeGet, storeSet: storeSet, ring: ring,
     // interface Nivela (ganchos para onboarding/configurações/idioma)
     ic: ic, emptyState: emptyState, emptyRow: emptyRow, level: level, skeletonView: skeletonView, crumb: crumb, applyBrand: applyBrand, setTheme: setTheme, currentTheme: currentTheme,

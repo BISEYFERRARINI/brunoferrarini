@@ -327,6 +327,8 @@ div.empty, .panel.empty { padding: var(--s-8) var(--s-4); text-align: center; co
 .note b { display: block; font-size: 13px; color: var(--warn); margin-bottom: 2px; }
 .note-box { border-color: var(--warn); background: var(--warn-soft); }
 .note-box h3 { color: var(--warn); }
+.trade-warn { display: flex; gap: 8px; align-items: flex-start; border: 1px solid var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.trade-warn svg { flex: 0 0 auto; color: var(--warn); margin-top: 1px; }
 
 /* ficha */
 .specs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--s-3); }
@@ -386,6 +388,7 @@ div.empty, .panel.empty { padding: var(--s-8) var(--s-4); text-align: center; co
 .steps button.done { color: var(--ink); border-color: var(--accent-line); }
 .opt-block { display: grid; gap: 8px; }
 .opt-block > .label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.opt-block > .opt-hint { margin: -4px 0 0; max-width: 70ch; line-height: 1.4; }
 .task-picker .chip { border-radius: 8px; }
 .wiz-foot { display: flex; justify-content: space-between; gap: var(--s-2); margin-top: var(--s-4); position: sticky; bottom: 0; background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); padding: var(--s-3) 0; z-index: 5; }
 
@@ -672,6 +675,9 @@ div.empty, .panel.empty { padding: var(--s-8) var(--s-4); text-align: center; co
   .filters[role="group"] { flex-wrap: wrap; overflow: visible; margin: 0 0 var(--s-4); padding: 0; }
   .filters[role="group"] .fsel { flex: 1 1 100%; min-width: 0; }
   .filters[role="group"] .fsel select, .filters[role="group"] .fsel input { max-width: none; width: 100%; min-width: 0; flex: 1 1 auto; }
+  /* filtros com campos (Buscar / Categoria em Preços): quebram linha em vez de passar da borda (QA 07, B16) */
+  .filters:has(> .field) { flex-wrap: wrap; overflow: visible; margin: 0 0 var(--s-4); padding: 0; }
+  .filters:has(> .field) .field { flex: 1 1 140px; min-width: 0; }
   .table-wrap.sched table { min-width: 860px; }
   .mini .level { width: 56px; }
   .panel { padding: var(--s-4); }
@@ -764,11 +770,16 @@ code { font: 600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospa
 .ob-note svg { color: var(--info); margin-top: 1px; }
 .ob-trades { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: var(--s-2); }
 .ob-trades legend { font-size: 13px; font-weight: 600; padding: 0; margin-bottom: var(--s-2); }
-.ob-trade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2); }
-.ob-trade { position: relative; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: var(--s-3); align-items: center; text-align: left; padding: var(--s-3); border: 1.5px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 72px; }
+/* grade de ramos (vem do registro trades.js): 2 colunas com 4 ramos, 3 colunas a partir de 5 — cabe ~11 sem rolar demais */
+.ob-trade-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.ob-trade-grid.many { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.ob-trade { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: var(--s-3); align-items: center; text-align: left; padding: var(--s-3); border: 1.5px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); cursor: pointer; min-height: 72px; min-width: 0; }
 .ob-trade .em-ic { grid-row: span 2; width: 40px; height: 40px; border-radius: 11px; background: var(--surface-3); color: var(--ink); display: grid; place-items: center; }
-.ob-trade b { font-size: 15px; }
-.ob-trade > span:not(.em-ic):not(.ob-check) { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.ob-trade b { font-size: 15px; padding-right: 18px; overflow-wrap: anywhere; }
+.ob-trade > span:not(.em-ic):not(.ob-check) { font-size: 12.5px; color: var(--muted); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ob-trade-grid.many .ob-trade { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto; align-content: start; row-gap: 6px; padding: var(--s-3); }
+.ob-trade-grid.many .ob-trade .em-ic { grid-row: auto; width: 34px; height: 34px; border-radius: 10px; }
+.ob-trade-grid.many .ob-trade b { font-size: 14px; }
 .ob-trade:hover { border-color: var(--line-strong); }
 .ob-trade.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .ob-trade.on .em-ic { background: var(--accent); color: var(--accent-ink); }
@@ -878,6 +889,9 @@ code { font: 600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospa
 .seg.seg3 button svg { grid-row: span 2; color: var(--muted); }
 .seg.seg3 button.on svg { color: var(--accent-text); }
 .set-toggles { display: grid; }
+.set-flags { display: grid; margin-top: var(--s-4); }
+.set-flags > .label { margin-bottom: 2px; }
+.set-flags > .set-toggle:nth-child(2) { border-top: 0; }
 .set-toggle { position: relative; display: flex; align-items: center; gap: var(--s-4); padding: var(--s-3) 0; border-top: 1px solid var(--line); cursor: pointer; }
 .set-toggle:first-child { border-top: 0; }
 .set-toggle > span:first-child { flex: 1; display: grid; gap: 2px; }
@@ -920,6 +934,10 @@ code { font: 600 13px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospa
 }
 @media (max-width: 640px) {
   .ob-trade-grid { grid-template-columns: minmax(0, 1fr); }
+  .ob-trade-grid.many { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ob-trade-grid.many .ob-trade { padding: 10px; min-height: 0; }
+  .ob-trade-grid.many .ob-trade > span:not(.em-ic):not(.ob-check) { font-size: 12px; }
+  .ob-trade-grid.many .ob-check { top: 6px; right: 6px; width: 20px; height: 20px; }
   .ob-member { grid-template-columns: minmax(0, 1fr) auto; }
   .ob-member .field:nth-child(2), .ob-member .field:nth-child(3) { grid-column: 1; }
   .ob-member .x { grid-row: 1; grid-column: 2; align-self: end; }

@@ -1,8 +1,8 @@
 // Service worker: mantém a casca do app disponível sem internet.
 // ATENÇÃO: todo arquivo da lista SHELL precisa existir — um 404 faz o cache.addAll falhar e o app não instala.
-var CACHE = "nivela-v4";
+var CACHE = "nivela-v7"; // v7: correções do QA dos ramos (docs/07)
 var SHELL = [
-  "./", "./index.html", "./styles.css", "./i18n.js", "./i18n.en.js", "./config.js", "./data.js", "./app.js", "./proposals.js", "./settings.js", "./onboarding.js", "./help.js", "./manifest.webmanifest",
+  "./", "./index.html", "./styles.css", "./i18n.js", "./i18n.en.js", "./trades.js", "./config.js", "./data.js", "./app.js", "./proposals.js", "./settings.js", "./onboarding.js", "./help.js", "./manifest.webmanifest",
   "./brand/tokens.css", "./brand/fonts/inter-400.woff", "./brand/fonts/inter-500.woff", "./brand/fonts/inter-600.woff", "./brand/fonts/inter-700.woff",
   "./brand/fonts/inter-display-600.woff", "./brand/fonts/inter-display-700.woff",
   "./brand/favicon-16.png", "./brand/favicon-32.png", "./brand/apple-touch-icon-180.png", "./brand/logo-escuro.svg", "./brand/logo-claro.svg", "./brand/logo-mono.svg", "./brand/mark.svg",

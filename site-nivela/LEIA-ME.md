@@ -90,8 +90,10 @@ Passe o usuário e a senha para o funcionário. Para trocar a senha depois: Equi
 |---|---|
 | `index.html` | página do app |
 | `app.js` | telas e regras do app |
+| `trades.js` | registro dos 11 ramos (elétrica, HVAC, plumbing, sprinkler, GC, drywall, pintura, piso, siding, telhado, fundação): ficha técnica, tarefas, sugestões, propostas, lojas — só dados; formato em `docs/ramos/ESQUEMA.md`. Os ramos de `docs/ramos/*.json` entram com `node tools/ramos.js`. Também lê a fala no modo sem IA da proposta (preço só com contexto de preço, seções sem negação, quantidades ditas) |
 | `data.js` | ligação com o banco (e o modo demonstração) |
 | `styles.css` | visual (âmbar = Eternity, azul = Blue Star) |
 | `config.js` | **onde você coloca os dados do Supabase** |
 | `sw.js`, `manifest.webmanifest`, `icons/` | o que faz o app ser instalável e abrir sem internet |
 | `supabase/schema.sql` | estrutura do banco + regras de segurança |
+| `tests/` | testes automáticos (`node tests/fala.js` sem navegador; os outros com o servidor local, ex.: `node tests/qa-ramos.js http://localhost:8799/`) |

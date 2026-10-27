@@ -9,21 +9,22 @@
 
   // Só a Eternity neste app (a Blue Star vai ter um app separado; os dados dela continuam guardados no banco)
   var ALL_COMPANIES = [
-    { id: "eternity", name: "Eternity Electric", trade: "electrical", short: "Eternity" },
-    { id: "bluestar", name: "Blue Star HVAC", trade: "hvac", short: "Blue Star" }
+    { id: "eternity", name: "Eternity Electric", trade: "electrical", short: "Eternity", preset: true },
+    { id: "bluestar", name: "Blue Star HVAC", trade: "hvac", short: "Blue Star", noGas: true, preset: true } // a Blue Star não faz gás (Configurações → Empresa → "Não fazemos gás")
   ];
   var APP_CO = (window.APP_CONFIG && window.APP_CONFIG.COMPANY) || "eternity";
   var COMPANIES = ALL_COMPANIES.filter(function (c) { return c.id === APP_CO; });
   var BASE_COMPANIES = COMPANIES.map(function (c) { return Object.assign({}, c); }); // empresas pré-configuradas (conta de exemplo / app do Bruno)
   // troca a lista de empresas NO LUGAR (o app guarda a referência de API.companies)
   function setCompanies(list) { COMPANIES.length = 0; list.forEach(function (c) { COMPANIES.push(c); }); }
-  var TRADES = ["electrical", "hvac", "plumbing", "gc"];
-  var TRADE_NAME = { electrical: "Electric", hvac: "HVAC", plumbing: "Plumbing", gc: "Construction" };
+  // ramos válidos e sufixo do nome da empresa ("Acme Plumbing") vêm do registro trades.js
+  var TRADES = window.NV.tradeList().map(function (d) { return d.id; });
+  var TRADE_NAME = {}; window.NV.tradeList().forEach(function (d) { TRADE_NAME[d.id] = d.companySuffix; });
   function slugify(s) { return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "empresa"; }
   function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || "").trim()); }
   function genPassword() { var a = "abcdefghjkmnpqrstuvwxyz23456789", s = ""; for (var i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
   // perfis de empresa que o app usa no cabeçalho das propostas / PDF e na marca (logo, cor)
-  var CO_FIELDS = ["name", "short", "trade", "logo", "accent", "address", "phone", "email", "license", "state"];
+  var CO_FIELDS = ["name", "short", "trade", "logo", "accent", "address", "phone", "email", "license", "state", "noGas", "hicReg"]; // noGas: "Não fazemos gás" (HVAC / plumbing); hicReg: nº de registro HIC (MA)
   function isStaffRole(r) { return r === "admin" || r === "manager"; }
   function finOut(f) {
     var mat = Number(f.materialBudget) || 0, lab = Number(f.laborBudget) || 0;
@@ -436,7 +437,7 @@
         pendingOwner = { name: String(o.name).trim(), email: email, password: String(o.password) };
         return P({ ok: true, needsEmailConfirm: false });
       },
-      // passo 2+3: cria a organização com uma empresa por ramo marcado (Elétrica / HVAC / Plumbing / GC), já com logo e cor
+      // passo 2+3: cria a organização com uma empresa por ramo marcado (os 11 ramos de trades.js), já com logo e cor
       createOrganization: function (o) {
         o = o || {};
         var own = o.owner || pendingOwner;
@@ -538,7 +539,7 @@
           org = chk(res[0]);
           var list = chk(res[1]).map(function (c) {
             return { id: c.slug, uuid: c.id, name: c.name, trade: tradeIn(c.trade), short: c.short_name || c.name.split(" ")[0], logo: c.logo_path ? publicAsset(c.logo_path) : (org.logo_path ? publicAsset(org.logo_path) : ""),
-              accent: c.accent_color || org.accent_color || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license_no || "", state: c.state || org.state || "", settings: c.settings || {} };
+              accent: c.accent_color || org.accent_color || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license_no || "", state: c.state || org.state || "", settings: c.settings || {}, hicReg: (c.settings || {}).hicReg || "" };
           });
           CO_BY_SLUG = {}; CO_BY_ID = {}; list.forEach(function (c) { CO_BY_SLUG[c.id] = c; CO_BY_ID[c.uuid] = c; });
           if (list.length) setCompanies(list);
@@ -978,6 +979,11 @@
         return logoP.then(function (path) {
           var row = { slug: c.id, name: c.name, trade: c.trade ? tradeOut(c.trade) : undefined, short_name: c.short || null, accent_color: c.accent || null, email: c.email || null,
             license_no: c.license || null, address: c.address || null, phone: c.phone || null };
+          // opções da empresa ficam em companies.settings (jsonb), sem apagar o que já estiver lá
+          // (todas as opções do ramo — companyFlags — e o nº de registro HIC de MA; antes só noGas era gravado)
+          var setx = {}; window.NV.tradeList().forEach(function (td) { td.companyFlags.forEach(function (f) { if (c[f.key] !== undefined) setx[f.key] = !!c[f.key]; }); });
+          if (c.hicReg !== undefined) setx.hicReg = String(c.hicReg || "").trim();
+          if (Object.keys(setx).length) row.settings = Object.assign({}, (CO_BY_SLUG[c.id] || {}).settings || {}, setx);
           if (path) row.logo_path = path; else if (c.logo === "") row.logo_path = null;
           Object.keys(row).forEach(function (k) { if (row[k] === undefined) delete row[k]; });
           if (CO_BY_SLUG[c.id]) row.id = CO_BY_SLUG[c.id].uuid;

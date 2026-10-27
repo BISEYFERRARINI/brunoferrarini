@@ -7,12 +7,8 @@
   var S = E.S, API = E.API, EXT = E.EXT, esc = E.esc, t = E.t, ic = E.ic, AC = EXT.actions;
   function $(s) { return document.querySelector(s); }
 
-  var TRADES = [
-    ["electrical", "bolt", t("ob.trade.electrical", "Elétrica"), t("ob.trade.electrical.d", "Serviço, rough-in, acabamento, fire alarm")],
-    ["hvac", "flake", t("ob.trade.hvac", "HVAC"), t("ob.trade.hvac.d", "Heat pump, mini-split, dutos, fornalha")],
-    ["plumbing", "drop", t("ob.trade.plumbing", "Plumbing"), t("ob.trade.plumbing.d", "Água, esgoto, aquecedor, gás")],
-    ["gc", "hammer", t("ob.trade.gc", "General Contractor"), t("ob.trade.gc.d", "Obra completa e subempreiteiros")]
-  ];
+  // ramos do cadastro: registro trades.js (ordem, ícone, nome e descrição curta de cada ramo)
+  var TRADES = NV.tradeList().map(function (d) { return [d.id, d.icon, d.obLabel, d.obDesc]; });
   var STATES = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"];
   var PALETTE = [["#0B7B6A", "Verdigris"], ["#1F6FD1", NV.t("onboarding.blue", "Azul")], ["#C98200", NV.t("onboarding.amber", "Âmbar")], ["#B3202A", NV.t("onboarding.red", "Vermelho")], ["#6D28D9", NV.t("onboarding.purple", "Roxo")], ["#E2621B", NV.t("onboarding.orange", "Laranja")], ["#15803D", NV.t("onboarding.green", "Verde")], ["#334155", NV.t("onboarding.graphite", "Grafite")]];
   var STEPS = [t("ob.step1", "Sua conta"), t("ob.step2", "Sua empresa"), t("ob.step3", "Sua marca"), t("ob.step4", "Sua equipe")];
@@ -32,7 +28,7 @@
       ["team", t("ob.aside.3", "Sua equipe no celular"), t("ob.aside.3d", "Cada funcionário recebe usuário e senha e bate o ponto com selfie e GPS.")]
     ];
     return '<aside class="login-aside"><img class="login-logo" src="brand/logo-escuro.svg" alt="' + esc(E.PRODUCT) + '" width="110" height="36">' +
-      '<div class="login-pitch"><h1>' + esc(t("ob.aside.title", "Sua empresa no Nivela em 4 passos.")) + "</h1><p>" + esc(t("ob.aside.sub", "Elétrica, HVAC, plumbing ou general contractor: o app já vem com as tarefas, campos técnicos e propostas do seu ramo.")) + "</p>" +
+      '<div class="login-pitch"><h1>' + esc(t("ob.aside.title", "Sua empresa no Nivela em 4 passos.")) + "</h1><p>" + esc(t("ob.aside.sub", "Elétrica, HVAC, plumbing, sprinkler, GC, drywall, pintura, piso, siding, telhado ou fundação: o app já vem com as tarefas, campos técnicos e propostas de cada um dos 11 ramos.")) + "</p>" +
       '<ul class="login-feats">' + tips.map(function (x) { return "<li>" + ic(x[0]) + "<div><b>" + esc(x[1]) + "</b><span>" + esc(x[2]) + "</span></div></li>"; }).join("") + "</ul></div>" +
       '<div class="login-foot">' + esc(t("ob.aside.foot", "Feito por empreiteiro, para empreiteiro.")) + "</div></aside>";
   }
@@ -48,7 +44,7 @@
   function previewCard() {
     var d = S.signup.d, name = d.orgName || t("ob.yourCompany", "Sua empresa"), tr = d.trades[0] || "electrical";
     var logo = d.logo ? '<img src="' + esc(d.logo) + '" alt="">' : '<span class="co-ini">' + esc(E.initials(name)) + "</span>";
-    var title = { electrical: "ELECTRICAL PROPOSAL", hvac: "HVAC PROPOSAL", plumbing: "PLUMBING PROPOSAL", gc: "CONSTRUCTION PROPOSAL" }[tr];
+    var title = NV.tradeDef(tr).proposal.title;
     return '<div class="ob-preview" aria-label="' + esc(t("ob.preview", "Prévia ao vivo")) + '"><div class="obp-side"><div class="obp-co"><span class="co-logo">' + logo + "</span><b>" + esc(name) + "</b></div>" +
       '<div class="obp-nav"><span class="on">' + ic("dash", 16) + esc(t("ob.pv.dash", "Painel")) + "</span><span>" + ic("folder", 16) + esc(t("ob.pv.projects", "Projetos")) + "</span><span>" + ic("doc", 16) + esc(t("ob.pv.proposals", "Propostas")) + "</span><span>" + ic("clock", 16) + esc(t("ob.pv.time", "Ponto")) + "</span></div></div>" +
       '<div class="obp-main"><div class="obp-row"><b>' + esc(t("ob.pv.progress", "Progresso das obras")) + '</b><span class="num">62%</span></div>' + E.level(62, { sm: true, label: "62%" }) +
@@ -67,9 +63,9 @@
     if (st === 1) {
       return "<h2>" + esc(t("ob.s2.title", "Sobre a sua empresa")) + "</h2>" +
         field("orgName", t("ob.s2.name", "Nome da empresa"), "text", 'autocomplete="organization" required placeholder="' + esc(t("ob.s2.ph", "Ex.: Silva Plumbing & Heating")) + '"') +
-        '<fieldset class="ob-trades"><legend>' + esc(t("ob.s2.trade", "Ramo principal")) + ' <span class="muted">' + esc(t("ob.s2.tradeHint", "· pode marcar mais de um")) + "</span></legend><div class=\"ob-trade-grid\">" +
+        '<fieldset class="ob-trades"><legend>' + esc(t("ob.s2.trade", "Ramo principal")) + ' <span class="muted">' + esc(t("ob.s2.tradeHint", "· pode marcar mais de um")) + "</span></legend><div class=\"ob-trade-grid" + (TRADES.length > 4 ? " many" : "") + "\">" +
         TRADES.map(function (x) { var on = d.trades.indexOf(x[0]) >= 0; return '<button type="button" class="ob-trade' + (on ? " on" : "") + '" data-act="obTrade" data-id="' + x[0] + '" aria-pressed="' + on + '"><span class="em-ic">' + ic(x[1], 22) + "</span><b>" + esc(x[2]) + "</b><span>" + esc(x[3]) + "</span>" + (on ? '<span class="ob-check">' + ic("check", 16) + "</span>" : "") + "</button>"; }).join("") + "</div>" +
-        (d.trades.length > 1 ? '<div class="ob-note">' + ic("info", 18) + "<span>" + esc(t("ob.s2.multi", "Cada ramo vira uma empresa no app (como Eternity Electric e Blue Star HVAC), com troca num botão. Os nomes dá para ajustar em Configurações.")) + "</span></div>" : "") + "</fieldset>" +
+        (d.trades.length > 1 ? '<div class="ob-note">' + ic("info", 18) + "<span>" + esc(t("ob.s2.multi", "Cada ramo vira uma empresa no app (ex.: “Acme Electric” e “Acme HVAC”), com troca num botão. Os nomes dá para ajustar em Configurações.")) + "</span></div>" : "") + "</fieldset>" +
         '<label class="field" style="max-width:240px"><span>' + esc(t("ob.s2.state", "Estado onde trabalha")) + '</span><select id="ob-state" data-ob="state">' + STATES.map(function (s) { return "<option" + (d.state === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></label>";
     }
     if (st === 2) {

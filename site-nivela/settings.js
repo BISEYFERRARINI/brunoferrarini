@@ -21,7 +21,8 @@
     var c = company();
     if (!S.setCo || S.setCo.id !== c.id) {
       var b = E.companyBrand(c.id);
-      S.setCo = { id: c.id, name: b.name || c.name || "", trade: c.trade === "general" ? "gc" : (c.trade || "electrical"), logo: c.logo || "", accent: c.accent || "", address: c.address || "", phone: c.phone || "", email: c.email || "", license: c.license || "", state: c.state || "MA", dirty: false };
+      S.setCo = { id: c.id, name: b.name || c.name || "", trade: NV.tradeKey(c.trade || "electrical"), logo: c.logo || "", accent: c.accent || "", address: c.address || "", phone: c.phone || "", email: c.email || "", license: c.license || "", hicReg: c.hicReg || (c.settings || {}).hicReg || "", state: c.state || "MA", dirty: false };
+      NV.tradeList().forEach(function (td) { td.companyFlags.forEach(function (f) { S.setCo[f.key] = !!(c[f.key] || (c.settings || {})[f.key]); }); }); // ex.: noGas
     }
     return S.setCo;
   }
@@ -32,10 +33,12 @@
     var logo = d.logo || (E.companyBrand(d.id).logo || "");
     var head = '<section class="panel set-sec"><div class="panel-head"><div><h3>' + esc(t("set.co.title", "Dados da empresa")) + '</h3><span class="muted small">' + esc(API.companies.length > 1 ? t("set.co.which", "Editando {n} · troque a empresa no topo do menu", { n: d.name }) : t("set.co.sub", "Aparecem no app, nas propostas e no PDF")) + "</span></div></div>" +
       '<div class="grid2">' + inp("name", t("set.co.name", "Nome da empresa"), "text", 'autocomplete="organization"') +
-      '<label class="field"><span>' + esc(t("set.co.trade", "Ramo")) + '</span><select id="set-trade" data-set="trade">' + [["electrical", t("settings.electrical", "Elétrica")], ["hvac", "HVAC"], ["plumbing", "Plumbing"], ["gc", "General contractor"]].map(function (x) { return '<option value="' + x[0] + '"' + (d.trade === x[0] ? " selected" : "") + ">" + esc(x[1]) + "</option>"; }).join("") + "</select></label></div>" +
+      '<label class="field"><span>' + esc(t("set.co.trade", "Ramo")) + '</span><select id="set-trade" data-set="trade">' + NV.tradeList().map(function (td) { return [td.id, td.label]; }).map(function (x) { return '<option value="' + x[0] + '"' + (d.trade === x[0] ? " selected" : "") + ">" + esc(x[1]) + "</option>"; }).join("") + "</select></label></div>" +
       inp("address", t("set.co.address", "Endereço"), "text", 'autocomplete="street-address"') +
       '<div class="grid3">' + inp("phone", t("set.co.phone", "Telefone"), "tel", 'autocomplete="tel" inputmode="tel"') + inp("email", t("set.co.email", "E-mail"), "email", 'autocapitalize="none" inputmode="email"') + inp("license", t("set.co.license", "Licença (nº)")) + "</div>" +
-      '<label class="field" style="max-width:200px"><span>' + esc(t("set.co.state", "Estado")) + '</span><select id="set-state" data-set="state">' + STATES.map(function (s) { return "<option" + (d.state === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></label></section>";
+      '<div class="grid2"><label class="field" style="max-width:200px"><span>' + esc(t("set.co.state", "Estado")) + '</span><select id="set-state" data-set="state">' + STATES.map(function (s) { return "<option" + (d.state === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></label>" +
+      // nº de registro HIC (lei de MA, M.G.L. c.142A): vai no bloco de contrato residencial das propostas de reforma em MA
+      (d.state === "MA" && NV.tradeDef(d.trade).proposal.hic ? inp("hicReg", t("set.co.hicReg", "Registro HIC (MA) — nº")) : "") + "</div>" + flagsBlock(d) + "</section>";
     var brand = '<section class="panel set-sec"><div class="panel-head"><div><h3>' + esc(t("set.brand.title", "Logo e cor")) + '</h3><span class="muted small">' + esc(t("set.brand.sub", "A cor vai nos botões, abas e barras; o logo no menu e nas propostas.")) + "</span></div></div>" +
       '<div class="set-brand"><div class="ob-logo"><span class="ob-logo-img' + (logo ? "" : " empty") + '">' + (logo ? '<img src="' + esc(logo) + '" alt="' + esc(t("set.brand.logoAlt", "Logo atual")) + '">' : ic("upload", 22)) + "</span>" +
       '<div class="stack" style="gap:6px"><label class="btn ghost sm upload-btn">' + ic("upload", 16) + esc(logo ? t("set.brand.change", "Trocar logo") : t("set.brand.send", "Enviar logo")) + '<input type="file" id="setLogo" accept="image/*"></label>' +
@@ -47,9 +50,16 @@
       (preset ? '<div class="ob-note">' + ic("info", 18) + "<span>" + esc(t("set.doc.preset", "Esta empresa usa o modelo de proposta pré-configurado (logo, endereço e rodapé próprios). Nome, logo e cor mudam no app.")) + "</span></div>" : "") + "</section>";
     return head + brand + '<div class="set-save"><span class="muted small">' + esc(d.dirty ? t("set.unsaved", "Alterações não salvas") : t("set.saved", "Tudo salvo")) + '</span><button type="button" class="btn" data-act="setSaveCo"' + (S.setBusy ? " disabled" : "") + ">" + (S.setBusy ? '<span class="spin" aria-hidden="true"></span>' : ic("check", 18)) + esc(t("set.save", "Salvar")) + "</button></div>";
   }
+  // opções do ramo para esta empresa (trades.js → companyFlags), ex.: HVAC / plumbing → "Não fazemos gás"
+  function flagsBlock(d) {
+    var fl = NV.tradeDef(d.trade).companyFlags;
+    if (!fl.length) return "";
+    return '<div class="set-flags"><span class="label">' + esc(t("set.co.flags", "Como a empresa trabalha")) + "</span>" + fl.map(function (f) {
+      return '<label class="set-toggle"><span><b>' + esc(f.label) + "</b><span>" + esc(f.desc) + '</span></span><input type="checkbox" role="switch" id="set-flag-' + f.key + '" data-setflag="' + f.key + '"' + (d[f.key] ? " checked" : "") + '><span class="sw-ui" aria-hidden="true"></span></label>';
+    }).join("") + "</div>";
+  }
   function docPreview(d, logo) {
-    var acc = d.accent || "var(--accent)", title = { electrical: "ELECTRICAL PROPOSAL", hvac: "HVAC PROPOSAL", plumbing: "PLUMBING PROPOSAL", gc: "CONSTRUCTION PROPOSAL" }[d.trade] || "PROPOSAL";
-    var tag = { electrical: "LICENSED ELECTRICAL CONTRACTOR", hvac: "LICENSED HVAC CONTRACTOR", plumbing: "LICENSED PLUMBING CONTRACTOR", gc: "GENERAL CONTRACTOR" }[d.trade] || "";
+    var td = NV.tradeDef(d.trade).proposal, acc = d.accent || "var(--accent)", title = td.title || "PROPOSAL", tag = td.tagline || ""; // cabeçalho do ramo (trades.js)
     return '<div class="doc-head" style="--doc:' + esc(acc) + '">' + (logo ? '<img src="' + esc(logo) + '" alt="">' : '<div class="doc-name">' + esc(String(d.name || "").toUpperCase()) + "</div>") +
       '<div class="doc-tag">' + esc(tag) + (d.license ? " · LIC. " + esc(String(d.license).toUpperCase()) : "") + '</div><div class="doc-contact">' + esc([d.address, d.email, d.phone].filter(Boolean).join(" · ") || t("set.doc.empty", "endereço · e-mail · telefone")) + "</div>" +
       '<div class="doc-title">' + esc(title) + "</div></div>";
@@ -123,7 +133,9 @@
   AC.setSaveCo = function () {
     var d = draft(); if (!String(d.name).trim()) { E.toast(t("set.err.name", "Informe o nome da empresa.")); return; }
     S.setBusy = true; E.render();
-    API.saveCompany({ id: d.id, name: d.name.trim(), trade: d.trade, logo: d.logo, accent: d.accent, address: d.address.trim(), phone: d.phone.trim(), email: d.email.trim(), license: d.license.trim(), state: d.state })
+    var rec = { id: d.id, name: d.name.trim(), trade: d.trade, logo: d.logo, accent: d.accent, address: d.address.trim(), phone: d.phone.trim(), email: d.email.trim(), license: d.license.trim(), hicReg: String(d.hicReg || "").trim(), state: d.state };
+    NV.tradeDef(d.trade).companyFlags.forEach(function (f) { rec[f.key] = !!d[f.key]; }); // opções do ramo escolhido (as de outro ramo ficam como estão)
+    API.saveCompany(rec)
       .then(function () { S.setBusy = false; S.setCo = null; E.applyBrand({}); E.toast(t("set.ok", "Empresa salva.")); })
       .catch(function (e) { S.setBusy = false; E.render(); E.toast(e.message || t("set.err", "Não deu para salvar.")); });
   };
@@ -174,6 +186,7 @@
     return false;
   });
   EXT.change.push(function (el) {
+    if (el.dataset.setflag && S.setCo) { S.setCo[el.dataset.setflag] = el.checked; mark(); return true; }
     if (el.dataset.set && S.setCo) { S.setCo[el.dataset.set] = el.value; S.setCo.dirty = true; if (el.tagName === "SELECT") E.render(); return true; } // texto: sem redesenhar (o clique em Salvar não se perde)
     if (el.id === "setColorPick" && S.setCo) { S.setCo.accent = el.value; S.setCo.dirty = true; E.render(); return true; }
     if (el.id === "setLogo" && el.files && el.files[0]) { E.resizeImage(el.files[0], 256).then(function (d) { var x = draft(); x.logo = d; x.dirty = true; E.render(); }).catch(function (e) { E.toast(e.message, { kind: "bad" }); }); return true; }

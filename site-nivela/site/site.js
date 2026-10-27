@@ -7,7 +7,7 @@
 
   var PT = {
     page_title: 'Nivela · App de gestão de obras para empreiteiros, em português e inglês',
-    page_desc: 'Toda a sua obra em um app. A IA monta a proposta pela sua voz, lê a nota e lança na obra certa, e a equipe bate o ponto com selfie e GPS. Para elétrica, HVAC, plumbing e GC. 14 dias grátis.',
+    page_desc: 'Toda a sua obra em um app. A IA monta a proposta pela sua voz, lê a nota e lança na obra certa, e a equipe bate o ponto com selfie e GPS. Para elétrica, HVAC, plumbing, sprinkler, GC, drywall, pintura, piso, siding, telhado e fundação. 14 dias grátis.',
     skip: 'Pular para o conteúdo',
     nav_label: 'Principal', nav_features: 'Recursos', nav_pricing: 'Preços', nav_faq: 'Perguntas', nav_signin: 'Entrar',
     cta_trial: 'Teste grátis por 14 dias', cta_trial_short: 'Teste grátis', cta_trial_short2: 'Começar teste grátis',
@@ -19,8 +19,9 @@
     lead: 'Fale o orçamento e a IA monta a proposta. Tire foto da nota e ela cai na obra certa. Sua equipe bate o ponto com selfie e GPS.',
     hero_fine: 'Sem cartão de crédito. Já vem com uma empresa de demonstração para você testar na hora.',
     stage_label: 'Nivela no notebook e no celular',
-    trades_title: 'Feito para elétrica, HVAC, plumbing e GC',
+    trades_title: 'Feito para 11 ramos, da fundação ao telhado',
     trade_el: 'Elétrica', trade_pl: 'Plumbing', trade_gc: 'General contractor (GC)',
+    trade_sp: 'Sprinkler', trade_dw: 'Drywall', trade_pa: 'Pintura', trade_fl: 'Piso', trade_si: 'Siding', trade_ro: 'Telhado', trade_fo: 'Fundação e escavação',
     feat_kicker: 'Tudo em um lugar só',
     feat_title: 'Proposta, custo, equipe e lucro. Enfim, no mesmo app.',
     feat_sub: 'Chega de pular entre planilha, grupo de WhatsApp e três aplicativos diferentes. O Nivela deixa cada obra no nível, do primeiro orçamento ao último invoice.',

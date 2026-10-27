@@ -17,23 +17,17 @@
   S.proposals = []; S.materials = []; S.deals = []; S.pdraft = null; S.priceFilter = { q: "", cat: "" };
 
   // ═══════════ lojas ═══════════
-  var HD = { id: "homedepot", name: "The Home Depot", short: "Home Depot", url: function (q) { return "https://www.homedepot.com/s/" + encodeURIComponent(q); } };
-  var STORES = [
-    HD,
-    { id: "ies", name: "Independent Electric Supply", short: "Independent", url: function (q) { return g("site:iesbuy.com " + q); } },
-    { id: "northeast", name: "Northeast Electrical", short: "Northeast", url: function (q) { return g("site:needco.com " + q); } },
-    { id: "granite", name: "Granite City Electric", short: "Granite City", url: function (q) { return g("site:granitecityelectric.com " + q); } },
-    { id: "standard", name: "Standard Electric", short: "Standard", url: function (q) { return g("Standard Electric Supply " + q); } }
-  ];
-  var STORES_EL = STORES; // elétrica e HVAC: as lojas de sempre
-  var LOWES = { id: "lowes", name: "Lowe's", short: "Lowe's", url: function (q) { return g("site:lowes.com " + q); } };
-  var STORE_SETS = {
-    plumbing: [HD, { id: "fwwebb", name: "F.W. Webb", short: "F.W. Webb", url: function (q) { return g("site:fwwebb.com " + q); } }, { id: "ferguson", name: "Ferguson", short: "Ferguson", url: function (q) { return g("site:ferguson.com " + q); } },
-      { id: "supplyhouse", name: "SupplyHouse.com", short: "SupplyHouse", url: function (q) { return g("site:supplyhouse.com " + q); } }, LOWES],
-    gc: [HD, LOWES, { id: "lumber84", name: "84 Lumber", short: "84 Lumber", url: function (q) { return g("site:84lumber.com " + q); } },
-      { id: "abcsupply", name: "ABC Supply", short: "ABC Supply", url: function (q) { return g("site:abcsupply.com " + q); } }, { id: "lumberyard", name: t("prices.localLumberYard", "Madeireira local"), short: t("prices.lumberYard", "Madeireira"), url: function (q) { return g("lumber yard " + q); } }]
-  };
-  function syncStores() { STORES = STORE_SETS[tradeKey(S.company)] || STORES_EL; }
+  // fornecedores por ramo: trades.js → prices.stores (colunas de "Meus preços"; o mais barato fica verde)
+  var NV = window.NV;
+  var STORES = NV.tradeDef("electrical").prices.stores;
+  function tradeDef(co) { return NV.tradeDef(tradeKey(co)); }
+  // colunas = lojas do ramo + qualquer loja em que a empresa já tem preço salvo (nada some quando a lista do ramo muda — B16)
+  function syncStores() {
+    var base = tradeDef(S.company).prices.stores, ids = base.map(function (s) { return s.id; }), extra = [];
+    (S.materials || []).forEach(function (m) { (m.prices || []).forEach(function (pr) { if (pr.store && ids.indexOf(pr.store) < 0) { ids.push(pr.store); extra.push(pr.store); } }); });
+    STORES = extra.length ? base.concat(extra.map(storeOf)) : base;
+  }
+  function storeOf(id) { var found = null; NV.tradeList().some(function (t) { return t.prices.stores.some(function (s) { if (s.id === id) { found = s; return true; } return false; }); }); return found || { id: id, name: id, short: id, url: function (q) { return "https://www.google.com/search?q=" + encodeURIComponent(id + " " + q); } }; }
   function storeName(id) { var s = STORES.find(function (x) { return x.id === id; }); return s ? s.short : id; }
   function latest(m, store) {
     var list = (m.prices || []).filter(function (p) { return p.store === store; });
@@ -57,23 +51,17 @@
       footer: "Blue Star HVAC Inc. · 9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com", role: "Licensed HVAC Contractor", logo: "icons/logo-bluestar.png", logoSm: "icons/mark-bluestar.png", logoW: "2.5in", accent: "#B3202A", dark: "#13233A", bg: "#F7F9FC", payTo: "Blue Star HVAC Inc." }
   };
 
-  // ramo da empresa para propostas: electrical | hvac | plumbing | gc (o banco multiempresa chama o GC de "general")
-  function tradeKey(co) { var t = E.tradeOf(co); return t === "general" ? "gc" : (t === "hvac" || t === "plumbing" || t === "gc") ? t : "electrical"; }
+  // ramo da empresa para propostas: id canônico do registro (trades.js; "general" do banco multiempresa → gc)
+  function tradeKey(co) { return NV.tradeKey(E.tradeOf(co)); }
   var STATE_NAMES = { MA: "Massachusetts", NH: "New Hampshire", RI: "Rhode Island", CT: "Connecticut", VT: "Vermont", ME: "Maine", NY: "New York", NJ: "New Jersey", PA: "Pennsylvania", FL: "Florida", GA: "Georgia", TX: "Texas", CA: "California", NC: "North Carolina", VA: "Virginia", MD: "Maryland", IL: "Illinois", OH: "Ohio" };
   function coRec(id) { return (API.companies || []).find(function (c) { return c.id === id; }) || null; }
   function stateOf(co) { var c = coRec(co); return (c && c.state) || "MA"; }
   // cabeçalho do documento: Eternity/Blue Star usam o modelo pré-configurado; as outras empresas usam o que está em Configurações → Empresa
-  var TRADE_DOC = {
-    electrical: { title: "ELECTRICAL PROPOSAL", tagline: "LICENSED ELECTRICAL CONTRACTOR", role: "Licensed Electrical Contractor" },
-    hvac: { title: "HVAC PROPOSAL", tagline: "LICENSED HVAC CONTRACTOR", role: "Licensed HVAC Contractor" },
-    plumbing: { title: "PLUMBING PROPOSAL", tagline: "LICENSED PLUMBING CONTRACTOR", role: "Licensed Plumbing Contractor" },
-    gc: { title: "CONSTRUCTION PROPOSAL", tagline: "GENERAL CONTRACTOR", role: "General Contractor" }
-  };
   function coFor(id, p) {
     if (CO[id]) return CO[id];
     var c = coRec(id) || (p && p.companyBrand) || null;
     if (!c) return CO.eternity;
-    var td = TRADE_DOC[c.trade === "general" ? "gc" : c.trade] || TRADE_DOC.electrical, name = c.name || "Company";
+    var td = NV.tradeDef(c.trade).proposal, name = c.name || "Company";
     var contact = [c.address, c.email, c.phone].filter(Boolean).join(" · ") || (STATE_NAMES[c.state] || c.state || "");
     var accent = /^#[0-9a-f]{6}$/i.test(c.accent || "") ? c.accent : "#0B7B6A";
     return { brand: name, title: td.title, tagline: td.tagline + (c.license ? " · LIC. " + String(c.license).toUpperCase() : ""), contact: contact,
@@ -81,55 +69,10 @@
       accent: accent, dark: "#1F2A28", bg: "#FAFAF8", payTo: name, email: c.email || "", custom: true };
   }
   // instantâneo da marca na proposta (a página pública do cliente não carrega as empresas da conta)
-  function brandSnap(id) { var c = coRec(id); if (!c || CO[id]) return null; return { name: c.name, trade: c.trade, accent: c.accent || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license || "", state: c.state || "" }; }
+  function brandSnap(id) { var c = coRec(id); if (!c || CO[id]) return null; return { name: c.name, trade: c.trade, accent: c.accent || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license || "", state: c.state || "", hicReg: c.hicReg || "" }; }
 
-  var SECTIONS = {
-    electrical: [
-      ["Service & Distribution", "Furnish and install a new **200A** electrical service coordinated with the utility, including meter socket, service-entrance conductors, and grounding/bonding system per NEC Article 250.\nFurnish and install a new main panel with all required breakers, including AFCI/GFCI protection per NEC.\nBonding and grounding of the electrical system, including water and gas piping."],
-      ["Rough-In & Wiring", "Complete rough-in wiring per the plans and NEC, including all boxes, cable, supports, and fire-stopping at penetrations.\nWiring method: **NM-B (Romex)** where permitted; **MC cable** where required.\nAll branch circuits labeled at the panel."],
-      ["Devices & Lighting", "Install all required receptacles per NEC 210.52 — tamper-resistant (TR) throughout.\nWire and install all switching (single-pole, three-way, four-way and dimmers as required).\nFurnish and install LED recessed downlights per the reflected ceiling plan; quantity and trim to be confirmed at rough-in walk-through."],
-      ["Kitchen & Bathrooms", "Two (2) 20A small-appliance circuits with GFCI protection at all countertop receptacles.\nDedicated circuits for refrigerator, dishwasher, disposal, microwave / range hood.\nGFCI protection and dedicated 20A circuit for each bathroom; exhaust fan wiring (fan supplied by GC / Owner)."],
-      ["Smoke / CO Detectors", "Furnish and install hardwired, interconnected combination smoke / carbon-monoxide detectors per 527 CMR and the Massachusetts Smoke & CO Detector regulations."],
-      ["HVAC & Equipment Connections", "Provide power feed, disconnect, and whip for each condensing unit / heat pump.\nProvide power for air handler / furnace and thermostat low-voltage wiring as required."],
-      ["Fire Alarm", "Furnish and install the fire alarm system per the approved fire alarm drawings, NFPA 72 and local Fire Department requirements, including devices, wiring, testing, and Fire Department acceptance test coordination."],
-      ["Low Voltage — Basic Rough-In", "Provide low-voltage rough-in for **cable / TV** and **data / internet** at primary locations, and doorbell / intercom rough-in. Final termination by Owner / ISP."],
-      ["Exterior & Garage", "Install weather-resistant GFCI receptacles with in-use covers at required exterior locations.\nWire exterior lighting at entries (fixtures supplied by Owner / GC)."],
-      ["Permit & Inspections", "Electrical permit will be pulled by us. Permit fees are included.\nCoordination of all required inspections (rough and final) with the Authority Having Jurisdiction."]
-    ],
-    hvac: [
-      ["Removal of Existing Equipment", "Disconnect, remove, and properly dispose of the existing equipment.\nRecover existing refrigerant per EPA Section 608."],
-      ["Equipment Installation", "Furnish and install a new **heat pump system** sized per Manual J load calculation, including outdoor unit on pad / brackets and indoor air handler.\nAll equipment installed per manufacturer's installation instructions."],
-      ["Ductwork & Distribution", "Furnish and install new sheet-metal supply and return ductwork as required, sealed and insulated per the Massachusetts Energy Code.\nInstall supply registers and return grilles."],
-      ["Refrigerant Piping & Condensate", "Furnish and install insulated copper line sets, nitrogen pressure test, evacuation (micron verified), and refrigerant charge per manufacturer.\nCondensate drain piping with condensate pump where required."],
-      ["Controls & Thermostats", "Furnish and install programmable / Wi-Fi thermostat(s) and zoning controls as required."],
-      ["Venting & Gas (by others)", "Install venting / flue per manufacturer's instructions.\nGas piping and gas connection to the appliance by others (licensed plumber / gas fitter)."],
-      ["Start-Up, Testing & Commissioning", "Start-up, testing, and commissioning of the complete system; review of operation with the Owner."],
-      ["Rebates & Documentation", "Provide documentation required for **Mass Save** rebates where applicable (rebate approval by the program)."],
-      ["Permit & Inspections", "Mechanical / gas permits will be pulled by us. Permit fees are included.\nCoordination of all required inspections."]
-    ],
-    plumbing: [
-      ["Demolition & Removal", "Disconnect, cap, and remove existing plumbing fixtures and piping within the work area.\nProtect adjacent finished surfaces; removal of debris from our work."],
-      ["Drain, Waste & Vent (DWV)", "Furnish and install new **PVC** drain, waste, and vent piping sized per the plumbing code, including traps, cleanouts, and vent through the roof.\nConnection to the existing building drain / sewer."],
-      ["Water Supply Piping", "Furnish and install new **PEX** hot and cold water distribution with manifold and shut-off valves at each fixture.\nInsulation on hot water lines and on piping in unconditioned spaces."],
-      ["Fixtures & Trim", "Set and connect toilets, lavatories, tub / shower valves and trim, kitchen sink, and faucets.\nFixtures and trim supplied by Owner / GC unless listed in the Investment section."],
-      ["Water Heater", "Furnish and install a new water heater with expansion tank, T&P relief discharge, and venting per the manufacturer's instructions."],
-      ["Gas Piping", "Furnish and install gas piping to the listed appliances, including shut-off valves, sediment traps, and pressure test.\nGas work performed by a licensed gas fitter under a separate gas permit."],
-      ["Appliance Connections", "Connect dishwasher, disposal, washing machine box, and refrigerator ice-maker line as listed."],
-      ["Testing", "Pressure test of water supply and DWV piping at rough-in; final leak check of all fixtures and connections."],
-      ["Permit & Inspections", "Plumbing (and gas, where applicable) permits will be pulled by us. Permit fees are included.\nCoordination of all required inspections (rough and final) with the plumbing inspector."]
-    ],
-    gc: [
-      ["General Conditions", "Project management, supervision, scheduling, and coordination of all trades.\nSite protection, temporary facilities, dumpster, and daily cleanup."],
-      ["Demolition", "Selective demolition of existing finishes and components within the work area, including disposal."],
-      ["Sitework & Foundation", "Excavation, footings, and foundation walls per the structural drawings, including damp-proofing and backfill."],
-      ["Framing & Carpentry", "Furnish and install framing lumber, sheathing, and structural members per the drawings and the building code.\nBlocking for cabinets, fixtures, and accessories."],
-      ["Roofing & Exterior", "Furnish and install roofing, flashing, house wrap, siding, exterior trim, windows, and exterior doors as specified."],
-      ["Mechanical, Electrical & Plumbing", "Electrical, plumbing, and HVAC by licensed subcontractors under their own permits, per the scope and the code."],
-      ["Insulation & Drywall", "Insulation per the energy code; drywall hung, taped, and finished (Level 4), ready for paint."],
-      ["Interior Finishes", "Interior doors and trim, flooring, tile, cabinets and countertops, and paint (two coats) as specified."],
-      ["Permit, Inspections & Closeout", "Building permit will be pulled by us. Permit fees are included.\nCoordination of all inspections, final punch list, final cleaning, and certificate of occupancy where required."]
-    ]
-  };
+  // seções padrão por ramo: trades.js → proposal.sections ([título, texto]) e proposal.keywords (modo sem IA)
+  function SECTIONS_OF(tr) { return NV.tradeDef(tr).proposal.sections; }
 
   var PAY = {
     "50/50": [["Deposit", "Upon signed acceptance of this proposal.", 50], ["Final Payment", "Upon completion and final inspection.", 50]],
@@ -138,47 +81,32 @@
     "100% final": [["Payment in Full", "Upon completion and final inspection.", 100]]
   };
 
+  // textos padrão (includes / not included / clarifications / warranty) e introdução: trades.js → proposal.defaults / proposal.intro
+  // {brand} = nome da empresa no cabeçalho; {state} = estado da empresa (Configurações → Empresa); {code} = código do estado
   function defaults(co) {
-    var tk = tradeKey(co), c = coFor(co);
-    if (tk === "plumbing" || tk === "gc") return newTradeDefaults(tk, c, co);
-    var ele = tk !== "hvac";
-    return {
-      includes: ele ? "all labor, materials, supervision, project management, applicable Massachusetts sales tax, and electrical permit fees and inspection coordination."
-        : "all labor, equipment and materials listed above, supervision, applicable Massachusetts sales tax, and mechanical permit fees and inspection coordination.",
-      notIncluded: ele ? "Fire alarm system (unless listed above) · any engineering, stamped drawings, or design drawings · decorative light fixtures, pendants, sconces, chandeliers, and ceiling fans (supplied by Owner / GC; installation included where listed) · appliances · HVAC equipment supply (electrical connection only) · utility company charges and customer-contribution fees · trenching or excavation · drywall, patching, painting, framing, or carpentry · core drilling and structural penetrations."
-        : "Gas piping and gas connections (by a licensed plumber / gas fitter) · electrical power feed and disconnect (by a licensed electrician unless listed above) · drywall, patching, painting, or carpentry · structural modifications · asbestos or hazardous-material abatement · oil tank removal · engineering or stamped drawings · utility company charges.",
-      clarifications: (ele ? "Electrical permit will be pulled by " + c.brand + ". **Permit fees are included.**\nAll work performed by licensed Massachusetts electricians under the direct supervision of our Master Electrician.\n"
-        : "Mechanical permit will be pulled by " + c.brand + ". **Permit fees are included.**\nAll work performed by licensed technicians.\n") + "Any work outside the scope above will be quoted as a written change order before it is performed.",
-      warranty: "**Workmanship Warranty:** One (1) year on all workmanship from the date of final inspection. Manufacturer warranties on all materials and equipment transferred to Owner.\n**Insurance Coverage:** General Liability $1M / $2M, Massachusetts Workers' Compensation, and Commercial Auto. Certificate of Insurance available upon request."
-    };
-  }
-  // plumbing / GC: textos padrão no mesmo formato dos de elétrica e HVAC (estado vem de Configurações → Empresa)
-  function newTradeDefaults(tk, c, co) {
-    var st = STATE_NAMES[stateOf(co)] || stateOf(co), warranty = "**Workmanship Warranty:** One (1) year on all workmanship from the date of final inspection. Manufacturer warranties on all materials and equipment transferred to Owner.\n**Insurance Coverage:** General Liability $1M / $2M, Workers' Compensation, and Commercial Auto. Certificate of Insurance available upon request.";
-    if (tk === "plumbing") return {
-      includes: "all labor, piping and materials listed above (fixtures supplied by others unless listed), supervision, applicable " + st + " sales tax, and plumbing permit fees and inspection coordination.",
-      notIncluded: "Fixtures, faucets, and trim unless listed above · appliances · electrical work and connections · drywall, patching, painting, tile, or carpentry · excavation or trenching outside the building · water / sewer utility connection fees · septic system work · asbestos or hazardous-material abatement.",
-      clarifications: "Plumbing permit will be pulled by " + c.brand + ". **Permit fees are included.**\nAll work performed by licensed plumbers; gas work by a licensed gas fitter.\nAny work outside the scope above will be quoted as a written change order before it is performed.",
-      warranty: warranty };
-    return {
-      includes: "all labor, materials, supervision, project management, subcontractor coordination, dumpster and cleanup, applicable " + st + " sales tax, and building permit fees.",
-      notIncluded: "Architectural or engineering design and stamped drawings (unless listed) · utility company charges and connection fees · Owner-selected allowances above the amounts listed · landscaping, paving, and site work outside the work area · asbestos, lead, or hazardous-material abatement · furniture, appliances, and window treatments.",
-      clarifications: "Building permit will be pulled by " + c.brand + ". **Permit fees are included.**\nAll subcontracted trades are licensed and insured.\nAllowance items will be reconciled at actual cost.\nAny work outside the scope above will be quoted as a written change order before it is performed.",
-      warranty: warranty };
+    var c = coFor(co), st = STATE_NAMES[stateOf(co)] || stateOf(co);
+    return NV.tradeDefaults(tradeKey(co), { brand: c.brand, state: st, code: stateOf(co), co: E.coFlags(co) }); // linhas "[MA] …", "[co:noGas] …"; sem sales tax em NH
   }
   function introText(p) {
-    var tk = tradeKey(p.companyId), where = p.client.address || "the project location";
+    var where = p.client.address || "the project location";
     var what = p.subtitle ? "the " + p.subtitle.toLowerCase().replace(/ · /g, " — ") : "the project";
-    if (tk === "plumbing" || tk === "gc") {
-      var ma = stateOf(p.companyId) === "MA";
-      return tk === "plumbing"
-        ? "This proposal covers the plumbing scope of work for " + what + " at " + where + ". Work will be performed in accordance with " + (ma ? "the Massachusetts Uniform State Plumbing Code (248 CMR), the Massachusetts Fuel Gas Code where applicable," : "the applicable state plumbing and fuel gas codes") + " and the requirements of the local Authority Having Jurisdiction. All work will be performed by licensed plumbers under permit."
-        : "This proposal covers the general construction scope of work for " + what + " at " + where + ". Work will be performed in accordance with " + (ma ? "the Massachusetts State Building Code 780 CMR (10th edition)" : "the applicable state building code") + ", the approved drawings, and the requirements of the local Authority Having Jurisdiction. Trade work will be performed by licensed and insured subcontractors under permit.";
-    }
-    var ele = tk !== "hvac";
-    return ele
-      ? "This proposal covers the electrical scope of work for " + what + " at " + where + ". Work will be performed in full compliance with the 2023 Massachusetts Electrical Code (527 CMR 12.00 / NEC 2023), the Massachusetts State Building Code 780 CMR (10th edition), and the requirements of the local Authority Having Jurisdiction. All work will be performed by licensed Massachusetts electricians under permit."
-      : "This proposal covers the HVAC scope of work for " + what + " at " + where + ". Work will be performed in accordance with the Massachusetts State Building Code 780 CMR (10th edition), the Massachusetts Fuel Gas Code (248 CMR) where applicable, the manufacturer's installation instructions, and the requirements of the local Authority Having Jurisdiction.";
+    return NV.tradeIntro(tradeKey(p.companyId), { what: what, where: where, state: stateOf(p.companyId), co: E.coFlags(p.companyId), preset: !!CO[p.companyId] });
+  }
+  function secCtx(co) { return { code: stateOf(co), co: E.coFlags(co) }; }
+  // contrato residencial de MA (lei HIC): bloco de cláusulas quando o ramo é HIC, a empresa é de MA e o cliente é o dono da casa
+  function hicFor(p) {
+    var c = coFor(p.companyId, p), r = coRec(p.companyId) || p.companyBrand || {};
+    return NV.tradeHic(tradeKey(p.companyId), { state: stateOf(p.companyId), role: p.client.role, brand: c.brand, hic: r.hicReg || "", address: r.address || "",
+      client: p.client.name, where: p.client.address, start: p.startDate ? longDate(p.startDate) : "", end: p.endDate ? longDate(p.endDate) : "" });
+  }
+  function refreshHic(p) { if (isInv(p)) return; if (p.hicAuto !== false || !p.hic) { p.hic = hicFor(p); p.hicAuto = true; } }
+  function capDeposit(p) { return !!hicFor(p); }
+  // presets do cronograma no ramo (marcos do ramo: telhado "Tear-Off & Dry-In", pintura "Midpoint"…; os outros como sempre)
+  function payPreset(p, key) {
+    var tr = tradeKey(p.companyId);
+    if (key === "50/50") return NV.tradePayment(tr, { split: [50, 50], capDeposit: capDeposit(p) });
+    if (key === "30/40/30") return NV.tradePayment(tr, { split: [30, 40, 30] });
+    return clone(PAY[key]);
   }
   function nextNumber(type) {
     var inv = type === "invoice", blue = S.company === "bluestar", max = inv ? (blue ? 5000 : 1000) : (blue ? 1000 : CO[S.company] ? 366 : 1000), re = inv ? /^INV/i : /^EST/i;
@@ -186,13 +114,16 @@
     return (inv ? "INV" : "EST") + (max + 1);
   }
   function blankProposal() {
-    var co = S.company, c = coFor(co), d = defaults(co);
+    var co = S.company, c = coFor(co), d = defaults(co), td = NV.tradeDef(tradeKey(co)).proposal;
+    // tipo de cliente: Eternity / Blue Star como sempre ("General Contractor"); outras empresas, o do ramo (residencial: "Homeowner") ou vazio (B18)
+    var role = CO[co] ? "General Contractor" : td.clientRole != null ? td.clientRole : "";
     var p = { id: null, docType: "estimate", speech: "", notes: [], companyId: co, number: nextNumber(), status: "Rascunho", date: today(), validityDays: 30, title: c.title, subtitle: "",
-      client: { name: "", role: "General Contractor", address: "" }, intro: "", sections: [], items: [{ desc: "", qty: "1 lot", price: "" }],
-      totalLabel: "TOTAL — Lump Sum, Fixed Price", includes: d.includes, payment: { note: "", rows: clone(PAY["30/40/30"]) },
+      client: { name: "", role: role, address: "" }, intro: "", sections: [], items: [{ desc: "", qty: "1 lot", price: "" }],
+      totalLabel: "TOTAL — Lump Sum, Fixed Price", includes: d.includes, payment: { note: "", rows: NV.tradePayment(tradeKey(co), { split: [30, 40, 30] }) },
       notIncluded: d.notIncluded, clarifications: d.clarifications, warranty: d.warranty,
       header: { tagline: c.tagline, contact: c.contact, footer: c.footer }, materials: [], total: 0, amountPaid: "", dueTerms: "Due upon receipt", dueDate: "" };
     var snap = brandSnap(co); if (snap) p.companyBrand = snap;
+    refreshHic(p); if (!p.hic) { delete p.hic; delete p.hicAuto; }
     return p;
   }
   function totalOf(p) { return (p.items || []).reduce(function (a, it) { return a + num(it.price); }, 0); }
@@ -265,7 +196,7 @@
           '<button class="btn ghost sm" data-act="pMoveSec" data-id="' + i + '" data-dir="-1" aria-label="Subir">↑</button><button class="btn ghost sm" data-act="pMoveSec" data-id="' + i + '" data-dir="1" aria-label="Descer">↓</button><button class="btn ghost sm" data-act="pRmSec" data-id="' + i + t("proposals.html", '" aria-label="Remover seção">✕</button></div>') +
           '<textarea data-pbind="sections.' + i + '.text" rows="' + Math.max(3, lines(s.text).length + 1) + '">' + esc(s.text) + "</textarea></div>";
       }).join("") : t("proposals.addTheScopeSections", '<div class="muted">Adicione as seções do escopo abaixo.</div>')) +
-      t("proposals.addSection", '<div><span class="label">Adicionar seção</span><div class="chips" style="margin-top:6px">') + SECTIONS[trade].map(function (x, i) { return '<button type="button" class="chip" data-act="pAddSec" data-id="' + i + '" lang="en">+ ' + esc(x[0]) + "</button>"; }).join("") + t("proposals.blankSection", '<button type="button" class="chip" data-act="pAddSec" data-id="-1">+ Seção em branco</button></div></div></div>');
+      t("proposals.addSection", '<div><span class="label">Adicionar seção</span><div class="chips" style="margin-top:6px">') + SECTIONS_OF(trade).map(function (x, i) { return '<button type="button" class="chip" data-act="pAddSec" data-id="' + i + '" lang="en">+ ' + esc(x[0]) + "</button>"; }).join("") + t("proposals.blankSection", '<button type="button" class="chip" data-act="pAddSec" data-id="-1">+ Seção em branco</button></div></div></div>');
 
     var inv = t("proposals.investment", '<div class="panel ed-sec"><h3>Investimento</h3>') + p.items.map(function (it, i) {
       return '<div class="line-row"><textarea data-pbind="items.' + i + '.desc" placeholder="' + esc(t("proposals.itemDescPh", "Descrição (primeira linha em negrito no PDF)")) + '">' + esc(it.desc) + '</textarea><input type="text" data-pbind="items.' + i + '.qty" value="' + esc(it.qty) + '" placeholder="' + esc(t("proposals.qtyPh", "Qtd")) + '"><input type="text" inputmode="decimal" data-pbind="items.' + i + '.price" data-price="1" value="' + esc(it.price) + t("proposals.buttonClassBtnGhost", '" placeholder="Preço $"><button class="btn ghost sm" data-act="pRmItem" data-id="') + i + t("proposals.html2", '" aria-label="Remover item">✕</button></div>');
@@ -280,10 +211,15 @@
         return '<div class="pay-row"><input type="text" data-pbind="payment.rows.' + i + '.0" value="' + esc(r[0]) + '" placeholder="' + esc(t("proposals.milestonePh", "Etapa")) + '"><textarea data-pbind="payment.rows.' + i + '.1" placeholder="' + esc(t("proposals.whenPh", "Quando")) + '">' + esc(r[1]) + '</textarea><input type="text" inputmode="numeric" data-pbind="payment.rows.' + i + '.2" value="' + esc(r[2]) + '" placeholder="%"><button class="btn ghost sm" data-act="pRmPay" data-id="' + i + t("proposals.html3", '" aria-label="Remover etapa">✕</button></div>');
       }).join("") + t("proposals.milestone", '<div><button class="btn ghost sm" data-act="pAddPay">+ Etapa</button></div></div>');
 
+    var hicOn = !isInv(p) && (p.hic || hicFor(p));
+    var hic = hicOn ? '<div class="panel ed-sec"><div class="spread"><h3 style="margin:0">' + esc(t("proposals.hicTitle", "Contrato residencial (MA) — lei HIC")) + '</h3><button type="button" class="btn ghost sm" data-act="pGenHic">' + esc(t("proposals.hicGen", "Gerar de novo")) + "</button></div>" +
+      '<div class="small muted">' + esc(t("proposals.hicHint", "M.G.L. c.142A §2: nº de registro HIC, datas de início e conclusão, cronograma de pagamento (depósito até 1/3), aviso de cancelamento em 3 dias. Modelo para revisar com seu advogado.")) + "</div>" +
+      '<div class="grid2">' + inp("startDate", t("proposals.startDate", "Data de início"), "", "date") + inp("endDate", t("proposals.endDate", "Conclusão substancial"), "", "date") + "</div>" +
+      ta("hic", t("proposals.hicText", "Cláusulas (aparecem no PDF)"), 6, t("proposals.oneLineOneItem", "uma linha = um item")) + "</div>" : "";
     var terms = t("proposals.terms", '<div class="panel ed-sec"><h3>Condições</h3>') + ta("notIncluded", t("proposals.notIncluded", "Não incluído"), 4) + ta("clarifications", t("proposals.clarifications", "Esclarecimentos"), 4, t("proposals.oneLineOneItem", "uma linha = um item")) + ta("warranty", t("proposals.warrantyAndInsurance", "Garantia e seguro"), 3, t("proposals.oneLineOneItem", "uma linha = um item")) +
       t("proposals.documentHeaderAndFooter", '<details><summary class="small" style="cursor:pointer">Cabeçalho e rodapé do documento</summary><div class="stack" style="margin-top:10px">') + inp("header.tagline", t("proposals.lineUnderTheLogo", "Linha abaixo do logo")) + inp("header.contact", t("proposals.contact", "Contato")) + inp("header.footer", t("proposals.footer", "Rodapé")) + "</div></details></div>";
 
-    return a + sec + inv + (isInv(p) ? "" : pay) + terms + materialsPanel(p);
+    return a + sec + inv + (isInv(p) ? "" : pay) + terms + hic + materialsPanel(p);
   }
 
   // ── materiais da estimativa ──
@@ -365,7 +301,8 @@
       '<tr class="tot"><td>TOTAL</td><td>Project Complete</td><td style="text-align:right">100%</td></tr></table>' : "";
     var terms = (p.notIncluded ? '<h2>Not Included</h2><p style="font-style:italic;text-align:justify">' + rich(p.notIncluded) + "</p>" : "") +
       (lines(p.clarifications).length ? "<h2>Clarifications</h2>" + lines(p.clarifications).map(function (l) { return '<div class="b">' + rich(l) + "</div>"; }).join("") : "") +
-      (lines(p.warranty).length ? "<h2>Warranty &amp; Insurance</h2>" + lines(p.warranty).map(function (l) { return '<div class="b">' + rich(l) + "</div>"; }).join("") : "");
+      (lines(p.warranty).length ? "<h2>Warranty &amp; Insurance</h2>" + lines(p.warranty).map(function (l) { return '<div class="b">' + rich(l) + "</div>"; }).join("") : "") +
+      (lines(p.hic).length ? "<h2>Massachusetts Home Improvement Contract</h2>" + lines(p.hic).map(function (l) { return '<div class="b">' + rich(l) + "</div>"; }).join("") : ""); // lei HIC (M.G.L. c.142A §2)
     var sig = '<div style="page-break-inside:avoid"><h2>Acceptance</h2><p style="text-align:justify">By signing below, the ' + esc(p.client.role || "Client") + " accepts the scope, pricing, and payment terms above as a binding agreement. This proposal is valid for " + esc(p.validityDays || 30) + " days from the date issued.</p>" +
       '<table style="width:100%;margin-top:18px"><tr><td style="width:50%;vertical-align:top;padding-right:20px"><b>' + esc(c.brand.toUpperCase()) + '</b><div style="font-style:italic">' + esc(c.role) + '</div><div style="margin-top:.55in;border-top:1px solid ' + D + ';width:3in;font-size:9pt;padding-top:3px">Signature</div><div style="margin-top:.3in">Date: ____________________</div></td>' +
       '<td style="vertical-align:top"><b>' + esc((p.client.name || "CLIENT").toUpperCase()) + '</b><div style="font-style:italic">' + esc(p.client.role || "") + '</div><div style="margin-top:.55in;border-top:1px solid ' + D + ';width:3in;font-size:9pt;padding-top:3px">Signature</div><div style="margin-top:.3in">Date: ____________________</div></td></tr></table></div>';
@@ -439,12 +376,13 @@
   AC.pResume = function () { if (restoreStored()) E.go("proposalForm", {}, true); };
   AC.pDropDraft = function () { clearStored(); E.render(); E.toast(t("proposals.draftDiscarded", "Rascunho descartado.")); };
   AC.pGenIntro = function () { S.pdraft.intro = introText(S.pdraft); E.render(); };
-  AC.pAddSec = function (el) { var i = Number(el.dataset.id), tr = tradeKey(S.pdraft.companyId); S.pdraft.sections.push(i < 0 ? { title: "New Section", text: "" } : { title: SECTIONS[tr][i][0], text: SECTIONS[tr][i][1] }); E.render(); };
+  AC.pGenHic = function () { var p = S.pdraft; p.hicAuto = true; p.hic = hicFor(p); E.render(); if (!p.hic) E.toast(t("proposals.hicNA", "As cláusulas HIC só valem para empresa de MA, ramo de reforma residencial e cliente dono da casa (Homeowner).")); };
+  AC.pAddSec = function (el) { var i = Number(el.dataset.id), p = S.pdraft, tr = tradeKey(p.companyId); p.sections.push(i < 0 ? { title: "New Section", text: "" } : NV.tradeSection(tr, i, p.speech || "", secCtx(p.companyId))); E.render(); };
   AC.pRmSec = function (el) { S.pdraft.sections.splice(Number(el.dataset.id), 1); E.render(); };
   AC.pMoveSec = function (el) { var i = Number(el.dataset.id), j = i + Number(el.dataset.dir), a = S.pdraft.sections; if (j < 0 || j >= a.length) return; var t = a[i]; a[i] = a[j]; a[j] = t; E.render(); };
   AC.pAddItem = function () { S.pdraft.items.push({ desc: "", qty: "1", price: "" }); E.render(); };
   AC.pRmItem = function (el) { S.pdraft.items.splice(Number(el.dataset.id), 1); E.render(); };
-  AC.pPayPreset = function (el) { S.pdraft.payment.rows = clone(PAY[el.dataset.id]); if (/Bank/.test(el.dataset.id)) S.pdraft.payment.note = "**Bank-financed project — performance-based draws.** This project is financed by the Owner's lender. A performance affidavit and supporting documentation will be issued to the bank at each milestone below."; E.render(); };
+  AC.pPayPreset = function (el) { S.pdraft.payment.rows = payPreset(S.pdraft, el.dataset.id); if (/Bank/.test(el.dataset.id)) S.pdraft.payment.note = "**Bank-financed project — performance-based draws.** This project is financed by the Owner's lender. A performance affidavit and supporting documentation will be issued to the bank at each milestone below."; E.render(); };
   AC.pAddPay = function () { S.pdraft.payment.rows.push(["", "", 0]); E.render(); };
   AC.pRmPay = function (el) { S.pdraft.payment.rows.splice(Number(el.dataset.id), 1); E.render(); };
   AC.pAddMat = function () { var id = $("#pMatSel").value, q = num($("#pMatQty").value); if (!id || !q) { E.toast(t("proposals.pickTheMaterialAnd", "Escolha o material e a quantidade.")); return; } var m = matById(id); S.pdraft.materials.push({ materialId: id, name: m.name, qty: q }); E.render(); };
@@ -462,16 +400,22 @@
     S.draft = d; S.draftBase = null; S.draftFiles = []; S.wizStep = 0; E.go("projectForm"); E.toast(t("proposals.projectFilledInFrom", "Projeto preenchido com os dados da proposta. Confira e salve."));
   };
 
+  // cláusulas HIC acompanham cliente / endereço / datas enquanto não forem editadas à mão
+  function hicSync(p, path) {
+    if (path === "hic") { p.hicAuto = false; return; }
+    if (/^client\.|^startDate$|^endDate$/.test(path) && p.hicAuto !== false && !isInv(p)) { var h = hicFor(p); if (h || p.hic) { p.hic = h; p.hicAuto = true; } }
+  }
   EXT.input.push(function (el) {
     if (!el.dataset.pbind || !S.pdraft) return false;
     set(S.pdraft, el.dataset.pbind, el.value);
+    hicSync(S.pdraft, el.dataset.pbind);
     schedulePreview(); schedulePersist();
     if (el.dataset.price) { var t = $("#pTotal"); if (t) t.textContent = money2(totalOf(S.pdraft)); }
     if (/^payment\.rows\.\d+\.2$/.test(el.dataset.pbind)) { var sm = $("#pSum"), tot = (S.pdraft.payment.rows || []).reduce(function (a, r) { return a + num(r[2]); }, 0); if (sm) { sm.textContent = NV.t("proposals.sum", "Soma: ") + tot + "%"; sm.className = "small " + (tot === 100 ? "v-good" : "v-bad"); } }
     return true;
   });
   EXT.change.push(function (el) {
-    if (el.dataset.pbind && S.pdraft) { set(S.pdraft, el.dataset.pbind, el.value); if (el.tagName === "SELECT") E.render(); else schedulePersist(); return true; }
+    if (el.dataset.pbind && S.pdraft) { set(S.pdraft, el.dataset.pbind, el.value); hicSync(S.pdraft, el.dataset.pbind); if (el.tagName === "SELECT") E.render(); else schedulePersist(); return true; }
     if (el.dataset.pf) { S.priceFilter[el.dataset.pf] = el.value; E.render(); return true; }
     return false;
   });
@@ -502,15 +446,10 @@
       '<div class="grid2">' + inp("client.email", t("proposals.customerEmail", "E-mail do cliente"), 'autocapitalize="none" inputmode="email"', "email") + inp("client.phone", t("proposals.customerPhone", "Telefone do cliente"), 'inputmode="tel"', "tel") + "</div></div>";
 
     var tk = tradeKey(p.companyId);
-    var ex = tk === "plumbing" ? E.t("prop.ex.plumbing", "Ex.: “Reforma de dois banheiros: tubulação nova em PEX, troca dos vasos e pias, válvula nova no chuveiro e aquecedor tankless a gás. Preço 12.800, 30/40/30.”")
-      : tk === "gc" ? E.t("prop.ex.gc", "Ex.: “Reforma completa da cozinha: demolição, drywall, piso, armários e bancada, elétrica e plumbing por subempreiteiros, pintura. Preço 68 mil, 30/40/30.”")
-      : tk === "hvac"
-      ? t("proposals.eGReplaceThe", "Ex.: “Trocar o sistema antigo por uma heat pump Viessmann de 36 mil BTU, duas zonas, dois termostatos, linha nova. Preço 14.500, metade na entrada.”")
-      : inv ? t("proposals.eGInvoiceFor", "Ex.: “Invoice da troca do painel para 200 amp e 6 tomadas GFCI na cozinha. Total 6.800, ele já pagou 3.400.”")
-        : t("proposals.eGTwoStory", "Ex.: “Casa de dois andares. Trocar o serviço para 200 amp, 12 recessed na sala e cozinha, GFCI na cozinha e banheiros, detectores de fumaça interligados. Paredes abertas, Romex. Preço 9.500, 30/40/30.”");
+    var pd = NV.tradeDef(tk).proposal, ex = inv ? pd.speechExampleInvoice : pd.speechExample; // exemplo de fala do ramo (trades.js)
     var voice = '<div class="panel ed-sec"><h3>' + (ok ? t("proposals.wantToChangeSomething", "Quer mudar alguma coisa? Fale aqui") : t("proposals.describeTheJob", "Fale o serviço")) + "</h3>" +
       '<div class="voice"><button type="button" class="mic' + (S.pRec ? " on" : "") + t("proposals.dataActPmicAria", '" data-act="pMic" aria-label="Gravar voz" aria-pressed="') + (S.pRec ? "true" : "false") + '">' + MIC_SVG + "</button>" +
-      '<div><b id="micState">' + micLabel() + '</b><div class="small muted" style="margin-top:4px">' + esc(ok ? t("proposals.eGTakeOut", "Ex.: “Tira o permit, muda o preço para 9 mil e acrescenta 4 tomadas no porão.”") : ex) + "</div></div></div>" +
+      '<div><b id="micState">' + micLabel() + '</b><div class="small muted" style="margin-top:4px">' + esc(ok ? pd.adjustExample || t("proposals.eGTakeOut", "Ex.: “Tira o permit, muda o preço para 9 mil e acrescenta 4 tomadas no porão.”") : ex) + "</div></div></div>" +
       t("proposals.html6", '<textarea id="pSpeech" rows="5" placeholder="O que você falar aparece aqui. Também dá para digitar ou usar o microfone do teclado.">') + esc(S.pSpeech || "") + "</textarea>" +
       '<div class="row">' + (busy ? t("proposals.buildingTakesAbout30", '<button class="btn" disabled><span class="spin" aria-hidden="true"></span> Montando… leva uns 30 segundos</button>')
         : ok ? t("proposals.adjust", '<button class="btn" data-act="pAI" data-id="adjust">✨ Ajustar ') + (inv ? t("proposals.theInvoice", "o invoice") : t("proposals.theEstimate", "a proposta")) + t("proposals.buildFromScratchWith", '</button><button class="btn ghost" data-act="pAI" data-id="new">Montar do zero com esse texto</button>')
@@ -645,36 +584,39 @@
     if (isInv(p)) { if (r.amount_paid != null) p.amountPaid = String(r.amount_paid); if (r.invoice_terms) p.dueTerms = r.invoice_terms; }
     p.notes = r.notes_pt || [];
     p.speech = mode === "adjust" && p.speech ? p.speech + "\n\n[ajuste] " + speech : speech;
+    refreshHic(p); if (p.hic) p.notes = p.notes.concat(hicNotes(p));
     p.total = totalOf(p);
   }
 
-  // versão simples sem IA (quando a IA não está ligada): escolhe as seções padrão pelas palavras faladas
-  var KW = {
-    electrical: [/servi[cç]o|service|\b(100|150|200|400)\s?(a|amp)|painel|panel|meter|medidor/i, /rough|fia[cç][aã]o|wiring|r[oô]mex|\bmc\b|rewire|refazer a fia/i, /tomada|outlet|receptacle|interruptor|switch|recess|luz|luzes|light|dimmer|fixture|ilumina/i, /cozinha|kitchen|banheiro|bath/i, /smoke|fuma[cç]a|detector/i, /hvac|condens|heat ?pump|mini.?split|ar.condicionado|air handler/i, /fire alarm|alarme de inc[eê]ndio/i, /low voltage|baixa tens[aã]o|\bdata\b|internet|\btv\b|cat ?6/i, /exterior|externa|lado de fora|garage|garagem|outside/i, /./],
-    hvac: [/remov|tirar|velh|antig|existing|old/i, /./, /duto|duct|sheet ?metal/i, /line ?set|linha|refrigerant|condensa/i, /termostato|thermostat|zona|zone/i, /furnace|fornalha|g[aá]s|boiler|caldeira/i, /./, /mass ?save|rebate/i, /./],
-    plumbing: [/demol|remov|tirar|retirar|velh|antig|old/i, /esgoto|dreno|drain|dwv|vent|waste|ralo|sewer/i, /[aá]gua|water line|pex|cobre|copper|supply|encanamento|tubula/i, /vaso|toilet|pia|sink|lavat|chuveiro|shower|banheira|tub|torneira|faucet|fixture/i, /aquecedor|water heater|tankless|boiler|caldeira/i, /g[aá]s/i, /lava.?lou|dishwasher|m[aá]quina de lavar|washer|disposal|geladeira|ice ?maker/i, /./, /./],
-    gc: [/./, /demol|tirar|remov|gut/i, /funda[cç]|foundation|escava|excav|concreto|slab|footing/i, /framing|estrutura|parede|wall|carpent|madeira|addition|amplia/i, /telhado|roof|siding|janela|window|porta externa|exterior|deck/i, /el[eé]tric|plumbing|hidr[aá]ulic|hvac|encanamento|ar.condicionado/i, /isola|insulation|drywall|gesso|sheetrock/i, /piso|floor|azulejo|tile|arm[aá]rio|cabinet|bancada|countertop|pintura|paint|trim|acabamento|cozinha|kitchen|banheiro|bath/i, /./]
-  };
-  function priceFrom(t) {
-    var best = 0, m, re = /\$\s?([\d.,]+)|\b(\d{1,3}(?:[.,]\d{3})+)\b|\b(\d+(?:[.,]\d+)?)\s?mil\b|\b(\d{4,6})\b/gi;
-    while ((m = re.exec(t))) {
-      var v = m[1] || m[2] ? Number(String(m[1] || m[2]).replace(/[.,](?=\d{3}\b)/g, "").replace(",", ".")) : m[3] ? Number(m[3].replace(",", ".")) * 1000 : Number(m[4]);
-      if (v >= 300 && v < 5e6 && v > best) best = v;
-    }
-    var m2 = /(?:pre[cç]o|valor|total|cobra[r]?|price)\s*(?:de|é|e|:)?\s*\$?\s?(\d+(?:[.,]\d+)?)/i.exec(t);
-    if (!best && m2) { var v2 = Number(m2[1].replace(",", ".")); if (v2 >= 50) best = v2; }
-    return best;
-  }
+  // versão simples sem IA (quando a IA não está ligada): escolhe as seções padrão pelas palavras faladas (trades.js → NV.tradeSections:
+  // negação "sem bomba"/"no fire pump", exclude, opção da empresa, estado, fatos da fala) e lê o preço só com contexto de preço (NV.speechPrice)
+  function priceFrom(t) { return NV.speechPrice(t); }
   function localBuild(p, speech) {
-    var tr = tradeKey(p.companyId), price = priceFrom(speech), scopeName = { hvac: "HVAC", electrical: "Electrical", plumbing: "Plumbing", gc: "Construction" }[tr];
-    p.sections = SECTIONS[tr].filter(function (x, i) { return KW[tr][i].test(speech); }).map(function (x) { return { title: x[0], text: x[1] }; });
+    var tr = tradeKey(p.companyId), pd = NV.tradeDef(tr).proposal, price = priceFrom(speech), split = NV.speechSplit(speech), scopeName = pd.scopeName;
+    p.speech = speech;
+    p.sections = isInv(p) ? [] : NV.tradeSections(tr, speech, secCtx(p.companyId));
     p.title = isInv(p) ? "INVOICE" : coFor(p.companyId, p).title;
-    p.intro = isInv(p) ? "Invoice for " + (tr === "hvac" ? "HVAC" : tr === "electrical" ? "electrical" : tr === "plumbing" ? "plumbing" : "construction") + " work completed at " + (p.client.address || "the project location") + "." : introText(p);
-    if (isInv(p)) p.sections = [];
-    p.items = [{ desc: scopeName + " Scope" + (isInv(p) ? " — Work Completed" : " — Complete") + "\nLabor, material and permit per the scope above.", qty: "1 lot", price: price ? String(price) : "" }];
-    p.payment.rows = clone(PAY[price && price < 8000 ? "50/50" : "30/40/30"]);
-    p.notes = [t("proposals.builtWithoutAiI", "Montado sem IA: escolhi as seções padrão pelas palavras faladas. Revise o texto em “Editar tudo”.")].concat(price ? [] : [t("proposals.couldnTFindThe", "Não achei o preço na fala.")]);
-    p.speech = speech; p.total = totalOf(p);
+    p.intro = isInv(p) ? "Invoice for " + pd.invoiceWork + " work completed at " + (p.client.address || "the project location") + "." : introText(p);
+    p.items = [{ desc: scopeName + " Scope" + (isInv(p) ? " — Work Completed" : " — Complete") + "\n" + pd.itemNote, qty: "1 lot", price: price ? String(price) : "" }];
+    if (!isInv(p)) { // textos padrão do tipo de serviço falado (ex.: reparo de telhado → garantia de 1 ano); o resto fica como está
+      var c = coFor(p.companyId, p), base = defaults(p.companyId), jd = NV.tradeJobDefaults(tr, speech, { brand: c.brand, state: STATE_NAMES[stateOf(p.companyId)] || stateOf(p.companyId), code: stateOf(p.companyId), co: E.coFlags(p.companyId) });
+      var prev = p.autoDefaults || {}; // o que a fala anterior trocou (para voltar ao padrão se a fala nova não pedir)
+      ["includes", "notIncluded", "clarifications", "warranty"].forEach(function (k) { if (!p[k] || p[k] === base[k] || p[k] === prev[k]) p[k] = jd[k] != null ? jd[k] : base[k]; });
+      p.autoDefaults = jd;
+    }
+    refreshHic(p);
+    var cap = capDeposit(p);
+    p.payment.rows = NV.tradePayment(tr, { price: price, split: split, capDeposit: cap });
+    p.notes = [t("proposals.builtWithoutAiI", "Montado sem IA: escolhi as seções padrão pelas palavras faladas. Revise o texto em “Editar tudo”.")].concat(price ? [] : [t("proposals.couldnTFindThe", "Não achei o preço na fala.")])
+      .concat(split && cap && split[0] > 33 ? [t("proposals.depositCapped", "Depósito limitado a 1/3 do preço (contrato residencial em MA — lei HIC, M.G.L. c.142A). Material sob encomenda pode justificar mais: ajuste em “Editar tudo”.")] : [])
+      .concat(p.hic ? hicNotes(p) : []);
+    p.total = totalOf(p);
+  }
+  function hicNotes(p) {
+    var r = coRec(p.companyId) || p.companyBrand || {};
+    return [t("proposals.hicAdded", "Incluí as cláusulas de contrato residencial de MA (lei HIC, M.G.L. c.142A): modelo para revisar com seu advogado.")]
+      .concat(r.hicReg ? [] : [t("proposals.hicNoReg", "Falta o nº de registro HIC: preencha em Configurações → Empresa.")])
+      .concat(p.startDate && p.endDate ? [] : [t("proposals.hicDates", "Preencha a data de início e a de conclusão em “Editar tudo” → Contrato residencial (MA).")]);
   }
 
   // ═══════════ invoice (documento) ═══════════
@@ -751,7 +693,7 @@
     var mode = el.dataset.id, p = S.pdraft, t = $("#pSpeech"), speech = String((t ? t.value : S.pSpeech) || "").trim();
     if (!speech) { E.toast(NV.t("proposals.sayOrTypeWhat", "Fale ou escreva primeiro o que tem que ser feito.")); return; }
     micStop(); S.pSpeech = speech; S.pBusy = true; E.render();
-    API.aiProposal({ company: p.companyId, trade: tradeKey(p.companyId), docType: p.docType || "estimate", speech: speech, client: p.client, today: today(), current: mode === "adjust" ? compact(p) : null })
+    API.aiProposal({ company: p.companyId, trade: tradeKey(p.companyId), rules: NV.tradeAiRules(tradeKey(p.companyId), E.coFlags(p.companyId)), /* regras do ramo + opções da empresa (ex.: "Não fazemos gás") */ docType: p.docType || "estimate", speech: speech, client: p.client, today: today(), current: mode === "adjust" ? compact(p) : null })
       .then(function (res) {
         if (res && res.ok) { applyAI(p, res.result, mode, speech); S.pSpeech = ""; return { ok: true }; }
         var why = { NO_KEY: "A IA ainda não foi ligada (falta a chave da Anthropic no Supabase).", NOT_DEPLOYED: NV.t("proposals.theAiIsnT", "A IA ainda não foi instalada no Supabase."), DEMO: NV.t("proposals.demoModeNoAi", "Modo demonstração, sem IA."), FORBIDDEN: NV.t("proposals.onlyAdminsCanBuild", "Só administradores podem montar propostas."), OFFLINE: NV.t("proposals.noConnectionToThe", "Sem conexão com a IA agora."), EMPTY: NV.t("proposals.nothingToBuild", "Nada para montar.") }[res && res.error] || (NV.t("proposals.theAiDidnT", "A IA não respondeu") + (res && res.detail ? ": " + res.detail : "") + ".");
@@ -777,36 +719,7 @@
 
 
   // ═══════════ PREÇOS ═══════════
-  var BASIC = {
-    electrical: [
-      ["Romex NM-B 14/2 — 250 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")], ["Romex NM-B 12/2 — 250 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")], ["Romex NM-B 14/3 — 250 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")], ["Romex NM-B 12/3 — 250 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")],
-      ["Romex NM-B 10/3 — 125 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")], ["MC 12/2 — 250 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")], ["THHN 12 AWG — 500 ft", t("prices.wireAndCable", "Fio e cabo"), t("prices.unitRoll", "rolo")],
-      ["EMT 1/2\" — 10 ft", t("prices.conduit", "Conduíte"), t("prices.each", "peça")], ["EMT 3/4\" — 10 ft", t("prices.conduit", "Conduíte"), t("prices.each", "peça")],
-      [t("prices.1GangNewWork", "Caixa 1 gang new work"), t("prices.boxes", "Caixas"), t("prices.unitEach", "un")], [t("prices.2GangNewWork", "Caixa 2 gang new work"), t("prices.boxes", "Caixas"), t("prices.unitEach", "un")], [t("prices.octagonFanBox", "Caixa octogonal / ventilador"), t("prices.boxes", "Caixas"), t("prices.unitEach", "un")],
-      [t("prices.15aTrReceptacleDecorator", "Tomada TR 15A (decorator)"), t("prices.devices", "Dispositivos"), t("prices.unitEach", "un")], [t("prices.20aTrReceptacleDecorator", "Tomada TR 20A (decorator)"), t("prices.devices", "Dispositivos"), t("prices.unitEach", "un")], [t("prices.20aGfciReceptacleTr", "Tomada GFCI 20A TR/WR"), t("prices.devices", "Dispositivos"), t("prices.unitEach", "un")], [t("prices.singlePoleDecoratorSwitch", "Interruptor single-pole decorator"), t("prices.devices", "Dispositivos"), t("prices.unitEach", "un")], [t("prices.3WayDecoratorSwitch", "Interruptor 3-way decorator"), t("prices.devices", "Dispositivos"), t("prices.unitEach", "un")], ["Dimmer LED", t("prices.devices", "Dispositivos"), t("prices.unitEach", "un")],
-      [t("prices.15aAfciGfciBreaker", "Disjuntor 15A AFCI/GFCI (dual function)"), t("prices.panelAndBreakers", "Painel e disjuntores"), t("prices.unitEach", "un")], [t("prices.20aAfciGfciBreaker", "Disjuntor 20A AFCI/GFCI (dual function)"), t("prices.panelAndBreakers", "Painel e disjuntores"), t("prices.unitEach", "un")], [t("prices.200aMainBreakerPanel", "Painel 200A main breaker 40 espaços"), t("prices.panelAndBreakers", "Painel e disjuntores"), t("prices.unitEach", "un")], ["Meter socket 200A", t("prices.panelAndBreakers", "Painel e disjuntores"), t("prices.unitEach", "un")],
-      [t("prices.groundRod58", "Haste de aterramento 5/8\" x 8 ft"), t("prices.grounding", "Aterramento"), t("prices.unitEach", "un")], ["Recessed LED 6\" wafer", t("prices.lighting", "Iluminação"), t("prices.unitEach", "un")], ["Recessed LED 4\" wafer", t("prices.lighting", "Iluminação"), t("prices.unitEach", "un")], [t("prices.hardwiredComboSmokeCo", "Detector fumaça/CO combinado hardwired"), t("prices.lifeSafety", "Segurança"), t("prices.unitEach", "un")],
-      [t("prices.wireNutsBox", "Wire nuts (caixa)"), t("prices.consumables", "Consumíveis"), t("prices.unitBox", "caixa")], [t("prices.romexStaplesBox", "Grampos Romex (caixa)"), t("prices.consumables", "Consumíveis"), t("prices.unitBox", "caixa")]
-    ],
-    hvac: [
-      ["Line set 1/4\" x 3/8\" — 50 ft", t("prices.piping", "Tubulação"), t("prices.unitEach", "un")], ["Line set 3/8\" x 3/4\" — 50 ft", t("prices.piping", "Tubulação"), t("prices.unitEach", "un")], [t("prices.condensatePump", "Bomba de condensado"), t("prices.drain", "Dreno"), t("prices.unitEach", "un")], [t("prices.thermostatWire185", "Fio de termostato 18/5 — 250 ft"), t("prices.controls", "Controles"), t("prices.unitRoll", "rolo")],
-      ["Disconnect 60A non-fused", t("prices.hvacElectrical", "Elétrica HVAC"), t("prices.unitEach", "un")], ["Whip 3/4\" x 6 ft", t("prices.hvacElectrical", "Elétrica HVAC"), t("prices.unitEach", "un")], [t("prices.condenserPad", "Pad de condensadora"), t("prices.equipment", "Equipamento"), t("prices.unitEach", "un")], [t("prices.miniSplitWallBracket", "Suporte de parede mini-split"), t("prices.equipment", "Equipamento"), t("prices.unitEach", "un")],
-      ["Line hide kit", t("prices.finish", "Acabamento"), t("prices.unitEach", "un")], [t("prices.wiFiThermostat", "Termostato Wi-Fi"), t("prices.controls", "Controles"), t("prices.unitEach", "un")], [t("prices.foilTapeMastic", "Fita aluminizada / mastic"), t("prices.ductwork", "Dutos"), t("prices.unitEach", "un")], [t("prices.6InsulatedFlexDuct", "Duto flexível 6\" isolado — 25 ft"), t("prices.ductwork", "Dutos"), t("prices.unitEach", "un")]
-    ],
-    plumbing: [
-      ["PEX-A 1/2\" — 100 ft", t("prices.piping", "Tubulação"), t("prices.unitRoll", "rolo")], ["PEX-A 3/4\" — 100 ft", t("prices.piping", "Tubulação"), t("prices.unitRoll", "rolo")], [t("prices.typeLCopper1", "Cobre tipo L 1/2\" — 10 ft"), t("prices.piping", "Tubulação"), t("prices.each", "peça")], [t("prices.typeLCopper3", "Cobre tipo L 3/4\" — 10 ft"), t("prices.piping", "Tubulação"), t("prices.each", "peça")],
-      ["PVC DWV 2\" — 10 ft", t("prices.drainWasteVentDwv", "Esgoto (DWV)"), t("prices.each", "peça")], ["PVC DWV 3\" — 10 ft", t("prices.drainWasteVentDwv", "Esgoto (DWV)"), t("prices.each", "peça")], [t("prices.pTrap11", "Sifão P-trap 1-1/2\""), t("prices.drainWasteVentDwv", "Esgoto (DWV)"), t("prices.unitEach", "un")], [t("prices.pexExpansionRing1", "Anel de expansão PEX 1/2\" (saco)"), t("prices.fittings", "Conexões"), t("prices.unitBag", "saco")],
-      [t("prices.ballValve34", "Válvula de esfera 3/4\""), t("prices.valves", "Válvulas"), t("prices.unitEach", "un")], [t("prices.showerValvePressureBalance", "Válvula de chuveiro (pressure balance)"), t("prices.valves", "Válvulas"), t("prices.unitEach", "un")], [t("prices.angleStop12", "Registro angular 1/2\" x 3/8\""), t("prices.valves", "Válvulas"), t("prices.unitEach", "un")],
-      [t("prices.waterHeater50Gal", "Aquecedor de água 50 gal a gás"), t("prices.waterHeater", "Aquecedor"), t("prices.unitEach", "un")], ["Expansion tank 2 gal", t("prices.waterHeater", "Aquecedor"), t("prices.unitEach", "un")], [t("prices.waxRingToilet", "Anel de cera (vaso)"), t("prices.finish", "Acabamento"), t("prices.unitEach", "un")], [t("prices.supplyLine", "Flexível de abastecimento (supply line)"), t("prices.finish", "Acabamento"), t("prices.unitEach", "un")],
-      [t("prices.pvcCementAndPrimer", "Cola e primer PVC"), t("prices.consumables", "Consumíveis"), t("prices.unitKit", "kit")], [t("prices.threadTapePipeDope", "Fita veda-rosca / pasta"), t("prices.consumables", "Consumíveis"), t("prices.unitEach", "un")]
-    ],
-    gc: [
-      ["2x4 x 8 ft SPF", t("prices.lumber", "Madeira"), t("prices.each", "peça")], ["2x6 x 8 ft SPF", t("prices.lumber", "Madeira"), t("prices.each", "peça")], ["OSB 7/16\" 4x8", t("prices.lumber", "Madeira"), t("prices.unitSheet", "folha")], [t("prices.plywood344x8", "Compensado 3/4\" 4x8"), t("prices.lumber", "Madeira"), t("prices.unitSheet", "folha")],
-      ["Drywall 1/2\" 4x8", "Drywall", t("prices.unitSheet", "folha")], ["Drywall 5/8\" Type X 4x8", "Drywall", t("prices.unitSheet", "folha")], [t("prices.jointCompound45", "Massa (joint compound) 4,5 gal"), "Drywall", t("prices.unitBucket", "balde")], [t("prices.r21FiberglassInsulation", "Isolamento R-21 fiberglass"), t("prices.insulation", "Isolamento"), t("prices.unitPack", "pacote")],
-      ["House wrap 9x100 ft", t("prices.exterior", "Exterior"), t("prices.unitRoll", "rolo")], ["Shingles (bundle)", t("prices.roofing", "Telhado"), t("prices.unitPack", "pacote")], [t("prices.16dFramingNailsBox", "Pregos de framing 16d (caixa)"), t("prices.fasteners", "Fixação"), t("prices.unitBox", "caixa")], [t("prices.drywallScrews15", "Parafuso de drywall 1-5/8\" (caixa)"), t("prices.fasteners", "Fixação"), t("prices.unitBox", "caixa")],
-      [t("prices.interiorPaintGallon", "Tinta interior (galão)"), t("prices.painting", "Pintura"), t("prices.gallon", "galão")], [t("prices.lvpVinylFlooringBox", "Piso vinílico LVP (caixa)"), t("prices.flooring", "Piso"), t("prices.unitBox", "caixa")], ["Dumpster 20 yd", t("prices.services", "Serviços"), t("prices.unitEach", "un")]
-    ]
-  };
+  // lista básica de materiais por ramo: trades.js → prices.basic ([nome, categoria, unidade] no idioma de quem adiciona)
   function myPricesView() {
     syncStores(); var f = S.priceFilter, cats = {}, tk = tradeKey(S.company);
     S.materials.forEach(function (m) { if (m.category) cats[m.category] = 1; });
@@ -830,11 +743,9 @@
           }).join("") + '<td class="n">' + (b ? '<b class="v-good">' + money2(b.price) + '</b><span class="d small muted" style="display:block">' + esc(storeName(b.store)) + "</span>" : "—") + "</td></tr>";
       }).join("") + "</tbody></table></div>"
       : (S.materials.length ? E.emptyState({ icon: "search", title: t("prices.noMaterialsMatchThis", "Nenhum material com esse filtro"), text: t("prices.changeTheSearchOr", "Troque a busca ou a categoria.") })
-        : E.emptyState({ icon: "tag", title: t("prices.noMaterialsYet", "Nenhum material cadastrado"), text: t("prices.startWithABasic", "Comece por uma lista básica e vá anotando os preços de cada loja."), cta: tk === "plumbing" || tk === "gc"
-          ? '<div class="row" style="justify-content:center"><button class="btn sm" data-act="prBasic" data-id="' + tk + '">' + esc(tk === "plumbing" ? E.t("prices.basicPlumbing", "Adicionar lista básica de plumbing") : E.t("prices.basicGc", "Adicionar lista básica de obra (GC)")) + "</button></div>"
-          : t("prices.addBasicElectricalList", '<div class="row" style="justify-content:center"><button class="btn sm" data-act="prBasic" data-id="electrical">Adicionar lista básica elétrica</button><button class="btn ghost sm" data-act="prBasic" data-id="hvac">Lista básica HVAC</button></div>') }));
+        : E.emptyState({ icon: "tag", title: t("prices.noMaterialsYet", "Nenhum material cadastrado"), text: t("prices.startWithABasic", "Comece por uma lista básica e vá anotando os preços de cada loja."), cta: '<div class="row" style="justify-content:center">' + tradeDef(S.company).prices.basicOffer.map(function (b, i) { return '<button class="btn ' + (i ? "ghost " : "") + 'sm" data-act="prBasic" data-id="' + b.list + '">' + esc(b.label) + "</button>"; }).join("") + "</div>" }));
     return t("prices.yourPricesByStore", '<div class="spread" style="margin-bottom:10px"><p class="muted small" style="margin:0">Seus preços por loja (usados na estimativa e na lista de material). Verde = mais barato · apagado = mais de 30 dias.</p><button class="btn sm" data-act="prNewMat">+ Material</button></div>') +
-      t("prices.searchInputTypeSearch", '<div class="filters"><label class="field"><span>Buscar</span><input type="search" data-pf="q" value="') + esc(f.q) + t("prices.categoryAll", '" placeholder="ex.: Romex, GFCI, line set"></label><label class="field"><span>Categoria</span><select data-pf="cat"><option value="">Todas</option>') +
+      t("prices.searchInputTypeSearch", '<div class="filters"><label class="field"><span>Buscar</span><input type="search" data-pf="q" value="') + esc(f.q) + t("prices.categoryAll", '" placeholder="ex.: Romex, GFCI, line set"></label><label class="field"><span>Categoria</span><select data-pf="cat"><option value="">Todas</option>').replace(/placeholder="[^"]*"/, function (m) { var ex = tradeDef(S.company).prices.searchExample; return ex ? 'placeholder="' + esc(ex) + '"' : m; }) + // exemplo do ramo (B17)
       Object.keys(cats).sort().map(function (c) { return "<option" + (f.cat === c ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select></label></div>" + table +
       t("prices.tapAPriceTo", '<p class="muted small" style="margin-top:12px">Toque num preço para atualizar. As lojas de material elétrico mostram preço só para clientes com conta; use o preço da sua cotação ou nota fiscal.</p>') + dealsHtml;
   }
@@ -873,7 +784,7 @@
   }
   EXT.views.prices = function () {
     syncStores();
-    if (tradeKey(S.company) !== "electrical") return t("proposals.pricesYourMaterialAnd", '<div class="page-head"><div><h1>Preços</h1><p>Seus preços de material e equipamento por fornecedor</p></div></div>') +
+    if (!tradeDef(S.company).prices.promos) return t("proposals.pricesYourMaterialAnd", '<div class="page-head"><div><h1>Preços</h1><p>Seus preços de material e equipamento por fornecedor</p></div></div>') +
       '<div class="panel promo-note small muted" role="note" style="margin-bottom:12px">' + esc(t("proposals.promosOnlyElectrical", "Promoções (liquidações das lojas) por enquanto só existem para material elétrico. Aqui ficam os seus preços por loja — o mais barato aparece em verde.")) + "</div>" +
       myPricesView(); // promoções = liquidações de material elétrico
     var tab = S.prTab || "promo";
@@ -894,7 +805,7 @@
 
   AC.prBasic = function (el) {
     var have = {}; S.materials.forEach(function (m) { have[m.name] = 1; });
-    var list = BASIC[el.dataset.id].filter(function (x) { return !have[x[0]]; }).map(function (x) { return { name: x[0], category: x[1], unit: x[2] }; });
+    var list = NV.tradeDef(el.dataset.id).prices.basic.filter(function (x) { return !have[x[0]]; }).map(function (x) { return { name: x[0], category: x[1], unit: x[2] }; });
     E.toast(t("proposals.adding", "Adicionando ") + list.length + t("proposals.materials", " materiais…"));
     API.saveMaterials(list).then(reloadExt).then(function () { E.toast(t("proposals.listAddedNowJust", "Lista adicionada. Agora é só preencher os preços.")); }).catch(function (e) { E.toast(e.message); });
   };
