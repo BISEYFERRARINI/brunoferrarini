@@ -1,0 +1,14 @@
+{
+  "name": "nivela",
+  "private": true,
+  "description": "Nivela — app (PWA em JS puro, sem build) + Nivela Assist (Netlify Functions)",
+  "scripts": {
+    "build:kb": "node tools/build-kb.js",
+    "test:assist": "node tools/build-kb.js && node tests/assist.js",
+    "eval:assist": "node tests/assist-eval.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
+  "engines": { "node": ">=18" }
+}

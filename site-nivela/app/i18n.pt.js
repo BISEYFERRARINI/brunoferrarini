@@ -337,6 +337,11 @@ window.NV.addDict("pt", {
   "skip": "Pular para o conteúdo"
  },
  "help": {
+  "titleAssist": "Ajuda + Assist",
+  "assist": "Nivela Assist: pergunte o que quiser",
+  "assistSub": "Assistente com IA, em português, inglês ou espanhol. Responde na hora; o que ele não resolver, uma pessoa da equipe responde por e-mail.",
+  "assistBtn": "Perguntar ao Assist",
+  "assistErr": "Não consegui abrir o Assist agora. Escreva para {mail}.",
   "open": "Ajuda (tecla ?)",
   "title": "Ajuda",
   "searchSub": "Perguntas comuns, atalhos e tour",

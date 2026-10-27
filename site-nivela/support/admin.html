@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Nivela Assist · Painel</title>
+<style>
+  :root { --bg: #F3F5F4; --surface: #fff; --ink: #102421; --muted: #566663; --line: #DCE3E1; --brand: #0B7B6A; --brand-ink: #fff; --strong: #0D2B27; --warn: #9A5B00; --good: #2E7D4F; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #06110F; --surface: #0F1E1B; --ink: #E6EFEC; --muted: #9DB3AE; --line: #24403A; --brand: #2CC4A7; --brand-ink: #06110F; --strong: #0D2B27; --warn: #F2B233; --good: #6FD39A; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { background: var(--strong); color: #fff; padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  main { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  button, .btn { font: inherit; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--brand); background: var(--brand); color: var(--brand-ink); font-weight: 600; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  button.ghost, .btn.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  nav button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+  nav button { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  header button { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+  .kpi b { display: block; font-size: 26px; } .kpi span { color: var(--muted); font-size: 13px; }
+  .muted { color: var(--muted); } .small { font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; } th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); } th { color: var(--muted); font-weight: 600; }
+  .tbl { overflow-x: auto; }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); border-radius: 10px; padding: 10px; font-size: 13px; max-height: 360px; overflow: auto; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; }
+  .pill.alta { border-color: var(--warn); color: var(--warn); }
+  form.login { max-width: 420px; margin: 40px auto; }
+  input { font: inherit; width: 100%; min-height: 42px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .err { color: #B3261E; font-weight: 600; }
+  :focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<header><h1>Nivela Assist · Painel do atendimento</h1><button type="button" id="out" hidden>Sair</button></header>
+<main id="main"></main>
+<script>
+(function () {
+  "use strict";
+  var API = "/api/assist/admin/", KEY = "nivela_support_secret", main = document.getElementById("main"), tab = "metrics", tStatus = "open";
+  function secret(v) { try { if (v === undefined) return sessionStorage.getItem(KEY) || ""; if (v === null) sessionStorage.removeItem(KEY); else sessionStorage.setItem(KEY, v); } catch (e) { return ""; } }
+  function el(tag, attrs, kids) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (k === "text") e.textContent = attrs[k]; else if (k === "on") Object.keys(attrs.on).forEach(function (ev) { e.addEventListener(ev, attrs.on[ev]); }); else e.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { if (c != null) e.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
+    return e;
+  }
+  function call(path, body) {
+    return fetch(API + path, { method: body ? "POST" : "GET", headers: Object.assign({ "x-support-secret": secret() }, body ? { "content-type": "application/json" } : {}), body: body ? JSON.stringify(body) : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { if (r.status === 401 || r.status === 503) { secret(null); login(r.status === 503 ? "O SUPPORT_SECRET ainda não está configurado no Netlify." : "Segredo errado."); throw new Error("auth"); } if (!r.ok) throw new Error(j.error || r.status); return j; }); });
+  }
+  function login(msg) {
+    document.getElementById("out").hidden = true;
+    main.innerHTML = "";
+    var inp = el("input", { type: "password", id: "sec", autocomplete: "current-password", "aria-describedby": "secHelp" });
+    var f = el("form", { "class": "card login" }, [el("h2", { text: "Entrar" }), el("label", { "for": "sec", text: "SUPPORT_SECRET" }), inp,
+      el("p", { id: "secHelp", "class": "muted small", text: "O mesmo valor da variável SUPPORT_SECRET no Netlify. Fica só nesta aba (sessionStorage)." }),
+      msg ? el("p", { "class": "err", role: "alert", text: msg }) : null, el("button", { type: "submit", text: "Entrar" })]);
+    f.addEventListener("submit", function (e) { e.preventDefault(); secret(inp.value.trim()); show(); });
+    main.appendChild(f); inp.focus();
+  }
+  function nav() {
+    var tabs = [["metrics", "Métricas"], ["tickets", "Tickets"], ["gaps", "Perguntas sem resposta"], ["leads", "Leads"]];
+    return el("nav", { "aria-label": "Seções" }, tabs.map(function (t) { return el("button", { type: "button", "aria-pressed": String(tab === t[0]), text: t[1], on: { click: function () { tab = t[0]; show(); } } }); }));
+  }
+  function kpi(v, label) { return el("div", { "class": "card kpi" }, [el("b", { text: v == null ? "—" : String(v) }), el("span", { text: label })]); }
+  function money(v) { return "US$ " + (Number(v) || 0).toFixed(4); }
+  function fmt(d) { try { return new Date(d).toLocaleString("pt-BR"); } catch (e) { return d || ""; } }
+  function show() {
+    if (!secret()) return login();
+    document.getElementById("out").hidden = false;
+    main.innerHTML = ""; main.appendChild(nav());
+    var box = el("div", { "aria-live": "polite" }, [el("p", { "class": "muted", text: "Carregando…" })]); main.appendChild(box);
+    var done = function (n) { box.innerHTML = ""; box.appendChild(n); };
+    var fail = function (e) { if (e.message !== "auth") done(el("p", { "class": "err", text: "Erro: " + e.message })); };
+    if (tab === "metrics") call("metrics?days=7").then(function (m) {
+      var g = el("div", { "class": "grid" }, [kpi(m.conversations, "conversas (7 dias)"), kpi(m.resolvedWithoutHumanPct == null ? null : m.resolvedWithoutHumanPct + "%", "resolvidas sem pessoa"), kpi(m.handoffs, "pedidos para pessoa"), kpi(m.openTickets, "tickets abertos"),
+        kpi(m.thumbsUp + " / " + m.thumbsDown, "👍 / 👎"), kpi(m.leads, "leads (teste guiado)"), kpi(money(m.costUsd), "custo estimado (7 dias)"), kpi(money(m.todaySpendUsd) + " de " + m.dailyBudgetUsd, "gasto hoje / teto diário")]);
+      var rows = m.perDay.map(function (d) { return el("tr", {}, [d.day, d.conversations || 0, d.messages || 0, d.handoffs || 0, (d.up || 0) + " / " + (d.down || 0), d.guardrail || 0, d.injections || 0, d.rateLimited || 0, money(d.costUsd)].map(function (x) { return el("td", { text: String(x) }); })); });
+      var tbl = el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Dia", "Conversas", "Mensagens", "Pessoa", "👍/👎", "Guardrail", "Injeção", "Limite", "Custo"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])]);
+      done(el("div", {}, [g, tbl, el("p", { "class": "muted small", text: "“Resolvidas sem pessoa” = conversas sem pedido para pessoa ÷ conversas. Custo é estimativa pelos tokens; a fatura oficial está no console da Anthropic." })]));
+    }).catch(fail);
+    if (tab === "tickets") call("tickets?full=1&status=" + tStatus).then(function (r) {
+      var sw = el("div", { "class": "row" }, [["open", "Abertos"], ["answered", "Respondidos"], ["all", "Todos"]].map(function (x) { return el("button", { type: "button", "class": tStatus === x[0] ? "" : "ghost", text: x[1], on: { click: function () { tStatus = x[0]; show(); } } }); }));
+      var list = r.tickets.filter(function (t) { return t.kind !== "lead"; }).map(function (t) {
+        var c = t.contact || {}, subject = "Re: " + (t.question || "Nivela").slice(0, 80);
+        var acts = el("div", { "class": "row" }, [
+          c.email ? el("a", { "class": "btn", href: "mailto:" + encodeURIComponent(c.email) + "?subject=" + encodeURIComponent(subject), text: "Responder por e-mail" }) : el("span", { "class": "muted small", text: "Sem e-mail do cliente" }),
+          t.status === "open" ? el("button", { type: "button", "class": "ghost", text: "Marcar respondido", on: { click: function () { call("tickets/answered", { ids: [t.id] }).then(show); } } }) : el("button", { type: "button", "class": "ghost", text: "Reabrir", on: { click: function () { call("tickets/reopen", { ids: [t.id] }).then(show); } } })
+        ]);
+        return el("article", { "class": "card" }, [
+          el("div", { "class": "row" }, [el("b", { text: (c.name || c.email || "Cliente sem e-mail") }), el("span", { "class": "pill " + (t.priority || ""), text: t.priority || "normal" }), el("span", { "class": "pill", text: t.category || "" }), el("span", { "class": "pill", text: t.channel }), el("span", { "class": "muted small", text: fmt(t.createdAt) + (t.notifiedAt ? " · e-mail enviado ao dono" : "") })]),
+          el("p", { text: t.summary || "" }), t.note ? el("p", { "class": "small", text: "Observação: " + t.note }) : null,
+          el("p", { "class": "muted small", text: "Contexto: " + JSON.stringify(t.context || {}) + " · idioma: " + (t.lang || "") + " · motivo: " + (t.reason || "") }),
+          el("details", {}, [el("summary", { text: "Conversa inteira" }), el("pre", { text: t.transcript || "" })]), acts]);
+      });
+      done(el("div", {}, [sw, el("p", { "class": "muted small", text: list.length + " ticket(s)." })].concat(list)));
+    }).catch(fail);
+    if (tab === "gaps") call("gaps?days=30").then(function (r) {
+      var rows = r.gaps.map(function (g) { return el("tr", {}, [el("td", { text: String(g.count) }), el("td", { text: g.question }), el("td", { text: (g.langs || []).join(", ") }), el("td", { text: Object.keys(g.reasons || {}).join(", ") }), el("td", { text: fmt(g.last) })]); });
+      done(el("div", {}, [el("p", { "class": "muted small", text: "Perguntas em que o Assist não teve certeza, passou para pessoa ou levou 👎 (30 dias). Para melhorar: escreva o artigo em support/kb/kb.pt.md e kb.en.md (mesmo id) e publique — veja support/LEIA-ME.md." }),
+        el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Vezes", "Pergunta", "Idioma", "Motivo", "Última"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])])]));
+    }).catch(fail);
+    if (tab === "leads") call("leads").then(function (r) {
+      var rows = r.leads.map(function (t) { var l = t.lead || {}, c = t.contact || {}; return el("tr", {}, [fmt(t.createdAt), l.name || c.name || "", c.email || "", l.company || "", l.trade || "", l.teamSize || "", t.status].map(function (x) { return el("td", { text: String(x) }); })); });
+      done(el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Quando", "Nome", "E-mail", "Empresa", "Ramo", "Equipe", "Status"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])]));
+    }).catch(fail);
+  }
+  document.getElementById("out").addEventListener("click", function () { secret(null); login(); });
+  show();
+})();
+</script>
+</body>
+</html>

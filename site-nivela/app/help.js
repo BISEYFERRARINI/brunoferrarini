@@ -56,13 +56,60 @@
     var list = (FAQ[viewKey()] || []).concat(GENERAL), k = isMac ? "⌘" : "Ctrl";
     var keys = [[k + " K", t("help.k.search", "Buscar obra, proposta, cliente ou ação")], ["/", t("help.k.slash", "Também abre a busca")], ["?", t("help.k.help", "Abre esta ajuda")], ["Esc", t("help.k.esc", "Fecha janelas, menus e a busca")], ["↑ ↓ Enter", t("help.k.nav", "Navegar e abrir resultados da busca")]];
     return '<div class="help">' +
+      '<section class="help-assist"><h3>' + esc(t("help.assist", "Nivela Assist: pergunte o que quiser")) + '</h3><p class="muted small">' + esc(t("help.assistSub", "Assistente com IA, em português, inglês ou espanhol. Responde na hora; o que ele não resolver, uma pessoa da equipe responde por e-mail.")) + '</p><button type="button" class="btn" data-act="assistOpen">' + ic("help", 18) + esc(t("help.assistBtn", "Perguntar ao Assist")) + "</button></section>" +
       '<section><h3>' + esc(t("help.faq", "Perguntas comuns desta tela")) + '</h3><div class="faq">' + list.map(function (q, i) { return "<details" + (i === 0 ? " open" : "") + "><summary>" + esc(q[0]) + ic("chevd", 18) + "</summary><p>" + esc(q[1]) + "</p></details>"; }).join("") + "</div></section>" +
       '<section><h3>' + esc(t("help.tour", "Tour de boas-vindas")) + '</h3><p class="muted small">' + esc(t("help.tourSub", "Um passeio de 1 minuto pelos pontos principais do menu.")) + '</p><button type="button" class="btn ghost" data-act="tourStart">' + ic("star", 18) + esc(t("help.tourBtn", "Fazer o tour")) + "</button></section>" +
       '<section class="help-keys"><h3>' + esc(t("help.keys", "Atalhos de teclado")) + "</h3><dl>" + keys.map(function (x) { return "<div><dt>" + x[0].split(" ").map(function (y) { return "<kbd>" + esc(y) + "</kbd>"; }).join(" ") + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") + "</dl></section>" +
       '<section><h3>' + esc(t("help.contact", "Fale com a gente")) + '</h3><p class="muted small">' + esc(t("help.contactSub", "Respondemos em português e inglês, em dias úteis.")) + '</p><div class="row"><a class="btn ghost" href="mailto:' + CONTACT + '?subject=' + encodeURIComponent(E.PRODUCT + " · " + t("help.mailSubject", "Ajuda")) + '">' + ic("doc", 18) + esc(CONTACT) + "</a></div></section>" +
       '<p class="muted small help-ver">' + esc(E.PRODUCT) + " " + esc(E.APP_VERSION) + " · " + esc(E.API.mode === "demo" ? t("help.demo", "modo demonstração") : t("help.live", "conectado")) + "</p></div>";
   };
-  AC.help = function () { if (S.tour) tourEnd(false); S.overlay = null; S.modal = { type: "help", title: t("help.title", "Ajuda") }; E.render(); };
+  AC.help = function () { if (S.tour) tourEnd(false); S.overlay = null; S.modal = { type: "help", title: t("help.titleAssist", "Ajuda + Assist") }; E.render(); loadAssist(); };
+
+  // ═══════════ Nivela Assist (chat com IA): carregado só quando a ajuda abre (support/assist.js) ═══════════
+  var assistP = null;
+  function loadAssist() {
+    if (window.NivelaAssist) return Promise.resolve(window.NivelaAssist);
+    if (assistP) return assistP;
+    assistP = new Promise(function (ok, no) {
+      var v = encodeURIComponent(E.APP_VERSION || "1");
+      var l = document.createElement("link"); l.rel = "stylesheet"; l.id = "nva-css"; l.href = "support/assist.css?v=" + v; document.head.appendChild(l);
+      var sc = document.createElement("script"); sc.src = "support/assist.js?v=" + v; sc.async = true;
+      sc.onload = function () { ok(window.NivelaAssist); }; sc.onerror = function () { assistP = null; no(new Error("assist")); };
+      document.head.appendChild(sc);
+    });
+    return assistP;
+  }
+  function assistViews() {
+    var g = S.user && !E.isStaff() ? E.NAV.employee : E.staffGroups();
+    return (g || []).reduce(function (a, x) { return a.concat(x[1].map(function (n) { return n[0]; })); }, []);
+  }
+  function assistNav(view) {
+    if (!S.user || assistViews().indexOf(view) < 0) return false;
+    E.guardLeave(function () { E.go(view); }); return true;
+  }
+  function assistOpts() {
+    return {
+      channel: "app", launcher: false, lang: function () { return E.LANG; }, onNavigate: assistNav,
+      getContext: function () {
+        var org = null; try { org = E.API.currentOrg ? E.API.currentOrg() : null; } catch (e) {}
+        var role = S.user ? E.roleOf() : "visitor";
+        return { page: location.pathname, appView: S.view, role: role, trade: S.user ? E.tradeOf(S.company) : "", plan: (org && org.plan) || "", demo: E.API.mode === "demo", appLang: E.LANG };
+      },
+      getContact: function () { var u = S.user || {}; return u.email && E.roleOf() !== "employee" ? { email: u.email, name: u.name || "" } : { name: u.name || "" }; }
+    };
+  }
+  AC.assistOpen = function () {
+    S.modal = null; S.overlay = null; E.render();
+    loadAssist().then(function (NA) { NA.open(assistOpts()); }).catch(function () { E.toast(t("help.assistErr", "Não consegui abrir o Assist agora. Escreva para {mail}.", { mail: CONTACT })); });
+  };
+  // link de tela vindo do Assist do site ou de um e-mail (ex.: /app/#projects): abre a tela depois de entrar
+  var hashDone = false;
+  EXT.afterRender.push(function () {
+    if (hashDone || !S.user) return;
+    var m = /^#([a-zA-Z]+)$/.exec(location.hash || ""); hashDone = true; if (!m) return;
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+    if (assistViews().indexOf(m[1]) >= 0 && m[1] !== S.view) setTimeout(function () { E.go(m[1]); }, 0);
+  });
 
   // ═══════════ tour de boas-vindas ═══════════
   var TOUR_KEY = "nivela_tour_v1";

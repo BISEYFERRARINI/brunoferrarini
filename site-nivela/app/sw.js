@@ -1,6 +1,6 @@
 // Service worker: mantém a casca do app disponível sem internet.
 // ATENÇÃO: todo arquivo da lista SHELL precisa existir — um 404 faz o cache.addAll falhar e o app não instala.
-var CACHE = "nivela-v7"; // v7: correções do QA dos ramos (docs/07)
+var CACHE = "nivela-v8"; // v8: Nivela Assist (support/assist.js) e página de aceite com a marca do cliente
 var SHELL = [
   "./", "./index.html", "./styles.css", "./i18n.js", "./i18n.en.js", "./trades.js", "./config.js", "./data.js", "./app.js", "./proposals.js", "./settings.js", "./onboarding.js", "./help.js", "./manifest.webmanifest",
   "./brand/tokens.css", "./brand/fonts/inter-400.woff", "./brand/fonts/inter-500.woff", "./brand/fonts/inter-600.woff", "./brand/fonts/inter-700.woff",
@@ -18,7 +18,7 @@ self.addEventListener("fetch", function (e) {
   var req = e.request;
   if (req.method !== "GET") return;
   var url = new URL(req.url);
-  if (/supabase\.co$/.test(url.hostname) || url.hostname.indexOf("nominatim") >= 0) return; // dados ao vivo: nunca em cache
+  if (/supabase\.co$/.test(url.hostname) || url.hostname.indexOf("nominatim") >= 0 || url.pathname.indexOf("/api/") === 0) return; // dados ao vivo (e o Assist em /api/): nunca em cache
   // rede primeiro para os nossos arquivos (atualizações chegam), cache se estiver sem internet; cache primeiro para bibliotecas externas
   if (url.origin === location.origin) {
     e.respondWith(fetch(req).then(function (r) { var copy = r.clone(); caches.open(CACHE).then(function (c) { c.put(req, copy); }); return r; }).catch(function () { return caches.match(req).then(function (m) { return m || caches.match("./index.html"); }); }));

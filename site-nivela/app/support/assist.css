@@ -1,0 +1,106 @@
+/* Nivela Assist — widget. Usa os tokens do Nivela (brand/tokens.css) quando existem, com valores de reserva.
+   Claro/escuro: segue data-theme do site/app e prefers-color-scheme. */
+.nva-launch, .nva-panel {
+  --nva-bg: var(--surface, #fff); --nva-bg2: var(--surface-2, #F7F9F8); --nva-ink: var(--ink, #102421); --nva-muted: var(--muted, #566663);
+  --nva-line: var(--line, #DCE3E1); --nva-brand: var(--brand, #0B7B6A); --nva-brand-ink: var(--brand-ink, #fff); --nva-strong: var(--brand-strong, #0D2B27);
+  --nva-soft: color-mix(in srgb, var(--nva-brand) 10%, var(--nva-bg)); --nva-good: var(--good, #2E7D4F); --nva-bad: var(--bad, #B3261E);
+  font-family: var(--f-body, "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif); font-size: 15px; line-height: 1.45; color: var(--nva-ink);
+  -webkit-font-smoothing: antialiased; box-sizing: border-box;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .nva-launch, :root:not([data-theme="light"]) .nva-panel { --nva-bg: var(--surface, #0F1E1B); --nva-bg2: var(--surface-2, #132622); --nva-ink: var(--ink, #E6EFEC); --nva-muted: var(--muted, #9DB3AE); --nva-line: var(--line, #24403A); --nva-brand: var(--brand-bright, #2CC4A7); --nva-brand-ink: #06110F; }
+}
+:root[data-theme="dark"] .nva-launch, :root[data-theme="dark"] .nva-panel { --nva-bg: var(--surface, #0F1E1B); --nva-bg2: var(--surface-2, #132622); --nva-ink: var(--ink, #E6EFEC); --nva-muted: var(--muted, #9DB3AE); --nva-line: var(--line, #24403A); --nva-brand: var(--brand-bright, #2CC4A7); --nva-brand-ink: #06110F; }
+.nva-panel *, .nva-panel *::before, .nva-panel *::after { box-sizing: border-box; }
+
+/* botão flutuante */
+.nva-launch {
+  position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 9000;
+  display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px 0 14px; border: 0; border-radius: 999px;
+  background: var(--nva-brand); color: var(--nva-brand-ink); font: inherit; font-weight: 600; cursor: pointer;
+  box-shadow: 0 6px 20px rgba(6, 17, 15, .22), 0 1px 3px rgba(6, 17, 15, .2); transition: transform .15s ease, box-shadow .15s ease;
+}
+.nva-launch:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(6, 17, 15, .26); }
+.nva-launch:focus-visible, .nva-panel :focus-visible { outline: 3px solid color-mix(in srgb, var(--nva-brand) 55%, transparent); outline-offset: 2px; }
+.nva-is-open .nva-launch { display: none; }
+
+/* painel */
+.nva-panel {
+  position: fixed; right: 16px; bottom: 16px; z-index: 9001; width: min(400px, calc(100vw - 32px)); height: min(640px, calc(100vh - 32px)); height: min(640px, calc(100dvh - 32px));
+  display: flex; flex-direction: column; background: var(--nva-bg); border: 1px solid var(--nva-line); border-radius: 18px; overflow: hidden;
+  box-shadow: 0 24px 60px rgba(6, 17, 15, .28), 0 2px 8px rgba(6, 17, 15, .12); animation: nva-in .18s ease;
+}
+.nva-panel[hidden] { display: none; }
+@keyframes nva-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .nva-panel, .nva-launch { animation: none; transition: none; } .nva-dots i { animation: none !important; } }
+@media (max-width: 600px) {
+  .nva-panel { inset: 0; right: 0; bottom: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; padding-bottom: env(safe-area-inset-bottom); }
+}
+
+.nva-head { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 14px 14px 12px 16px; background: var(--nva-strong); color: #fff; }
+.nva-id { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.nva-dot { width: 10px; height: 10px; border-radius: 50%; background: #2CC4A7; box-shadow: 0 0 0 4px rgba(44, 196, 167, .22); flex: none; }
+.nva-head h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; color: #fff; font-family: var(--f-display, inherit); }
+.nva-sub { margin: 0; font-size: 12.5px; color: #B4C9C4; }
+.nva-tools { display: flex; gap: 4px; }
+.nva-ic { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: #DDE9E6; cursor: pointer; }
+.nva-ic:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+.nva-human { grid-column: 1 / -1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border: 1px solid rgba(255, 255, 255, .28); border-radius: 10px; background: rgba(255, 255, 255, .08); color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nva-human:hover { background: rgba(255, 255, 255, .16); }
+
+.nva-log { flex: 1; overflow-y: auto; padding: 14px 14px 6px; display: flex; flex-direction: column; gap: 10px; background: var(--nva-bg2); overscroll-behavior: contain; }
+.nva-msg { display: flex; flex-direction: column; max-width: 92%; }
+.nva-msg.me { align-self: flex-end; align-items: flex-end; }
+.nva-msg.bot { align-self: flex-start; }
+.nva-b { padding: 10px 12px; border-radius: 14px; background: var(--nva-bg); border: 1px solid var(--nva-line); overflow-wrap: anywhere; }
+.nva-msg.me .nva-b { background: var(--nva-brand); color: var(--nva-brand-ink); border-color: transparent; border-bottom-right-radius: 4px; }
+.nva-msg.bot .nva-b { border-bottom-left-radius: 4px; }
+.nva-msg.sys .nva-b { background: var(--nva-soft); }
+.nva-msg.ok .nva-b { border-color: color-mix(in srgb, var(--nva-good) 45%, var(--nva-line)); }
+.nva-b p { margin: 0 0 6px; } .nva-b p:last-child { margin-bottom: 0; }
+.nva-b ol, .nva-b ul { margin: 4px 0 6px; padding-left: 20px; } .nva-b li { margin: 2px 0; }
+.nva-b a { color: var(--nva-brand); font-weight: 600; text-underline-offset: 2px; }
+.nva-msg.me .nva-b a { color: inherit; }
+.nva-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.nva-act { display: inline-flex; align-items: center; min-height: 34px; padding: 0 12px; border: 1px solid var(--nva-brand); border-radius: 999px; background: var(--nva-bg); color: var(--nva-brand); font: inherit; font-size: 13.5px; font-weight: 600; text-decoration: none; cursor: pointer; }
+.nva-act:hover { background: var(--nva-soft); }
+.nva-rate { display: flex; gap: 2px; margin-top: 2px; }
+.nva-r { display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--nva-muted); cursor: pointer; }
+.nva-r:hover { background: var(--nva-soft); color: var(--nva-ink); }
+.nva-r[aria-pressed="true"] { color: var(--nva-brand); background: var(--nva-soft); }
+.nva-thanks { margin: 2px 0 0; font-size: 12.5px; color: var(--nva-muted); }
+.nva-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.nva-chip { min-height: 36px; padding: 6px 12px; border: 1px solid var(--nva-line); border-radius: 999px; background: var(--nva-bg); color: var(--nva-ink); font: inherit; font-size: 13.5px; text-align: left; cursor: pointer; }
+.nva-chip:hover { border-color: var(--nva-brand); color: var(--nva-brand); }
+
+.nva-card { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--nva-line); border-radius: 14px; background: var(--nva-bg); }
+.nva-card.nva-soft { background: var(--nva-soft); }
+.nva-card h3 { margin: 0; font-size: 15px; }
+.nva-card p { margin: 0; }
+.nva-muted { color: var(--nva-muted); font-size: 13.5px; }
+.nva-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.nva-btn { min-height: 40px; padding: 0 14px; border: 1px solid var(--nva-brand); border-radius: 10px; background: var(--nva-brand); color: var(--nva-brand-ink); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.nva-btn.ghost { background: transparent; color: var(--nva-ink); border-color: var(--nva-line); }
+.nva-btn:disabled { opacity: .6; cursor: progress; }
+.nva-f { display: grid; gap: 4px; font-size: 13.5px; font-weight: 600; }
+.nva-f em { font-style: normal; font-weight: 400; color: var(--nva-muted); }
+.nva-f input, .nva-f select, .nva-f textarea, .nva-form textarea {
+  width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line-strong, #8E9E9A); border-radius: 10px; background: var(--nva-bg); color: var(--nva-ink); font: inherit; font-size: 16px; font-weight: 400;
+}
+.nva-err { margin: 0; color: var(--nva-bad); font-size: 13.5px; font-weight: 600; }
+.nva-hp { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; opacity: 0; }
+
+.nva-form { display: flex; gap: 8px; align-items: flex-end; padding: 10px 12px 4px; border-top: 1px solid var(--nva-line); background: var(--nva-bg); }
+.nva-form textarea { flex: 1; resize: none; max-height: 140px; line-height: 1.35; }
+.nva-send { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border: 0; border-radius: 12px; background: var(--nva-brand); color: var(--nva-brand-ink); cursor: pointer; }
+.nva-send:disabled { opacity: .55; cursor: progress; }
+.nva-note { margin: 0; padding: 2px 14px 10px; font-size: 11.5px; color: var(--nva-muted); background: var(--nva-bg); }
+
+.nva-dots { display: inline-flex; gap: 4px; padding: 4px 2px; }
+.nva-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--nva-muted); animation: nva-b 1s infinite ease-in-out; }
+.nva-dots i:nth-child(2) { animation-delay: .15s; } .nva-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes nva-b { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.nva-sr { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* no app, a barra de baixo do celular fica embaixo do painel em tela cheia */
+@media print { .nva-launch, .nva-panel { display: none !important; } }

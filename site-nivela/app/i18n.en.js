@@ -339,6 +339,11 @@ window.NV.addDict("en", {
   "skip": "Skip to content"
  },
  "help": {
+  "titleAssist": "Help + Assist",
+  "assist": "Nivela Assist: ask anything",
+  "assistSub": "AI assistant in English, Portuguese or Spanish. Instant answers; anything it can't solve, a person on the team answers by email.",
+  "assistBtn": "Ask Assist",
+  "assistErr": "Couldn't open Assist right now. Write to {mail}.",
   "open": "Help (press ?)",
   "title": "Help",
   "searchSub": "FAQ, shortcuts and tour",

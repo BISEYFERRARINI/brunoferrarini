@@ -96,4 +96,5 @@ Passe o usuário e a senha para o funcionário. Para trocar a senha depois: Equi
 | `config.js` | **onde você coloca os dados do Supabase** |
 | `sw.js`, `manifest.webmanifest`, `icons/` | o que faz o app ser instalável e abrir sem internet |
 | `supabase/schema.sql` | estrutura do banco + regras de segurança |
+| `support/`, `netlify/` | **Nivela Assist** — atendimento automático por IA (chat no site e no app, e-mail hello@): widget, painel, base de conhecimento (`support/kb/`), funções do Netlify e script do Gmail. Leia `support/LEIA-ME.md` |
 | `tests/` | testes automáticos (`node tests/fala.js` sem navegador; os outros com o servidor local, ex.: `node tests/qa-ramos.js http://localhost:8799/`) |

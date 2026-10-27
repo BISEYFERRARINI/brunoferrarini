@@ -46,9 +46,9 @@
   var CO = {
     eternity: { brand: "Eternity Electric", title: "ELECTRICAL PROPOSAL", tagline: "LICENSED ELECTRICAL CONTRACTOR", contact: "Commonwealth of Massachusetts · office@eternityelectrical.com",
       footer: "Eternity Electric · office@eternityelectrical.com · Licensed Electrical Contractor MA", role: "Licensed Electrical Contractor", logo: "icons/logo-eternity.png", logoSm: "icons/mark-eternity.png",
-      accent: "#B08A4A", dark: "#2B241D", bg: "#FBF7F1", payTo: "Eternity Electric" },
+      accent: "#B08A4A", dark: "#2B241D", bg: "#FBF7F1", payTo: "Eternity Electric", email: "office@eternityelectrical.com" },
     bluestar: { brand: "Blue Star HVAC", title: "HVAC PROPOSAL", tagline: "LICENSED HVAC CONTRACTOR", contact: "9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com · (857) 505-5740 · (774) 244-7256",
-      footer: "Blue Star HVAC Inc. · 9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com", role: "Licensed HVAC Contractor", logo: "icons/logo-bluestar.png", logoSm: "icons/mark-bluestar.png", logoW: "2.5in", accent: "#B3202A", dark: "#13233A", bg: "#F7F9FC", payTo: "Blue Star HVAC Inc." }
+      footer: "Blue Star HVAC Inc. · 9 Ladd Pl, Watertown, MA · bluestarhvac.inc@gmail.com", role: "Licensed HVAC Contractor", logo: "icons/logo-bluestar.png", logoSm: "icons/mark-bluestar.png", logoW: "2.5in", accent: "#B3202A", dark: "#13233A", bg: "#F7F9FC", payTo: "Blue Star HVAC Inc.", email: "bluestarhvac.inc@gmail.com" }
   };
 
   // ramo da empresa para propostas: id canônico do registro (trades.js; "general" do banco multiempresa → gc)
@@ -60,7 +60,7 @@
   function coFor(id, p) {
     if (CO[id]) return CO[id];
     var c = coRec(id) || (p && p.companyBrand) || null;
-    if (!c) return CO.eternity;
+    if (!c) return p && p._public ? NEUTRAL : CO.eternity; // página do cliente sem dados da empresa: texto neutro (nunca a marca de outra empresa)
     var td = NV.tradeDef(c.trade).proposal, name = c.name || "Company";
     var contact = [c.address, c.email, c.phone].filter(Boolean).join(" · ") || (STATE_NAMES[c.state] || c.state || "");
     var accent = /^#[0-9a-f]{6}$/i.test(c.accent || "") ? c.accent : "#0B7B6A";
@@ -68,6 +68,8 @@
       footer: [name, c.email, c.phone, c.license ? "License " + c.license : ""].filter(Boolean).join(" · "), role: td.role, logo: c.logo || "", logoSm: c.logo || "", logoW: "1.3in",
       accent: accent, dark: "#1F2A28", bg: "#FAFAF8", payTo: name, email: c.email || "", custom: true };
   }
+  // cabeçalho neutro (página pública sem dados da empresa em Configurações → Empresa)
+  var NEUTRAL = { brand: "", title: "PROPOSAL", tagline: "", contact: "", footer: "", role: "Contractor", logo: "", logoSm: "", logoW: "1.3in", accent: "#0B7B6A", dark: "#1F2A28", bg: "#FAFAF8", payTo: "", email: "", custom: true, neutral: true };
   // instantâneo da marca na proposta (a página pública do cliente não carrega as empresas da conta)
   function brandSnap(id) { var c = coRec(id); if (!c || CO[id]) return null; return { name: c.name, trade: c.trade, accent: c.accent || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license || "", state: c.state || "", hicReg: c.hicReg || "" }; }
 
@@ -866,7 +868,7 @@
   (function publicPage() {
     var mt = /[?&]proposta=([0-9a-f-]{36})/i.exec(location.search); if (!mt) return;
     var cfg = window.APP_CONFIG || {}, token = mt[1], app = document.getElementById("app");
-    document.title = "Proposal · Eternity Electric"; document.documentElement.lang = "en-US"; // página do cliente: sempre em inglês
+    document.title = "Proposal"; document.documentElement.lang = "en-US"; // página do cliente: sempre em inglês; marca = empresa de quem enviou (Configurações → Empresa)
     function call(body) {
       if (!cfg.SUPABASE_URL) return Promise.resolve({ error: "DEMO" });
       return fetch(cfg.SUPABASE_URL + "/functions/v1/servicos", { method: "POST", headers: { "Content-Type": "application/json", apikey: cfg.SUPABASE_ANON_KEY, Authorization: "Bearer " + cfg.SUPABASE_ANON_KEY }, body: JSON.stringify(body) })
@@ -877,15 +879,16 @@
     }
     var after = document.createElement("div"); after.id = "pub-after"; document.body.appendChild(after);
     function show(raw) {
-      var p = full(raw), inv = p.docType === "invoice", c = coFor(p.companyId, p);
-      document.title = (inv ? "Invoice " : "Proposal ") + (p.number || "") + " · " + c.brand;
-      document.body.style.background = "#EFE8DC";
-      app.innerHTML = '<div class="pub-bar"><div><b style="font-size:17px">' + esc(c.brand) + '</b><div class="small" style="color:#7a6a55">' + (inv ? "Invoice " : "Proposal ") + esc(p.number || "") + "</div></div>" +
+      var p = full(raw); p._public = true;
+      var inv = p.docType === "invoice", c = coFor(p.companyId, p), bg = c.custom ? "#EEF1F0" : "#EFE8DC";
+      document.title = ((inv ? "Invoice " : "Proposal ") + (p.number || "")).trim() + (c.brand ? " · " + c.brand : "");
+      document.body.style.background = bg;
+      app.innerHTML = '<div class="pub-bar"><div><b style="font-size:17px">' + esc(c.brand || (inv ? "Invoice" : "Proposal")) + '</b><div class="small" style="color:#7a6a55">' + (inv ? "Invoice " : "Proposal ") + esc(p.number || "") + "</div></div>" +
         '<button class="btn" id="pubPdf" type="button">Download PDF</button></div>';
       var root = document.getElementById("print-root");
       if (!root) { root = document.createElement("div"); root.id = "print-root"; document.body.insertBefore(root, after); }
       root.className = "pub"; root.innerHTML = buildDoc(p);
-      document.getElementById("pubPdf").onclick = function () { printDoc(p); setTimeout(function () { root.className = "pub"; document.body.style.background = "#EFE8DC"; }, 2000); };
+      document.getElementById("pubPdf").onclick = function () { printDoc(p); setTimeout(function () { root.className = "pub"; document.body.style.background = bg; }, 2000); };
       if (inv) { after.innerHTML = ""; return; }
       if (p.acceptedAt || p.status === "Aceita") {
         after.innerHTML = '<div class="pub-accept" style="border-color:#2E7D4F"><b style="font-size:18px;color:#2E7D4F">✓ Proposal accepted</b><div>Accepted by <b>' + esc(p.acceptedBy || "") + "</b>" + (p.acceptedAt ? " on " + esc(longDate(String(p.acceptedAt).slice(0, 10))) : "") + ". Thank you! We will contact you shortly to schedule the work.</div></div>";
@@ -895,8 +898,8 @@
         '<div class="small" style="color:#7a6a55">Total: <b style="color:#2B241D">' + money2(p.total) + "</b> · " + esc(p.totalLabel || "") + "</div>" +
         '<label class="field"><span>Your full name</span><input type="text" id="pubName" autocomplete="name" required value="' + esc(p.client.name || "") + '"></label>' +
         '<label class="row" style="align-items:flex-start;gap:8px"><input type="checkbox" id="pubOk" required style="width:auto;margin-top:3px"> <span>I have read and accept the scope of work, pricing and payment terms of this proposal.</span></label>' +
-        '<div class="err" id="pubErr" hidden></div><button class="btn" type="submit" style="background:' + (c.custom ? c.accent : "#B08A4A") + ';color:#fff">Accept proposal</button>' +
-        '<div class="small" style="color:#7a6a55">Questions? Reply to the email you received' + (c.custom ? (c.email ? " or write to " + esc(c.email) : "") : " or write to office@eternityelectrical.com") + ".</div></form>";
+        '<div class="err" id="pubErr" hidden></div><button class="btn" type="submit" style="background:' + (c.accent || "#0B7B6A") + ';color:#fff">Accept proposal</button>' +
+        '<div class="small" style="color:#7a6a55">Questions? Reply to the email you received' + (c.email ? " or write to " + esc(c.email) : "") + ".</div></form>";
       document.getElementById("pubForm").onsubmit = function (ev) {
         ev.preventDefault();
         var name = document.getElementById("pubName").value.trim(), err = document.getElementById("pubErr"), btn = this.querySelector("button");
@@ -910,7 +913,7 @@
     }
     call({ action: "publicGet", token: token }).then(function (r) {
       if (r && r.ok) return show(r.proposal);
-      app.innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">Eternity Electric</div><p>' + (r && r.error === "NOT_FOUND" ? "This link is no longer valid." : "We could not load this document right now. Please try again in a moment.") + "</p></div></div>";
+      app.innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">Online proposal</div><p>' + (r && r.error === "NOT_FOUND" ? "This link is no longer valid." : "We could not load this document right now. Please try again in a moment.") + "</p></div></div>";
     });
   })();
 })();
