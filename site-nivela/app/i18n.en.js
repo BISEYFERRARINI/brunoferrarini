@@ -233,7 +233,7 @@ window.NV.addDict("en", {
   "title": "Create account"
  },
  "login": {
-  "yourJobOnThe": "<div class=\"login-pitch\"><h1>Your job, on the level.</h1><p>Voice estimates, receipts that log themselves, and punch in/out with selfie and GPS.</p>",
+  "yourJobOnThe": "<div class=\"login-pitch\"><h1>From estimate to paid.</h1><p>Voice estimates, receipts that log themselves, and punch in/out with selfie and GPS.</p>",
   "talkInsteadOfTyping": "<div><b>Talk instead of typing</b><span>Describe the job and the estimate comes out in your company's format.</span></div></li>",
   "receiptsThatLogThemselves": "<div><b>Receipts that log themselves</b><span>Snap the receipt: AI figures out the job and the category.</span></div></li>",
   "aTimeClockThe": "<div><b>A time clock the crew respects</b><span>Selfie + GPS detects the job and sends the timesheet every Saturday.</span></div></li></ul></div>",

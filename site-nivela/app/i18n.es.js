@@ -237,7 +237,7 @@ window.NV.addDict("es", {
   "title": "Crear cuenta"
  },
  "login": {
-  "yourJobOnThe": "<div class=\"login-pitch\"><h1>Tu obra, a nivel.</h1><p>Estimados por voz, recibos que se registran solos y marcación de entrada/salida con selfie y GPS.</p>",
+  "yourJobOnThe": "<div class=\"login-pitch\"><h1>Del estimado al pago.</h1><p>Estimados por voz, recibos que se registran solos y marcación de entrada/salida con selfie y GPS.</p>",
   "talkInsteadOfTyping": "<div><b>Habla en vez de escribir</b><span>Describe el trabajo y el estimado sale con el formato de tu empresa.</span></div></li>",
   "receiptsThatLogThemselves": "<div><b>Recibos que se registran solos</b><span>Tómale foto al recibo: la IA identifica la obra y la categoría.</span></div></li>",
   "aTimeClockThe": "<div><b>Un reloj que la cuadrilla respeta</b><span>Selfie + GPS detecta la obra y envía la hoja de horas cada sábado.</span></div></li></ul></div>",

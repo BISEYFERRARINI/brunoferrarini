@@ -233,7 +233,7 @@ window.NV.addDict("pt", {
   "title": "Criar conta"
  },
  "login": {
-  "yourJobOnThe": "<div class=\"login-pitch\"><h1>Sua obra no nível.</h1><p>Propostas por voz, notas que se lançam sozinhas e ponto com selfie e GPS.</p>",
+  "yourJobOnThe": "<div class=\"login-pitch\"><h1>Da proposta ao pagamento.</h1><p>Propostas por voz, notas que se lançam sozinhas e ponto com selfie e GPS.</p>",
   "talkInsteadOfTyping": "<div><b>Fale em vez de digitar</b><span>Descreva o serviço e a proposta sai no padrão da sua empresa.</span></div></li>",
   "receiptsThatLogThemselves": "<div><b>Notas que se lançam sozinhas</b><span>Foto do recibo: a IA descobre a obra e a categoria.</span></div></li>",
   "aTimeClockThe": "<div><b>Ponto que a equipe respeita</b><span>Selfie + GPS detecta a obra e manda a folha todo sábado.</span></div></li></ul></div>",

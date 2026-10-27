@@ -469,7 +469,7 @@
   // ═══════════ login ═══════════
   function loginAside() {
     return '<aside class="login-aside"><img class="login-logo" src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + PRODUCT + '" width="97" height="40">' +
-      t("login.yourJobOnThe", '<div class="login-pitch"><h1>Sua obra no nível.</h1><p>Propostas por voz, notas que se lançam sozinhas e ponto com selfie e GPS.</p>') +
+      t("login.yourJobOnThe", '<div class="login-pitch"><h1>Da proposta ao pagamento.</h1><p>Propostas por voz, notas que se lançam sozinhas e ponto com selfie e GPS.</p>') +
       '<ul class="login-feats"><li>' + ic("mic") + t("login.talkInsteadOfTyping", '<div><b>Fale em vez de digitar</b><span>Descreva o serviço e a proposta sai no padrão da sua empresa.</span></div></li>') +
       "<li>" + ic("camera") + t("login.receiptsThatLogThemselves", '<div><b>Notas que se lançam sozinhas</b><span>Foto do recibo: a IA descobre a obra e a categoria.</span></div></li>') +
       "<li>" + ic("clock") + t("login.aTimeClockThe", '<div><b>Ponto que a equipe respeita</b><span>Selfie + GPS detecta a obra e manda a folha todo sábado.</span></div></li></ul></div>') +
