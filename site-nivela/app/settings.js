@@ -113,7 +113,7 @@
   function sobreTab() {
     return '<section class="panel set-sec"><div class="about"><img src="brand/logo-claro.svg" class="about-logo only-light" alt="' + esc(E.PRODUCT) + '" width="120" height="39"><img src="brand/logo-escuro.svg" class="about-logo only-dark" alt="" width="120" height="39">' +
       '<div><b>' + esc(E.PRODUCT) + " " + esc(E.APP_VERSION) + '</b><div class="muted small">' + esc(t("set.about.tag", "Gestão de obras para empreiteiros")) + " · " + esc(API.mode === "demo" ? t("help.demo", "modo demonstração") : t("help.live", "conectado")) + "</div></div></div>" +
-      '<div class="row" style="margin-top:14px"><a class="btn ghost sm" href="site/termos.html" target="_blank" rel="noopener">' + ic("doc", 16) + esc(t("set.about.terms", "Termos de uso")) + '</a><a class="btn ghost sm" href="site/privacidade.html" target="_blank" rel="noopener">' + ic("lock", 16) + esc(t("set.about.privacy", "Privacidade")) + "</a>" +
+      '<div class="row" style="margin-top:14px"><a class="btn ghost sm" href="/termos.html" target="_blank" rel="noopener">' + ic("doc", 16) + esc(t("set.about.terms", "Termos de uso")) + '</a><a class="btn ghost sm" href="/privacidade.html" target="_blank" rel="noopener">' + ic("lock", 16) + esc(t("set.about.privacy", "Privacidade")) + "</a>" +
       '<button type="button" class="btn ghost sm" data-act="tourStart">' + ic("star", 16) + esc(t("set.about.tour", "Rever o tour")) + '</button><button type="button" class="btn ghost sm" data-act="help">' + ic("help", 16) + esc(t("set.about.help", "Central de ajuda")) + "</button></div></section>";
   }
 

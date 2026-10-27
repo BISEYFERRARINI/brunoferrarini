@@ -2,6 +2,6 @@
   publish = "."
 
 [[headers]]
-  for = "/sw.js"
+  for = "/app/sw.js"
   [headers.values]
     Cache-Control = "no-cache"

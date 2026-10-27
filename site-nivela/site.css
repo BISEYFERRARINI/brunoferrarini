@@ -1,4 +1,4 @@
-/* Nivela · site de vendas. Usa ../brand/tokens.css (cores, fontes, espaços). */
+/* Nivela · site de vendas. Usa /app/brand/tokens.css (cores, fontes, espaços). */
 
 :root {
   --logo-tile: #0B7B6A; --logo-stroke: #FFFFFF; --logo-wedge: #D9773A; --logo-ink: #0D2B27;
