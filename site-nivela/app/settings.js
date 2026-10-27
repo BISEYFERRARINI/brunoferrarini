@@ -1,4 +1,4 @@
-/* Nivela — Configurações (só administrador): Empresa, Aparência, Notificações, Plano e cobrança, Dados, Sobre.
+/* Bisey — Configurações (só administrador): Empresa, Aparência, Notificações, Plano e cobrança, Dados, Sobre.
    Empresa → API.saveCompany (usado no cabeçalho das propostas/PDF das empresas que não são pré-configuradas).
    Plano → API.billingCheckout(plan) (no demo: aviso "disponível quando a cobrança for ativada"). */
 (function () {
@@ -7,7 +7,7 @@
   var S = E.S, API = E.API, EXT = E.EXT, esc = E.esc, t = E.t, ic = E.ic, AC = EXT.actions;
   function $(s) { return document.querySelector(s); }
   var PRESET = { eternity: 1, bluestar: 1 }; // modelos de proposta já prontos (CO em proposals.js)
-  var PALETTE = ["#0B7B6A", "#1F6FD1", "#C98200", "#B3202A", "#6D28D9", "#E2621B", "#15803D", "#334155"];
+  var PALETTE = ["#2A5BFF", "#1F6FD1", "#C98200", "#B3202A", "#6D28D9", "#E2621B", "#15803D", "#334155"];
   var STATES = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"];
   var PLANS = [
     { id: "starter", name: "Starter", price: 49, users: t("plan.starter.u", "2 escritório + 5 campo"), feats: [t("plan.f.proposals", "Propostas, PDF, aceite online e invoice"), t("plan.starter.ai", "IA: 20 propostas por voz e 50 notas/mês"), t("plan.f.punch", "Ponto com selfie + GPS e folha semanal"), t("plan.starter.jobs", "Até 10 obras ativas")] },
@@ -29,7 +29,7 @@
   function inp(key, label, type, attrs) { var d = draft(); return '<label class="field"><span>' + esc(label) + '</span><input type="' + (type || "text") + '" id="set-' + key + '" data-set="' + key + '" value="' + esc(d[key] || "") + '" ' + (attrs || "") + "></label>"; }
 
   function empresaTab() {
-    var d = draft(), preset = PRESET[d.id], cur = d.accent || getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#0B7B6A";
+    var d = draft(), preset = PRESET[d.id], cur = d.accent || getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || "#2A5BFF";
     var logo = d.logo || (E.companyBrand(d.id).logo || "");
     var head = '<section class="panel set-sec"><div class="panel-head"><div><h3>' + esc(t("set.co.title", "Dados da empresa")) + '</h3><span class="muted small">' + esc(API.companies.length > 1 ? t("set.co.which", "Editando {n} · troque a empresa no topo do menu", { n: d.name }) : t("set.co.sub", "Aparecem no app, nas propostas e no PDF")) + "</span></div></div>" +
       '<div class="grid2">' + inp("name", t("set.co.name", "Nome da empresa"), "text", 'autocomplete="organization"') +
@@ -44,7 +44,7 @@
       '<div class="stack" style="gap:6px"><label class="btn ghost sm upload-btn">' + ic("upload", 16) + esc(logo ? t("set.brand.change", "Trocar logo") : t("set.brand.send", "Enviar logo")) + '<input type="file" id="setLogo" accept="image/*"></label>' +
       (d.logo ? '<button type="button" class="btn quiet sm" data-act="setLogoRm">' + esc(t("set.brand.remove", "Remover logo")) + "</button>" : "") + "</div></div>" +
       '<div><div class="ob-swatches" role="radiogroup" aria-label="' + esc(t("set.brand.color", "Cor de destaque")) + '">' + PALETTE.map(function (c) { var on = (d.accent || "").toLowerCase() === c.toLowerCase(); return '<button type="button" role="radio" aria-checked="' + on + '" class="ob-sw' + (on ? " on" : "") + '" style="--sw:' + c + '" data-act="setColor" data-id="' + c + '" aria-label="' + c + '"></button>'; }).join("") +
-      '<label class="ob-sw custom" title="' + esc(t("set.brand.custom", "Outra cor")) + '"><input type="color" id="setColorPick" value="' + esc(/^#[0-9a-f]{6}$/i.test(cur) ? cur : "#0B7B6A") + '" aria-label="' + esc(t("set.brand.custom", "Outra cor")) + '">' + ic("plus", 16) + "</label></div>" +
+      '<label class="ob-sw custom" title="' + esc(t("set.brand.custom", "Outra cor")) + '"><input type="color" id="setColorPick" value="' + esc(/^#[0-9a-f]{6}$/i.test(cur) ? cur : "#2A5BFF") + '" aria-label="' + esc(t("set.brand.custom", "Outra cor")) + '">' + ic("plus", 16) + "</label></div>" +
       '<div class="muted small" style="margin-top:6px">' + (d.accent ? esc(d.accent.toUpperCase()) + ' · <button type="button" class="link-btn" data-act="setColor" data-id="">' + esc(t("set.brand.default", "usar a cor padrão")) + "</button>" : esc(t("set.brand.isDefault", "Cor padrão"))) + "</div></div></div>" +
       '<div class="set-doc"><span class="label">' + esc(t("set.doc.title", "Como aparece no cabeçalho da proposta")) + "</span>" + docPreview(d, logo) + "</div>" +
       (preset ? '<div class="ob-note">' + ic("info", 18) + "<span>" + esc(t("set.doc.preset", "Esta empresa usa o modelo de proposta pré-configurado (logo, endereço e rodapé próprios). Nome, logo e cor mudam no app.")) + "</span></div>" : "") + "</section>";
@@ -64,15 +64,17 @@
       '<div class="doc-tag">' + esc(tag) + (d.license ? " · LIC. " + esc(String(d.license).toUpperCase()) : "") + '</div><div class="doc-contact">' + esc([d.address, d.email, d.phone].filter(Boolean).join(" · ") || t("set.doc.empty", "endereço · e-mail · telefone")) + "</div>" +
       '<div class="doc-title">' + esc(title) + "</div></div>";
   }
+  // subtítulo de cada idioma, escrito no próprio idioma (não traduz)
+  var LANG_SUB = { pt: "Português do Brasil", en: "Construction English: job, crew, punch in/out", es: "Español de obra: cuadrilla, marcar entrada/salida" };
   function aparenciaTab() {
-    var cur = (function () { try { return localStorage.getItem("nivela_theme") || "auto"; } catch (e) { return "auto"; } })();
+    var cur = (function () { try { return localStorage.getItem("bisey_theme") || "auto"; } catch (e) { return "auto"; } })();
     var opt = function (id, label, sub, icon) { return '<button type="button" role="radio" aria-checked="' + (cur === id) + '" class="' + (cur === id ? "on" : "") + '" data-act="setTheme" data-id="' + id + '">' + ic(icon, 20) + "<b>" + esc(label) + "</b><span>" + esc(sub) + "</span></button>"; };
     return '<section class="panel set-sec"><div class="panel-head"><div><h3>' + esc(t("set.look.theme", "Tema")) + '</h3><span class="muted small">' + esc(t("set.look.themeSub", "Escuro cansa menos a vista de manhã cedo e à noite. Fica salvo neste aparelho.")) + "</span></div></div>" +
       '<div class="seg seg3" role="radiogroup" aria-label="' + esc(t("set.look.theme", "Tema")) + '">' + opt("auto", t("set.look.auto", "Automático"), t("set.look.autoSub", "segue o aparelho"), "grid") + opt("light", t("set.look.light", "Claro"), t("set.look.lightSub", "melhor no sol"), "sun") + opt("dark", t("set.look.dark", "Escuro"), t("set.look.darkSub", "manhã cedo e noite"), "moon") + "</div></section>" +
       '<section class="panel set-sec" id="set-lang"><div class="panel-head"><div><h3>' + esc(t("set.look.lang", "Idioma")) + '</h3><span class="muted small">' + esc(t("set.look.langSub2", "Cada pessoa escolhe o seu idioma; fica salvo no seu perfil e neste aparelho. Propostas e invoices continuam saindo em inglês para o cliente.")) + "</span></div></div>" +
-      '<div class="seg" role="radiogroup" aria-label="' + esc(t("set.look.langField", "Idioma do app")) + '">' + window.NV.langs.map(function (x) {
+      '<div class="seg seg-lang" role="radiogroup" aria-label="' + esc(t("set.look.langField", "Idioma do app")) + '">' + window.NV.langs.map(function (x) {
         var on = x[0] === E.LANG;
-        return '<button type="button" role="radio" aria-checked="' + on + '" class="' + (on ? "on" : "") + '" data-act="setLang" data-id="' + x[0] + '" lang="' + (x[0] === "en" ? "en" : "pt-BR") + '"><b>' + esc(x[1]) + "</b><span>" + esc(x[0] === "en" ? "Construction English: job, crew, punch in/out" : "Português do Brasil") + "</span></button>";
+        return '<button type="button" role="radio" aria-checked="' + on + '" class="' + (on ? "on" : "") + '" data-act="setLang" data-id="' + x[0] + '" lang="' + window.NV.langTag(x[0]) + '"><b>' + esc(x[1]) + "</b><span>" + esc(LANG_SUB[x[0]] || "") + "</span></button>";
       }).join("") + "</div></section>";
   }
   function notifTab() {
@@ -97,7 +99,8 @@
         "<ul>" + p.feats.map(function (f) { return "<li>" + ic("check", 16) + esc(f) + "</li>"; }).join("") + "</ul>" +
         '<button type="button" class="btn' + (p.best ? "" : " ghost") + ' block" data-act="setCheckout" data-id="' + p.id + '"' + (S.setBusy ? " disabled" : "") + ">" + esc(plan === p.id ? t("plan.yours", "Seu plano") : t("plan.choose", "Assinar {n}", { n: p.name })) + "</button></section>";
     }).join("") + "</div>";
-    return cur + cards + '<p class="muted small">' + esc(t("plan.note", "Anual: 2 meses grátis. Usuário extra: campo $5 · escritório $19. Pagamento seguro pelo Stripe; cancele quando quiser.")) + "</p>";
+    var refd = org && org.referredByName ? '<div class="ob-note">' + ic("gift", 18) + "<span>" + esc(t("refer.youWereReferred", "Você foi indicado por {n}: o seu 1º mês pago sai de graça.", { n: org.referredByName })) + "</span></div>" : "";
+    return cur + refd + cards + (E.referralCard ? E.referralCard() : "") + '<p class="muted small">' + esc(t("plan.note", "Anual: 2 meses grátis. Usuário extra: campo $5 · escritório $19. Pagamento seguro pelo Stripe; cancele quando quiser.")) + "</p>";
   }
   function dadosTab() {
     var demo = API.mode === "demo", org = API.currentOrg ? API.currentOrg() : null;
@@ -111,7 +114,7 @@
         '<p class="muted small" style="margin-top:8px">' + esc(t("set.data.resetSub", "“Restaurar exemplos” volta a conta de exemplo (bruno / 1234) ao começo.")) + "</p></section>" : "");
   }
   function sobreTab() {
-    return '<section class="panel set-sec"><div class="about"><img src="brand/logo-claro.svg" class="about-logo only-light" alt="' + esc(E.PRODUCT) + '" width="120" height="39"><img src="brand/logo-escuro.svg" class="about-logo only-dark" alt="" width="120" height="39">' +
+    return '<section class="panel set-sec"><div class="about"><img src="brand/logo/bisey-lockup-horizontal-color.svg" class="about-logo only-light" alt="' + esc(E.PRODUCT) + '" width="94" height="39"><img src="brand/logo/bisey-lockup-horizontal-reverse.svg" class="about-logo only-dark" alt="" width="94" height="39">' +
       '<div><b>' + esc(E.PRODUCT) + " " + esc(E.APP_VERSION) + '</b><div class="muted small">' + esc(t("set.about.tag", "Gestão de obras para empreiteiros")) + " · " + esc(API.mode === "demo" ? t("help.demo", "modo demonstração") : t("help.live", "conectado")) + "</div></div></div>" +
       '<div class="row" style="margin-top:14px"><a class="btn ghost sm" href="/termos.html" target="_blank" rel="noopener">' + ic("doc", 16) + esc(t("set.about.terms", "Termos de uso")) + '</a><a class="btn ghost sm" href="/privacidade.html" target="_blank" rel="noopener">' + ic("lock", 16) + esc(t("set.about.privacy", "Privacidade")) + "</a>" +
       '<button type="button" class="btn ghost sm" data-act="tourStart">' + ic("star", 16) + esc(t("set.about.tour", "Rever o tour")) + '</button><button type="button" class="btn ghost sm" data-act="help">' + ic("help", 16) + esc(t("set.about.help", "Central de ajuda")) + "</button></div></section>";
@@ -166,7 +169,7 @@
           var strip64 = function (x) { return JSON.parse(JSON.stringify(x, function (key, v) { return typeof v === "string" && v.length > 2000 && /^data:/.test(v) ? t("settings.imageOmitted", "[imagem omitida]") : v; })); };
           var out = { app: E.PRODUCT, version: E.APP_VERSION, exportedAt: new Date().toISOString(), company: company(), org: API.currentOrg ? API.currentOrg() : null,
             projects: r[0], financials: r[1], time: r[2], expenses: r[3], proposals: r[4], notices: r[5], users: (r[6] || []).map(strip), events: r[7], schedule: r[8], materials: r[9], deals: r[10] };
-          download("nivela-" + co + "-" + stamp() + ".json", JSON.stringify(strip64(out), null, 1), "application/json");
+          download("bisey-" + co + "-" + stamp() + ".json", JSON.stringify(strip64(out), null, 1), "application/json");
           E.toast(t("set.data.done", "Arquivo baixado."));
         });
       return;
@@ -177,7 +180,7 @@
     else if (k === "expenses") { rows = [[t("settings.date", "Data"), t("settings.type", "Tipo"), t("settings.category", "Categoria"), t("settings.project", "Projeto"), t("settings.vendor", "Fornecedor"), t("settings.amount", "Valor"), t("settings.note", "Observação")]]; S.expenses.filter(function (x) { return x.companyId === co; }).forEach(function (x) { rows.push([x.date, x.kind === "revenue" ? t("settings.revenue", "Receita") : t("settings.expense", "Despesa"), x.category, pn(x.projectId), x.vendor, x.amount, x.note]); }); }
     else if (k === "proposals") { rows = [[t("settings.number", "Número"), t("settings.type", "Tipo"), t("settings.customer", "Cliente"), t("settings.address", "Endereço"), t("settings.date", "Data"), t("settings.status", "Status"), "Total"]]; (S.proposals || []).filter(function (p) { return p.companyId === co; }).forEach(function (p) { rows.push([p.number, p.docType === "invoice" ? "Invoice" : E.t("proposals.rowEstimate", "Proposta"), (p.client || {}).name, (p.client || {}).address, p.date, E.tv(p.status), p.total]); }); }
     else { rows = [[t("settings.name", "Nome"), t("settings.username", "Usuário"), t("settings.role", "Papel"), t("settings.company", "Empresa"), t("settings.hourlyRate", "Valor/hora"), t("settings.active", "Ativo"), t("settings.csvEmail", "E-mail")]]; (S.users || []).forEach(function (u) { rows.push([u.name, u.username, E.roleLabel(u), E.companyName(u.companyId), u.rate, u.active ? t("settings.yes", "Sim") : t("settings.no", "Não"), u.email]); }); }
-    E.csvDownload("nivela-" + k + "-" + stamp() + ".csv", rows);
+    E.csvDownload("bisey-" + k + "-" + stamp() + ".csv", rows);
   };
 
   // campos (sem redesenhar a cada tecla)

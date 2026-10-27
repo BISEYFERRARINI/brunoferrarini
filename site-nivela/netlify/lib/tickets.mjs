@@ -1,4 +1,4 @@
-// Nivela Assist — tickets (pedidos para uma pessoa) e leads (teste guiado).
+// Bisey Assist — tickets (pedidos para uma pessoa) e leads (teste guiado).
 import { store, bump } from "./store.mjs";
 import { newId, day, clip } from "./util.mjs";
 import { loadConv, saveConv, newConv, summarize, transcript } from "./brain.mjs";

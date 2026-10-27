@@ -14,7 +14,7 @@ export default async (req) => {
   let b; try { b = await readJSON(req, 120000); } catch (e) { return json(req, { error: e.message }, e.status || 400); }
   const from = cleanEmail(b.from);
   if (!from) return json(req, { skip: true, reason: "bad_from" });
-  if (/@getnivela\.com$/i.test(from)) return json(req, { skip: true, reason: "own_domain" }); // anti-loop (o Apps Script também filtra)
+  if (/@(getbisey|getnivela)\.com$/i.test(from)) return json(req, { skip: true, reason: "own_domain" }); // anti-loop (o Apps Script também filtra); getnivela.com = domínio antigo (antes chamado Nivela), ainda pode ser apelido no Workspace
   const threadId = String(b.threadId || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 60);
   if (!threadId) return json(req, { error: "THREAD" }, 400);
   const w = windows();

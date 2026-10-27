@@ -1,21 +1,25 @@
-/* Nivela Assist — widget de atendimento (JS puro, sem dependências).
+/* Bisey Assist — widget de atendimento (JS puro, sem dependências).
    Site:  <script src="/app/support/assist.js" defer data-channel="site"></script>  → botão flutuante "Ajuda"
-   App:   help.js carrega este arquivo só quando a pessoa abre o Assist (NivelaAssist.open({ channel: "app", ... })).
-   Opções (NivelaAssist.init/open): { channel, api, launcher, lang: fn|str, getContext: fn, getContact: fn, onNavigate: fn(view) → bool }
+   App:   help.js carrega este arquivo só quando a pessoa abre o Assist (BiseyAssist.open({ channel: "app", ... })).
+   Opções (BiseyAssist.init/open): { channel, api, launcher, lang: fn|str, getContext: fn, getContact: fn, onNavigate: fn(view) → bool,
+     strings: fn(chave) → texto|null (o app troca nome, saudação etc. pelos textos dele, com t()),
+     suggest: fn() → [perguntas da tela atual], localSearch: fn(pergunta) → [{ q, a, view }] (ajuda local quando a IA não responde),
+     showLabel: texto do botão "Mostrar onde" }
+   No app, links de tela aceitam "/app/#tela", "/app/#show:tela" (abre e destaca no menu) e "/app/#tour" (começa o tour).
    Conversa salva por sessão neste aparelho (localStorage com try/catch). Idioma PT/EN/ES (app/página/navegador).
    O servidor (/api/assist) responde só com a base de conhecimento; "Falar com uma pessoa" fica sempre visível. */
 (function () {
   "use strict";
-  if (window.NivelaAssist) return;
+  if (window.BiseyAssist) return;
   var SCRIPT = document.currentScript;
   var BASE = SCRIPT && SCRIPT.src ? SCRIPT.src.replace(/[^/]*(\?.*)?$/, "") : "";
 
   // ═══════════ textos ═══════════
   var T = {
     pt: {
-      launch: "Ajuda", title: "Nivela Assist", sub: "Assistente com IA · responde na hora", human: "Falar com uma pessoa", close: "Fechar", reset: "Nova conversa",
-      hello: "Oi! Sou o Nivela Assist, o assistente do Nivela (IA). Respondo na hora sobre o app. O que eu não resolver, uma pessoa da equipe responde por e-mail.",
-      placeholder: "Escreva sua pergunta…", send: "Enviar", typing: "Nivela Assist está digitando", note: "IA pode errar. Não envie senha nem cartão.",
+      launch: "Ajuda", title: "Bisey Assist", sub: "Assistente com IA · responde na hora", human: "Falar com uma pessoa", close: "Fechar", reset: "Nova conversa",
+      hello: "Oi! Sou o Bisey Assist, o assistente do Bisey (IA). Respondo na hora sobre o app. O que eu não resolver, uma pessoa da equipe responde por e-mail.",
+      placeholder: "Escreva sua pergunta…", send: "Enviar", typing: "Bisey Assist está digitando", note: "IA pode errar. Não envie senha nem cartão.",
       up: "Resposta útil", down: "Resposta não ajudou", thanks: "Obrigado pelo retorno!", downThanks: "Obrigado. Vou registrar para melhorar. Quer falar com uma pessoa?",
       offerHuman: "Quer que eu passe para uma pessoa da equipe?", yesHuman: "Sim, falar com uma pessoa",
       hTitle: "Falar com uma pessoa", hText: "Respondemos por e-mail em até 1 dia útil (seg–sex). A conversa vai junto: você não precisa repetir nada.",
@@ -24,12 +28,12 @@
       leadQ: "Quer que a gente te mande um teste guiado? É rápido e sem compromisso.", leadYes: "Quero", leadNo: "Agora não",
       lTitle: "Teste guiado", lText: "Tudo é opcional, menos o e-mail para a gente responder.", company: "Empresa", trade: "Ramo", team: "Tamanho da equipe", lSend: "Pedir teste guiado",
       teamOpts: ["Só eu", "2–5", "6–15", "16–40", "Mais de 40"], tradeOther: "Outro", choose: "Escolha…",
-      open: "Abrir", sent: "Pedido enviado"
+      open: "Abrir", sent: "Pedido enviado", localIntro: "Não consegui falar com a IA agora. Achei isto na ajuda do app:", show: "Mostrar onde"
     },
     en: {
-      launch: "Help", title: "Nivela Assist", sub: "AI assistant · instant answers", human: "Talk to a person", close: "Close", reset: "New conversation",
-      hello: "Hi! I'm Nivela Assist, Nivela's AI assistant. I answer questions about the app right away. Anything I can't solve, a person on the team answers by email.",
-      placeholder: "Type your question…", send: "Send", typing: "Nivela Assist is typing", note: "AI can make mistakes. Never send passwords or card numbers.",
+      launch: "Help", title: "Bisey Assist", sub: "AI assistant · instant answers", human: "Talk to a person", close: "Close", reset: "New conversation",
+      hello: "Hi! I'm Bisey Assist, Bisey's AI assistant. I answer questions about the app right away. Anything I can't solve, a person on the team answers by email.",
+      placeholder: "Type your question…", send: "Send", typing: "Bisey Assist is typing", note: "AI can make mistakes. Never send passwords or card numbers.",
       up: "Helpful answer", down: "Didn't help", thanks: "Thanks for the feedback!", downThanks: "Thanks. I'll log it so we improve. Want to talk to a person?",
       offerHuman: "Want me to pass this to a person on the team?", yesHuman: "Yes, talk to a person",
       hTitle: "Talk to a person", hText: "We reply by email within 1 business day (Mon–Fri). The conversation goes along, so you won't need to repeat anything.",
@@ -38,12 +42,12 @@
       leadQ: "Want us to send you a guided trial? Quick, no strings attached.", leadYes: "Yes, please", leadNo: "Not now",
       lTitle: "Guided trial", lText: "Everything is optional except the email, so we can reply.", company: "Company", trade: "Trade", team: "Crew size", lSend: "Request guided trial",
       teamOpts: ["Just me", "2–5", "6–15", "16–40", "40+"], tradeOther: "Other", choose: "Choose…",
-      open: "Open", sent: "Request sent"
+      open: "Open", sent: "Request sent", localIntro: "I couldn't reach the AI right now. Here's what I found in the app's help:", show: "Show me where"
     },
     es: {
-      launch: "Ayuda", title: "Nivela Assist", sub: "Asistente con IA · responde al instante", human: "Hablar con una persona", close: "Cerrar", reset: "Nueva conversación",
-      hello: "¡Hola! Soy Nivela Assist, el asistente de Nivela (IA). Respondo al instante sobre la app. Lo que no pueda resolver, una persona del equipo lo responde por e-mail.",
-      placeholder: "Escribe tu pregunta…", send: "Enviar", typing: "Nivela Assist está escribiendo", note: "La IA puede equivocarse. No envíes contraseñas ni tarjetas.",
+      launch: "Ayuda", title: "Bisey Assist", sub: "Asistente con IA · responde al instante", human: "Hablar con una persona", close: "Cerrar", reset: "Nueva conversación",
+      hello: "¡Hola! Soy Bisey Assist, el asistente de Bisey (IA). Respondo al instante sobre la app. Lo que no pueda resolver, una persona del equipo lo responde por e-mail.",
+      placeholder: "Escribe tu pregunta…", send: "Enviar", typing: "Bisey Assist está escribiendo", note: "La IA puede equivocarse. No envíes contraseñas ni tarjetas.",
       up: "Respuesta útil", down: "No ayudó", thanks: "¡Gracias por tu opinión!", downThanks: "Gracias. Lo registro para mejorar. ¿Quieres hablar con una persona?",
       offerHuman: "¿Quieres que lo pase a una persona del equipo?", yesHuman: "Sí, hablar con una persona",
       hTitle: "Hablar con una persona", hText: "Respondemos por e-mail en hasta 1 día hábil (lun–vie). La conversación va junto: no necesitas repetir nada.",
@@ -52,38 +56,38 @@
       leadQ: "¿Quieres que te enviemos una prueba guiada? Es rápido y sin compromiso.", leadYes: "Sí, quiero", leadNo: "Ahora no",
       lTitle: "Prueba guiada", lText: "Todo es opcional menos el e-mail, para poder responderte.", company: "Empresa", trade: "Rubro", team: "Tamaño del equipo", lSend: "Pedir prueba guiada",
       teamOpts: ["Solo yo", "2–5", "6–15", "16–40", "Más de 40"], tradeOther: "Otro", choose: "Elige…",
-      open: "Abrir", sent: "Pedido enviado"
+      open: "Abrir", sent: "Pedido enviado", localIntro: "No pude hablar con la IA ahora. Encontré esto en la ayuda de la app:", show: "Mostrar dónde"
     }
   };
   var TRADES = { pt: ["Elétrica", "HVAC", "Plumbing", "Sprinkler", "General contractor", "Drywall", "Pintura", "Piso", "Siding", "Telhado", "Fundação"], en: ["Electrical", "HVAC", "Plumbing", "Fire sprinkler", "General contractor", "Drywall", "Painting", "Flooring", "Siding", "Roofing", "Foundation"], es: ["Electricidad", "HVAC", "Plomería", "Rociadores", "General contractor", "Drywall", "Pintura", "Pisos", "Siding", "Techos", "Cimientos"] };
 
   // sugestões: site e cada tela do app (admin/gerente) e do funcionário
   var SUG = {
-    site: { pt: ["Quanto custa?", "Posso testar grátis?", "Funciona em português e inglês?", "Como funciona o ponto com GPS?"], en: ["How much is it?", "Can I try it for free?", "Does it work in Portuguese?", "How does the GPS time clock work?"], es: ["¿Cuánto cuesta?", "¿Puedo probarlo gratis?", "¿Está en español?", "¿Cómo funciona el reloj con GPS?"] },
+    site: { pt: ["Quanto custa?", "Posso testar grátis?", "Funciona em português, inglês e espanhol?", "Como funciona o ponto com GPS?"], en: ["How much is it?", "Can I try it for free?", "Does it work in Portuguese?", "How does the GPS time clock work?"], es: ["¿Cuánto cuesta?", "¿Puedo probarla gratis?", "¿Está en español?", "¿Cómo funciona el reloj con GPS?"] },
     dashboard: { pt: ["O que é o limite de gastos?", "De onde vem a mão de obra?", "Como vejo só uma obra?"], en: ["What's the spending limit?", "Where does labor cost come from?", "How do I see a single job?"], es: ["¿Qué es el límite de gastos?", "¿De dónde sale la mano de obra?", "¿Cómo veo una sola obra?"] },
-    projects: { pt: ["Como crio um projeto?", "O funcionário vê os valores?", "Como apago um projeto?", "O que o “Sugerir pela ficha” faz?"], en: ["How do I create a job?", "Can my crew see the money?", "How do I delete a job?", "What does “Suggest from specs” do?"], es: ["¿Cómo creo un proyecto?", "¿El empleado ve los valores?", "¿Cómo borro un proyecto?"] },
-    proposals: { pt: ["Como faço uma proposta por voz?", "Como o cliente aceita online?", "Como viro a proposta em invoice?", "Como gero o PDF?"], en: ["How do I write an estimate by voice?", "How does the customer accept online?", "How do I turn it into an invoice?", "How do I get the PDF?"], es: ["¿Cómo hago una propuesta por voz?", "¿Cómo acepta el cliente en línea?", "¿Cómo la convierto en invoice?"] },
-    time: { pt: ["Como corrijo um ponto?", "Esqueceram de bater a saída", "“Fora do raio”: o que fazer?", "Como vejo o pagamento da semana?"], en: ["How do I fix a punch?", "Someone forgot to punch out", "“Out of range”: what now?", "Where's the weekly pay?"], es: ["¿Cómo corrijo una marcación?", "Olvidaron marcar la salida", "“Fuera del radio”: ¿qué hago?"] },
-    team: { pt: ["Como cadastro um funcionário?", "Qual a diferença entre gerente e funcionário?", "Como troco a senha de alguém?"], en: ["How do I add an employee?", "Manager vs. employee?", "How do I reset someone's password?"], es: ["¿Cómo agrego un empleado?", "¿Diferencia entre gerente y empleado?", "¿Cómo cambio la contraseña de alguien?"] },
+    projects: { pt: ["Como crio um projeto?", "O funcionário vê os valores?", "Como apago um projeto?", "O que o “Sugerir pela ficha” faz?"], en: ["How do I create a job?", "Can my crew see the money?", "How do I delete a job?", "What does “Suggest from specs” do?"], es: ["¿Cómo creo una obra?", "¿Mi cuadrilla ve el dinero?", "¿Cómo borro una obra?", "¿Qué hace “Sugerir según la ficha”?"] },
+    proposals: { pt: ["Como faço uma proposta por voz?", "Como o cliente aceita online?", "Como viro a proposta em invoice?", "Como gero o PDF?"], en: ["How do I write an estimate by voice?", "How does the customer accept online?", "How do I turn it into an invoice?", "How do I get the PDF?"], es: ["¿Cómo hago un estimado por voz?", "¿Cómo acepta el cliente en línea?", "¿Cómo lo convierto en factura?", "¿Cómo saco el PDF?"] },
+    time: { pt: ["Como corrijo um ponto?", "Esqueceram de bater a saída", "“Fora do raio”: o que fazer?", "Como vejo o pagamento da semana?"], en: ["How do I fix a punch?", "Someone forgot to punch out", "“Out of range”: what now?", "Where's the weekly pay?"], es: ["¿Cómo corrijo una marcación?", "Alguien olvidó marcar la salida", "“Fuera del radio”: ¿qué hago?", "¿Dónde está el pago de la semana?"] },
+    team: { pt: ["Como cadastro um funcionário?", "Qual a diferença entre gerente e funcionário?", "Como troco a senha de alguém?"], en: ["How do I add an employee?", "Manager vs. employee?", "How do I reset someone's password?"], es: ["¿Cómo agrego un empleado?", "¿Gerente o empleado?", "¿Cómo cambio la contraseña de alguien?"] },
     escala: { pt: ["Como monto a escala da semana?", "O funcionário vê a escala?"], en: ["How do I build the weekly schedule?", "Can my crew see the schedule?"], es: ["¿Cómo armo el horario de la semana?", "¿El empleado ve el horario?"] },
     agenda: { pt: ["Como crio um compromisso?", "Quem recebe os compromissos?"], en: ["How do I add an appointment?", "Who gets the appointments?"], es: ["¿Cómo creo una cita?", "¿Quién recibe las citas?"] },
     avisos: { pt: ["O que é um aviso?", "Como marco um aviso como resolvido?"], en: ["What's a notice?", "How do I mark a notice resolved?"], es: ["¿Qué es un aviso?", "¿Cómo marco un aviso como resuelto?"] },
     gastos: { pt: ["Como lanço uma despesa?", "Como registro um pagamento recebido?"], en: ["How do I add an expense?", "How do I log a payment received?"], es: ["¿Cómo registro un gasto?", "¿Cómo registro un pago recibido?"] },
-    notas: { pt: ["Como lanço uma nota com foto?", "E se a leitura errar?"], en: ["How do I add a receipt photo?", "What if the reading is wrong?"], es: ["¿Cómo subo una factura con foto?", "¿Y si la lectura sale mal?"] },
+    notas: { pt: ["Como lanço uma nota com foto?", "E se a leitura errar?"], en: ["How do I add a receipt photo?", "What if the reading is wrong?"], es: ["¿Cómo subo la foto de un recibo?", "¿Y si la lectura sale mal?"] },
     reports: { pt: ["Como baixo a folha de horas?", "Como exporto para o contador?"], en: ["How do I download the timesheet?", "How do I export for my accountant?"], es: ["¿Cómo descargo las horas?", "¿Cómo exporto para el contador?"] },
-    prices: { pt: ["Para que servem “Meus preços”?", "Como anoto uma oferta?"], en: ["What are “My prices” for?", "How do I log a deal?"], es: ["¿Para qué sirven “Mis precios”?"] },
-    settings: { pt: ["Como troco o logo e a cor?", "Onde coloco o registro HIC?", "Como exporto meus dados?"], en: ["How do I change logo and color?", "Where do I add my HIC number?", "How do I export my data?"], es: ["¿Cómo cambio el logo y el color?", "¿Cómo exporto mis datos?"] },
-    punch: { pt: ["Como bato o ponto?", "A câmera não abre", "Diz que estou fora do raio", "Bati na obra errada"], en: ["How do I punch in?", "The camera won't open", "It says I'm out of range", "I punched in at the wrong job"], es: ["¿Cómo marco la entrada?", "La cámara no abre", "Dice que estoy fuera del radio"] },
+    prices: { pt: ["Para que servem “Meus preços”?", "Como anoto uma oferta?"], en: ["What are “My prices” for?", "How do I log a deal?"], es: ["¿Para qué sirven “Mis precios”?", "¿Cómo anoto una oferta?"] },
+    settings: { pt: ["Como troco o logo e a cor?", "Onde coloco o registro HIC?", "Como exporto meus dados?"], en: ["How do I change logo and color?", "Where do I add my HIC number?", "How do I export my data?"], es: ["¿Cómo cambio el logo y el color?", "¿Dónde pongo mi número HIC?", "¿Cómo exporto mis datos?"] },
+    punch: { pt: ["Como bato o ponto?", "A câmera não abre", "Diz que estou fora do raio", "Bati na obra errada"], en: ["How do I punch in?", "The camera won't open", "It says I'm out of range", "I punched in at the wrong job"], es: ["¿Cómo marco la entrada?", "La cámara no abre", "Dice que estoy fuera del radio", "Marqué entrada en la obra equivocada"] },
     jobs: { pt: ["Como marco uma tarefa como feita?", "Como mando um aviso com foto?"], en: ["How do I mark a task done?", "How do I send a notice with a photo?"], es: ["¿Cómo marco una tarea como hecha?", "¿Cómo envío un aviso con foto?"] },
     me: { pt: ["Como troco o idioma?", "Onde vejo minhas horas?"], en: ["How do I change the language?", "Where are my hours?"], es: ["¿Cómo cambio el idioma?", "¿Dónde veo mis horas?"] },
-    "default": { pt: ["Como instalo no celular?", "Funciona sem internet?", "Como troco o idioma?"], en: ["How do I install it on my phone?", "Does it work offline?", "How do I change the language?"], es: ["¿Cómo la instalo en el celular?", "¿Funciona sin internet?"] }
+    "default": { pt: ["Como instalo no celular?", "Funciona sem internet?", "Como troco o idioma?"], en: ["How do I install it on my phone?", "Does it work offline?", "How do I change the language?"], es: ["¿Cómo la instalo en el celular?", "¿Funciona sin internet?", "¿Cómo cambio el idioma?"] }
   };
   var VIEW_ALIAS = { project: "projects", projectForm: "projects", proposalForm: "proposals", hours: "dashboard", myexp: "notas" };
 
   // ═══════════ estado ═══════════
   var O = { channel: "site", api: "/api/assist", launcher: true }, st = null, root = null, lastFocus = null, busy = false;
   function store(k, v) { try { if (v === undefined) return JSON.parse(localStorage.getItem(k) || "null"); localStorage.setItem(k, JSON.stringify(v)); } catch (e) { return null; } }
-  function key() { return "nivela_assist_v1_" + O.channel; }
+  function key() { return "bisey_assist_v1_" + O.channel; }
   function rid() { try { var a = new Uint8Array(8); crypto.getRandomValues(a); return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); } catch (e) { return Math.random().toString(16).slice(2, 18); } }
   function load() {
     var s = store(key());
@@ -97,21 +101,21 @@
     l = String(l).toLowerCase();
     return l.indexOf("pt") === 0 ? "pt" : l.indexOf("es") === 0 ? "es" : "en";
   }
-  function tx(k) { var l = L(); return (T[l] || T.en)[k]; }
+  function tx(k) { var o = null; try { o = typeof O.strings === "function" ? O.strings(k) : O.strings && O.strings[k]; } catch (e) {} if (o != null) return o; var l = L(); return (T[l] || T.en)[k]; }
   function ctx() { var c = {}; try { c = (O.getContext && O.getContext()) || {}; } catch (e) {} if (!c.page) c.page = location.pathname + location.hash; return c; }
   function contact() { try { return (O.getContact && O.getContact()) || {}; } catch (e) { return {}; } }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // ═══════════ links: só getnivela.com; no app, "/app/#tela" navega dentro do app ═══════════
+  // ═══════════ links: só getbisey.com; no app, "/app/#tela" navega dentro do app ═══════════
   function safeUrl(u) {
     u = String(u || "").trim();
     if (/^#[\w-]*$/.test(u) || /^\/(?!\/)\S*$/.test(u)) return u;
-    if (/^mailto:[^@\s]+@([a-z0-9-]+\.)*getnivela\.com/i.test(u)) return u;
-    try { var x = new URL(u); if (/^https?:$/.test(x.protocol) && /(^|\.)getnivela\.com$/i.test(x.hostname)) return x.href; } catch (e) {}
+    if (/^mailto:[^@\s]+@([a-z0-9-]+\.)*getbisey\.com/i.test(u)) return u;
+    try { var x = new URL(u); if (/^https?:$/.test(x.protocol) && /(^|\.)getbisey\.com$/i.test(x.hostname)) return x.href; } catch (e) {}
     return null;
   }
-  function appView(u) { var m = /^(?:https?:\/\/(?:www\.)?getnivela\.com)?\/app\/?(?:index\.html)?(?:\?[^#]*)?#([a-zA-Z]+)$/.exec(u || ""); return m ? m[1] : null; }
+  function appView(u) { var m = /^(?:https?:\/\/(?:www\.)?getbisey\.com)?\/app\/?(?:index\.html)?(?:\?[^#]*)?#((?:show:)?[a-zA-Z]+)$/.exec(u || ""); return m ? m[1] : null; }
   function linkAttrs(u) {
     var v = appView(u);
     if (v && O.channel === "app") return ' href="' + esc(u) + '" data-nva-nav="' + esc(v) + '"';
@@ -121,10 +125,10 @@
 
   // markdown mínimo e seguro: **negrito**, listas, links (só nossos), quebras de linha; tira a assinatura
   function md(text) {
-    var lines = String(text || "").replace(/\r/g, "").split("\n").filter(function (l) { return !/^\s*—\s*Nivela Assist/.test(l); });
+    var lines = String(text || "").replace(/\r/g, "").split("\n").filter(function (l) { return !/^\s*—\s*Bisey Assist/.test(l); });
     var out = [], list = null;
     function inline(s) {
-      var parts = [], re = /\[([^\]]{1,120})\]\(([^)\s]{1,400})\)|(https?:\/\/[^\s<>()]+[^\s<>().,;:!?])|([A-Za-z0-9._%+-]+@getnivela\.com)/g, last = 0, m;
+      var parts = [], re = /\[([^\]]{1,120})\]\(([^)\s]{1,400})\)|(https?:\/\/[^\s<>()]+[^\s<>().,;:!?])|([A-Za-z0-9._%+-]+@getbisey\.com)/g, last = 0, m;
       while ((m = re.exec(s))) {
         parts.push(fmt(s.slice(last, m.index)));
         if (m[1]) { var u = safeUrl(m[2]); parts.push(u ? "<a" + linkAttrs(u) + ">" + fmt(m[1]) + "</a>" : fmt(m[1])); }
@@ -205,7 +209,7 @@
   function log() { return root.querySelector(".nva-log"); }
   function bubble(m) {
     var me = m.role === "user", h = '<div class="nva-msg ' + (me ? "me" : "bot") + (m.kind ? " " + m.kind : "") + '" data-id="' + esc(m.id || "") + '">';
-    h += '<div class="nva-b">' + (me ? "<p>" + esc(m.text).replace(/\n/g, "<br>") + "</p>" : md(m.text)) + "</div>";
+    h += '<div class="nva-b">' + (me ? "<p>" + esc(m.text).replace(/\n/g, "<br>") + "</p>" : md(m.text) + (m.local ? localHtml(m) : "")) + "</div>";
     if (!me && m.actions && m.actions.length) h += '<div class="nva-acts">' + m.actions.map(function (a) { var u = safeUrl(a.url); return u ? "<a class=\"nva-act\"" + linkAttrs(u) + ">" + esc(a.label) + "</a>" : ""; }).join("") + "</div>";
     if (!me && m.id && !m.kind) {
       h += '<div class="nva-rate" role="group" aria-label="' + esc(tx("up")) + " / " + esc(tx("down")) + '">' +
@@ -215,6 +219,8 @@
     return h + "</div>";
   }
   function suggestions() {
+    var own = null; try { own = O.suggest && O.suggest(); } catch (e) {}
+    if (own && own.length) return '<div class="nva-chips" role="group">' + own.slice(0, 4).map(function (q) { return '<button type="button" class="nva-chip" data-nva="ask">' + esc(q) + "</button>"; }).join("") + "</div>";
     var key = "site";
     if (O.channel === "app") { var v = (ctx().appView) || ""; v = VIEW_ALIAS[v] || v; if (ctx().role === "employee" && v === "projects") v = "jobs"; key = SUG[v] ? v : "default"; }
     var l = L(), list = (SUG[key][l] || SUG[key].en).slice(0, 4);
@@ -280,6 +286,17 @@
     if (on && !x) { var d = document.createElement("div"); d.className = "nva-msg bot nva-typing"; d.innerHTML = '<div class="nva-b"><span class="nva-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="nva-sr">' + esc(tx("typing")) + "</span></div>"; log().insertBefore(d, root.querySelector(".nva-extra")); scroll(); }
     if (!on && x) x.remove();
   }
+  // ajuda local (artigos do app) quando a IA não responde ou não há internet
+  function localAnswer(text) {
+    var hits = []; try { hits = (O.localSearch && O.localSearch(text)) || []; } catch (e) {}
+    if (!hits.length) return null;
+    return { role: "assistant", kind: "sys local", text: tx("localIntro") || "", local: hits.slice(0, 3), handoff: true, ts: Date.now() };
+  }
+  function localHtml(m) {
+    return '<div class="nva-local">' + (m.local || []).map(function (h) {
+      return '<div class="nva-art"><b>' + esc(h.q) + "</b><p>" + esc(h.a) + "</p>" + (h.view && O.channel === "app" ? '<a class="nva-act" href="/app/#show:' + esc(h.view) + '" data-nva-nav="show:' + esc(h.view) + '">' + esc(O.showLabel || tx("show") || "→") + "</a>" : "") + "</div>";
+    }).join("") + "</div>";
+  }
   function send(text) {
     text = String(text || "").trim(); if (!text || busy) return;
     var ta = root.querySelector("textarea"); ta.value = ""; ta.style.height = "auto";
@@ -289,15 +306,20 @@
     var tmp = document.createElement("div"); tmp.innerHTML = bubble(st.msgs[st.msgs.length - 1]); log().insertBefore(tmp.firstChild, root.querySelector(".nva-extra")); extra("");
     busy = true; root.querySelector(".nva-send").disabled = true; typing(true);
     var hist = st.msgs.filter(function (m) { return !m.kind; }).slice(-12).map(function (m) { return { role: m.role, text: m.text }; });
-    post("", { channel: O.channel, sessionId: st.sid, lang: L(), messages: hist, context: ctx(), contact: st.contact || (contact().email ? contact() : undefined) }).then(function (r) {
+    var offline = typeof navigator !== "undefined" && navigator.onLine === false;
+    (offline ? Promise.reject(new Error("offline")) : post("", { channel: O.channel, sessionId: st.sid, lang: L(), messages: hist, context: ctx(), contact: st.contact || (contact().email ? contact() : undefined) })).then(function (r) {
       typing(false);
       if (r.sessionId) st.sid = r.sessionId;
       if (!r.reply) throw new Error("no reply");
+      // IA fora do ar (sem chave, teto do dia, erro): no app, mostra também a ajuda local que combina com a pergunta
+      if (!r.messageId && O.localSearch && (r.handoffReason === "unavailable" || r.handoffReason === "budget" || r._status >= 500)) { var la = localAnswer(text); if (la) { st.msgs.push(la); save(); reveal(la); return; } }
       var m = { role: "assistant", id: r.messageId || "", text: r.reply, actions: r.suggestedActions || [], handoff: !!r.handoff, ts: Date.now() };
       if (!r.messageId) m.kind = "sys";
       st.msgs.push(m); save(); reveal(m);
     }).catch(function () {
       typing(false);
+      var la = localAnswer(text);
+      if (la) { st.msgs.push(la); save(); reveal(la); return; } // sem internet / sem servidor: a pergunta fica, com os artigos da ajuda do app
       st.msgs.pop(); save();
       var d = document.createElement("div"); d.className = "nva-msg bot sys"; d.innerHTML = '<div class="nva-b"><p>' + esc(tx("net")) + '</p></div><div class="nva-acts"><button type="button" class="nva-act" data-nva="retry" data-text="' + esc(text) + '">' + esc(tx("retry")) + "</button></div>";
       log().insertBefore(d, root.querySelector(".nva-extra")); scroll();
@@ -310,7 +332,7 @@
     log().insertBefore(el, root.querySelector(".nva-extra"));
     var b = el.querySelector(".nva-b"), full = b.innerHTML;
     if (reduce || full.length > 4000) { extras(); scroll(); return; }
-    var words = m.text.replace(/\n*—\s*Nivela Assist[^\n]*$/, "").split(/(\s+)/), i = 0, step = Math.max(2, Math.ceil(words.length / 28));
+    var words = m.text.replace(/\n*—\s*Bisey Assist[^\n]*$/, "").split(/(\s+)/), i = 0, step = Math.max(2, Math.ceil(words.length / 28));
     el.classList.add("nva-streaming"); b.setAttribute("aria-hidden", "true");
     var sr = document.createElement("div"); sr.className = "nva-sr"; sr.innerHTML = full; el.appendChild(sr);
     (function tick() {
@@ -385,7 +407,7 @@
     if (O.launcher) { if (document.body) launcher(); else document.addEventListener("DOMContentLoaded", launcher); }
   }
 
-  window.NivelaAssist = { init: init, open: open, close: close, toggle: function (o) { root && !root.hidden ? close() : open(o); }, isOpen: function () { return !!(root && !root.hidden); }, _md: md, _safeUrl: safeUrl };
+  window.BiseyAssist = { init: init, open: open, close: close, toggle: function (o) { root && !root.hidden ? close() : open(o); }, isOpen: function () { return !!(root && !root.hidden); }, _md: md, _safeUrl: safeUrl };
 
   // site: <script … data-channel="site"> inicia sozinho, sem atrasar a página
   if (SCRIPT && SCRIPT.getAttribute("data-channel")) {

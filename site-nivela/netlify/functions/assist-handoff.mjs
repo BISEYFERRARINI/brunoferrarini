@@ -26,7 +26,7 @@ export default async (req, context) => {
     return json(req, { ok: true, ticketId: t.id, sessionId, message: (kind === "lead" ? LEAD_OK : SLA)[lang].replace("{email}", email) });
   } catch (e) {
     console.error("handoff error", e);
-    return json(req, { error: "SERVER", message: lang === "pt" ? "Não consegui registrar agora. Escreva para hello@getnivela.com." : lang === "es" ? "No pude registrarlo ahora. Escribe a hello@getnivela.com." : "I couldn't save this right now. Please write to hello@getnivela.com." }, 500);
+    return json(req, { error: "SERVER", message: lang === "pt" ? "Não consegui registrar agora. Escreva para hello@getbisey.com." : lang === "es" ? "No pude registrarlo ahora. Escribe a hello@getbisey.com." : "I couldn't save this right now. Please write to hello@getbisey.com." }, 500);
   }
 };
 

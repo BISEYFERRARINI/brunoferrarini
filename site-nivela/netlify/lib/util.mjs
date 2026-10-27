@@ -1,4 +1,4 @@
-// Nivela Assist — utilidades comuns das funções (variáveis de ambiente, respostas JSON, segredo, datas, ids).
+// Bisey Assist — utilidades comuns das funções (variáveis de ambiente, respostas JSON, segredo, datas, ids).
 import crypto from "node:crypto";
 
 export function env(name, def) {
@@ -8,7 +8,7 @@ export function env(name, def) {
   return v == null || v === "" ? def : v;
 }
 
-const ALLOWED_ORIGINS = /^https:\/\/([a-z0-9-]+\.)*getnivela\.com$|^https:\/\/[a-z0-9-]+(--[a-z0-9-]+)?\.netlify\.app$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const ALLOWED_ORIGINS = /^https:\/\/([a-z0-9-]+\.)*getbisey\.com$|^https:\/\/[a-z0-9-]+(--[a-z0-9-]+)?\.netlify\.app$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 export function cors(req) {
   const o = req.headers.get("origin") || "";
   const h = { "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "content-type, x-support-secret", "Vary": "Origin" };
@@ -39,7 +39,7 @@ export async function readJSON(req, max = 64000) {
 export function clientIp(req, context) {
   return (context && context.ip) || req.headers.get("x-nf-client-connection-ip") || (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "0.0.0.0";
 }
-export function hash(s) { return crypto.createHash("sha256").update(String(s) + "|" + env("SUPPORT_SECRET", "nivela")).digest("hex").slice(0, 20); }
+export function hash(s) { return crypto.createHash("sha256").update(String(s) + "|" + env("SUPPORT_SECRET", "bisey")).digest("hex").slice(0, 20); }
 export function newId(prefix) { return (prefix || "") + Date.now().toString(36) + crypto.randomBytes(5).toString("hex"); }
 export function day(d) { return (d || new Date()).toISOString().slice(0, 10); }
 export function hour(d) { return (d || new Date()).toISOString().slice(0, 13); }

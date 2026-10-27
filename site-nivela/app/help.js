@@ -1,11 +1,11 @@
-/* Nivela — Ajuda: botão "?" (e tecla ?) com perguntas comuns da tela atual, atalhos de teclado e contato,
+/* Bisey — Ajuda: botão "?" (e tecla ?) com perguntas comuns da tela atual, atalhos de teclado e contato,
    + tour de boas-vindas opcional (passos com destaque nos itens do menu). O tour lembra no aparelho (localStorage com try/catch). */
 (function () {
   "use strict";
   var E = window.EE; if (!E) return;
   var S = E.S, EXT = E.EXT, esc = E.esc, t = E.t, ic = E.ic, AC = EXT.actions;
   EXT.modals = EXT.modals || {};
-  var CONTACT = "hello@getnivela.com";
+  var CONTACT = "hello@getbisey.com";
   var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
 
   // ═══════════ perguntas comuns por tela ═══════════
@@ -43,7 +43,22 @@
     prices: [[t("faq.pr.1q", "Para que servem “Meus preços”?"), t("faq.pr.1a", "Anote o preço de cada material por loja. O mais barato fica em verde e é usado na lista de material da proposta aceita.")]],
     settings: [[t("faq.set.1q", "Onde troco o logo e a cor?"), t("faq.set.1a", "Em Configurações → Empresa. A mudança aparece na hora no app e nas próximas propostas e PDFs.")]],
     punch: [[t("faq.punch.1q", "Bati o ponto na obra errada. E agora?"), t("faq.punch.1a", "Avise o administrador ou o gerente: eles corrigem o registro. Da próxima vez, confira a obra antes de bater a entrada.")]],
-    jobs: [[t("faq.jobs.1q", "Como marco uma tarefa como feita?"), t("faq.jobs.1a", "Abra a obra → Tarefas e toque na tarefa. Fica registrado quem fez e quando.")]]
+    jobs: [[t("faq.jobs.1q", "Como marco uma tarefa como feita?"), t("faq.jobs.1a", "Abra a obra → Tarefas e toque na tarefa. Fica registrado quem fez e quando.")]],
+    impostos: [
+      [t("faq.tax.1q", "Como o app calcula o imposto do ano?"), t("faq.tax.1a", "Soma os pagamentos recebidos do ano e tira material, despesas, mão de obra do ponto e outras deduções. Sobre o lucro aplica o self-employment tax (15,3%), a taxa federal efetiva e a estadual que você escolher. É estimativa: confirme com o seu contador (CPA).")],
+      [t("faq.tax.2q", "Quanto devo guardar de cada pagamento?"), t("faq.tax.2a", "Em Finanças → Impostos, o número grande diz o % para separar de cada pagamento recebido, com o exemplo do último pagamento.")],
+      [t("faq.tax.3q", "Quando pago o imposto estimado?"), t("faq.tax.3a", "Em 4 vezes: 15 de abril, 15 de junho, 15 de setembro e 15 de janeiro. Depois de pagar, marque “Já paguei este trimestre”: fica registrado quem marcou e quando.")]
+    ],
+    indicar: [
+      [t("faq.ref.1q", "Como funciona o Indique e ganhe?"), t("faq.ref.1a", "Mande o seu link (Conta → Indique e ganhe). O amigo ganha o 1º mês pago grátis; você ganha 1 mês grátis quando ele pagar a 1ª mensalidade, e 1 mês de bônus a cada 3 indicações pagas (até 12 meses por ano).")],
+      [t("faq.ref.2q", "Quando o crédito entra?"), t("faq.ref.2a", "Depois do 1º pagamento do amigo, o crédito de 1 mês do seu plano entra na sua próxima fatura. Crédito não vira dinheiro.")]
+    ],
+    activity: [
+      [t("faq.act.1q", "Como vejo quem fez cada coisa na obra?"), t("faq.act.1a", "Abra o projeto → Atividade. Aparece quem marcou tarefa, mandou aviso, lançou nota, enviou arquivo ou mudou a agenda e a escala, com dia e hora. O gerente vê sem os valores em dinheiro.")]
+    ],
+    assistant: [
+      [t("faq.asst.1q", "O que o assistente faz?"), t("faq.asst.1a", "Responde como usar o app, na tela em que você está, e leva até a tela certa (“Mostrar onde”). Ele não vê nem muda os dados da sua empresa. Sem internet, mostra as respostas da ajuda do app.")]
+    ]
   };
   var ALIAS = { project: "projects", projectForm: "projects", proposalForm: "proposals", hours: "dashboard", me: "punch", myexp: "notas" };
   var GENERAL = [
@@ -56,25 +71,25 @@
     var list = (FAQ[viewKey()] || []).concat(GENERAL), k = isMac ? "⌘" : "Ctrl";
     var keys = [[k + " K", t("help.k.search", "Buscar obra, proposta, cliente ou ação")], ["/", t("help.k.slash", "Também abre a busca")], ["?", t("help.k.help", "Abre esta ajuda")], ["Esc", t("help.k.esc", "Fecha janelas, menus e a busca")], ["↑ ↓ Enter", t("help.k.nav", "Navegar e abrir resultados da busca")]];
     return '<div class="help">' +
-      '<section class="help-assist"><h3>' + esc(t("help.assist", "Nivela Assist: pergunte o que quiser")) + '</h3><p class="muted small">' + esc(t("help.assistSub", "Assistente com IA, em português, inglês ou espanhol. Responde na hora; o que ele não resolver, uma pessoa da equipe responde por e-mail.")) + '</p><button type="button" class="btn" data-act="assistOpen">' + ic("help", 18) + esc(t("help.assistBtn", "Perguntar ao Assist")) + "</button></section>" +
+      '<section class="help-assist"><h3>' + esc(t("help.assist", "Bisey Assist: pergunte o que quiser")) + '</h3><p class="muted small">' + esc(t("help.assistSub", "Assistente com IA, em português, inglês ou espanhol. Responde na hora; o que ele não resolver, uma pessoa da equipe responde por e-mail.")) + '</p><button type="button" class="btn" data-act="assistOpen">' + ic("help", 18) + esc(t("help.assistBtn", "Perguntar ao Assist")) + "</button></section>" +
       '<section><h3>' + esc(t("help.faq", "Perguntas comuns desta tela")) + '</h3><div class="faq">' + list.map(function (q, i) { return "<details" + (i === 0 ? " open" : "") + "><summary>" + esc(q[0]) + ic("chevd", 18) + "</summary><p>" + esc(q[1]) + "</p></details>"; }).join("") + "</div></section>" +
       '<section><h3>' + esc(t("help.tour", "Tour de boas-vindas")) + '</h3><p class="muted small">' + esc(t("help.tourSub", "Um passeio de 1 minuto pelos pontos principais do menu.")) + '</p><button type="button" class="btn ghost" data-act="tourStart">' + ic("star", 18) + esc(t("help.tourBtn", "Fazer o tour")) + "</button></section>" +
       '<section class="help-keys"><h3>' + esc(t("help.keys", "Atalhos de teclado")) + "</h3><dl>" + keys.map(function (x) { return "<div><dt>" + x[0].split(" ").map(function (y) { return "<kbd>" + esc(y) + "</kbd>"; }).join(" ") + "</dt><dd>" + esc(x[1]) + "</dd></div>"; }).join("") + "</dl></section>" +
-      '<section><h3>' + esc(t("help.contact", "Fale com a gente")) + '</h3><p class="muted small">' + esc(t("help.contactSub", "Respondemos em português e inglês, em dias úteis.")) + '</p><div class="row"><a class="btn ghost" href="mailto:' + CONTACT + '?subject=' + encodeURIComponent(E.PRODUCT + " · " + t("help.mailSubject", "Ajuda")) + '">' + ic("doc", 18) + esc(CONTACT) + "</a></div></section>" +
+      '<section><h3>' + esc(t("help.contact", "Fale com a gente")) + '</h3><p class="muted small">' + esc(t("help.contactSub", "Respondemos em português, inglês e espanhol, em dias úteis.")) + '</p><div class="row"><a class="btn ghost" href="mailto:' + CONTACT + '?subject=' + encodeURIComponent(E.PRODUCT + " · " + t("help.mailSubject", "Ajuda")) + '">' + ic("doc", 18) + esc(CONTACT) + "</a></div></section>" +
       '<p class="muted small help-ver">' + esc(E.PRODUCT) + " " + esc(E.APP_VERSION) + " · " + esc(E.API.mode === "demo" ? t("help.demo", "modo demonstração") : t("help.live", "conectado")) + "</p></div>";
   };
   AC.help = function () { if (S.tour) tourEnd(false); S.overlay = null; S.modal = { type: "help", title: t("help.titleAssist", "Ajuda + Assist") }; E.render(); loadAssist(); };
 
-  // ═══════════ Nivela Assist (chat com IA): carregado só quando a ajuda abre (support/assist.js) ═══════════
+  // ═══════════ Bisey Assist (chat com IA): carregado só quando a ajuda abre (support/assist.js) ═══════════
   var assistP = null;
   function loadAssist() {
-    if (window.NivelaAssist) return Promise.resolve(window.NivelaAssist);
+    if (window.BiseyAssist) return Promise.resolve(window.BiseyAssist);
     if (assistP) return assistP;
     assistP = new Promise(function (ok, no) {
       var v = encodeURIComponent(E.APP_VERSION || "1");
       var l = document.createElement("link"); l.rel = "stylesheet"; l.id = "nva-css"; l.href = "support/assist.css?v=" + v; document.head.appendChild(l);
       var sc = document.createElement("script"); sc.src = "support/assist.js?v=" + v; sc.async = true;
-      sc.onload = function () { ok(window.NivelaAssist); }; sc.onerror = function () { assistP = null; no(new Error("assist")); };
+      sc.onload = function () { ok(window.BiseyAssist); }; sc.onerror = function () { assistP = null; no(new Error("assist")); };
       document.head.appendChild(sc);
     });
     return assistP;
@@ -87,13 +102,85 @@
     if (!S.user || assistViews().indexOf(view) < 0) return false;
     E.guardLeave(function () { E.go(view); }); return true;
   }
+  // ═══════════ assistente dentro do app ═══════════
+  // Botão flutuante sempre visível (depois de entrar), sabe a tela, o papel, o ramo e o idioma; sugere perguntas da tela;
+  // responde com "Mostrar onde" (abre a tela e destaca no menu) ou começa o tour; sem IA/sem internet usa estes artigos.
+  var STR = {
+    title: function () { return t("asst.name", "Assistente"); },
+    sub: function () { return t("asst.sub", "Tira dúvidas do app · IA"); },
+    hello: function () { return t("asst.hello", "Oi, {n}! Sou o assistente do app. Pergunte como fazer qualquer coisa: eu explico e te levo até a tela certa.", { n: S.user ? E.firstName(S.user.name) : "" }); },
+    placeholder: function () { return t("asst.placeholder", "Pergunte, ex.: como lanço uma nota?"); },
+    note: function () { return t("asst.note", "IA pode errar. Ela não vê nem muda os dados da sua empresa."); },
+    localIntro: function () { return t("asst.localIntro", "Não consegui falar com a IA agora. Achei isto na ajuda do app:"); },
+    show: function () { return t("asst.show", "Mostrar onde"); }
+  };
+  // perguntas sugeridas por tela (e por papel: funcionário e gerente nunca recebem pergunta de dinheiro)
+  function suggest() {
+    var v = viewKey(), role = E.roleOf(), emp = role === "employee", tab = S.params && S.params.tab;
+    var M = {
+      dashboard: [t("asst.s.dash1", "O que é o limite de gastos?"), t("asst.s.dash2", "De onde vem a mão de obra?"), t("asst.s.dash3", "Quanto devo guardar de imposto?")],
+      projects: [t("asst.s.proj1", "Como crio um projeto?"), t("asst.s.proj2", "O funcionário vê os valores?"), t("asst.s.proj3", "Como vejo quem fez cada coisa na obra?")],
+      proposals: [t("asst.s.prop1", "Como faço uma proposta por voz?"), t("asst.s.prop2", "Como o cliente aceita online?"), t("asst.s.prop3", "Como viro a proposta em invoice?")],
+      time: [t("asst.s.time1", "Como corrijo um ponto?"), t("asst.s.time2", "Alguém esqueceu de bater a saída")],
+      notas: [t("asst.s.nota1", "Como lanço uma nota com foto?"), t("asst.s.nota2", "E se a leitura errar?")],
+      impostos: [t("asst.s.tax1", "Como o app calcula o imposto?"), t("asst.s.tax2", "Quando vence o próximo pagamento?"), t("asst.s.tax3", "Que taxa federal eu uso?")],
+      indicar: [t("asst.s.ref1", "Como funciona o Indique e ganhe?"), t("asst.s.ref2", "Quando o crédito entra?")],
+      escala: [t("asst.s.esc1", "Como monto a escala da semana?"), t("asst.s.esc2", "O funcionário vê a escala?")],
+      agenda: [t("asst.s.ag1", "Como crio um compromisso?"), t("asst.s.ag2", "Quem recebe os compromissos?")],
+      avisos: [t("asst.s.av1", "O que é um aviso?"), t("asst.s.av2", "Como marco um aviso como resolvido?")],
+      punch: [t("asst.s.punch1", "Como bato o ponto (punch in)?"), t("asst.s.punch2", "Diz que estou fora do raio"), t("asst.s.punch3", "Bati na obra errada")],
+      jobs: [t("asst.s.jobs1", "Como marco uma tarefa como feita?"), t("asst.s.jobs2", "Como mando um aviso com foto?")],
+      settings: [t("asst.s.set1", "Como troco o logo e a cor?"), t("asst.s.set2", "Como exporto meus dados?")]
+    };
+    var list = (tab === "activity" ? [t("asst.s.act1", "O que aparece na Atividade?")] : []).concat(M[v] || []);
+    if (!list.length) list = [t("asst.s.gen1", "Como instalo no celular?"), t("asst.s.gen2", "Funciona sem internet?"), t("asst.s.gen3", "Como troco o idioma?")];
+    if (emp || role === "manager") list = list.filter(function (q) { return !/imposto|impuesto|tax|limite de gastos|límite de gastos|spending limit|mão de obra|mano de obra|labor|crédito|credit/i.test(q); });
+    if (!E.can("finance") && v === "dashboard") list = list.concat([t("asst.s.mgr1", "Quem está trabalhando agora?")]);
+    return list.length ? list : [t("asst.s.gen1", "Como instalo no celular?")];
+  }
+  // busca nos artigos da ajuda (só os das telas que este papel abre)
+  var VIEW_OF = { activity: "projects", assistant: "dashboard" };
+  function localSearch(q) {
+    var allowed = assistViews(), norm = function (x) { return String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); };
+    var toks = norm(q).split(/[^a-z0-9]+/).filter(function (w) { return w.length > 2 && !/^(como|que|para|com|uma|the|how|and|for|you|meu|minha|onde|esta|isso|what|con|una|mis|donde|cual|eso|los|las|del)$/.test(w); });
+    if (!toks.length) return [];
+    var out = [];
+    Object.keys(FAQ).forEach(function (k) {
+      var view = VIEW_OF[k] || k; if (k !== "assistant" && allowed.indexOf(view) < 0) return; // funcionário/gerente: só ajuda das telas dele
+      FAQ[k].forEach(function (x) { var h = norm(x[0] + " " + x[1]), sc = toks.reduce(function (a, w) { return a + (h.indexOf(w) >= 0 ? (norm(x[0]).indexOf(w) >= 0 ? 2 : 1) : 0); }, 0); if (sc) out.push({ q: x[0], a: x[1], view: allowed.indexOf(view) >= 0 ? view : null, s: sc }); });
+    });
+    GENERAL.forEach(function (x) { var h = norm(x[0] + " " + x[1]), sc = toks.reduce(function (a, w) { return a + (h.indexOf(w) >= 0 ? 1 : 0); }, 0); if (sc) out.push({ q: x[0], a: x[1], view: null, s: sc }); });
+    return out.sort(function (a, b) { return b.s - a.s; }).slice(0, 3);
+  }
+  // "Mostrar onde": abre a tela e destaca o item do menu com um passo do tour; "tour" começa o tour
+  function showWhere(view) {
+    E.guardLeave(function () {
+      E.go(view);
+      setTimeout(function () {
+        var m = mobile(), sel = m ? '.bottom-nav [data-id="' + view + '"]' : '.sidebar [data-id="' + view + '"]';
+        if (m && !document.querySelector(sel)) sel = '.bottom-nav [data-id="more"]';
+        var lbl = ((E.allNav().find(function (n) { return n[0] === view; }) || [])[1]) || "";
+        S.tour = { i: 0, one: { sel: sel, title: t("asst.here", "Fica aqui: {s}", { s: lbl }), text: m && /more/.test(sel) ? t("asst.hereMore", "No celular, toque em “Mais” e depois em “{s}”.", { s: lbl }) : t("asst.hereText", "Este é o caminho no menu. Você já está nesta tela.") } };
+        place();
+      }, 60);
+    });
+  }
+  function assistNav(view) {
+    if (!S.user) return false;
+    if (view === "tour") { if (window.BiseyAssist && mobile()) window.BiseyAssist.close(); tourStart(); return true; }
+    var show = /^show:/.test(view); view = view.replace(/^show:/, "");
+    if (assistViews().indexOf(view) < 0) return false;
+    if (show) { if (window.BiseyAssist && mobile()) window.BiseyAssist.close(); showWhere(view); return true; }
+    E.guardLeave(function () { E.go(view); }); return true;
+  }
   function assistOpts() {
     return {
       channel: "app", launcher: false, lang: function () { return E.LANG; }, onNavigate: assistNav,
+      strings: function (k) { return STR[k] ? STR[k]() : null; }, suggest: suggest, localSearch: localSearch, showLabel: t("asst.show", "Mostrar onde"),
       getContext: function () {
         var org = null; try { org = E.API.currentOrg ? E.API.currentOrg() : null; } catch (e) {}
-        var role = S.user ? E.roleOf() : "visitor";
-        return { page: location.pathname, appView: S.view, role: role, trade: S.user ? E.tradeOf(S.company) : "", plan: (org && org.plan) || "", demo: E.API.mode === "demo", appLang: E.LANG };
+        var role = S.user ? E.roleOf() : "visitor", nav = S.user ? (E.allNav().find(function (n) { return n[0] === E.navActive(S.view); }) || [])[1] : "";
+        return { page: location.pathname, appView: S.view, tab: (S.params && S.params.tab) || "", screen: nav || "", views: assistViews(), role: role, trade: S.user ? E.tradeOf(S.company) : "", plan: (org && org.plan) || "", demo: E.API.mode === "demo", appLang: E.LANG };
       },
       getContact: function () { var u = S.user || {}; return u.email && E.roleOf() !== "employee" ? { email: u.email, name: u.name || "" } : { name: u.name || "" }; }
     };
@@ -102,6 +189,29 @@
     S.modal = null; S.overlay = null; E.render();
     loadAssist().then(function (NA) { NA.open(assistOpts()); }).catch(function () { E.toast(t("help.assistErr", "Não consegui abrir o Assist agora. Escreva para {mail}.", { mail: CONTACT })); });
   };
+  // botão flutuante (fora do #app: não pisca a cada render). Sobe acima das barras fixas de "Salvar" do assistente de projeto e da proposta.
+  function fab() {
+    var b = document.getElementById("asst-fab");
+    if (!S.user) { if (b) b.hidden = true; return; }
+    if (!b) {
+      b = document.createElement("button"); b.type = "button"; b.id = "asst-fab"; b.className = "asst-fab";
+      b.innerHTML = ic("spark", 22) + '<span class="asst-fab-t"></span>';
+      b.addEventListener("click", function () {
+        if (window.BiseyAssist && window.BiseyAssist.isOpen()) { window.BiseyAssist.close(); return; }
+        if (S.tour) tourEnd(false);
+        loadAssist().then(function (NA) { NA.open(assistOpts()); }).catch(function () { E.toast(t("help.assistErr", "Não consegui abrir o Assist agora. Escreva para {mail}.", { mail: CONTACT })); AC.help(); });
+      });
+      document.body.appendChild(b);
+    }
+    b.hidden = false;
+    b.querySelector(".asst-fab-t").textContent = t("asst.fab", "Assistente");
+    b.setAttribute("aria-label", t("asst.fabAria", "Abrir o assistente: tire dúvidas sobre esta tela"));
+    var bar = document.querySelector(".wiz-foot, .sticky-actions"), lift = 0;
+    if (bar) { var r = bar.getBoundingClientRect(); if (r.height && r.bottom > window.innerHeight - 140) lift = Math.round(r.height) + 8; }
+    document.documentElement.style.setProperty("--asst-lift", lift + "px");
+  }
+  EXT.afterRender.push(fab);
+  window.addEventListener("scroll", function () { if (S.user) fab(); }, { passive: true });
   // link de tela vindo do Assist do site ou de um e-mail (ex.: /app/#projects): abre a tela depois de entrar
   var hashDone = false;
   EXT.afterRender.push(function () {
@@ -112,12 +222,13 @@
   });
 
   // ═══════════ tour de boas-vindas ═══════════
-  var TOUR_KEY = "nivela_tour_v1";
+  var TOUR_KEY = "bisey_tour_v1";
   function tourDone() { return E.storeGet(TOUR_KEY + "_" + (S.user && S.user.id)) === "1"; }
   function markTour() { E.storeSet(TOUR_KEY + "_" + (S.user && S.user.id), "1"); }
   function mobile() { return window.matchMedia ? matchMedia("(max-width: 860px)").matches : window.innerWidth <= 860; }
   function steps() {
     var m = mobile();
+    if (S.tour && S.tour.one) return [S.tour.one];
     if (S.user && !E.isStaff()) return [
       { sel: m ? '.bottom-nav [data-id="punch"]' : '.sidebar [data-id="punch"]', title: t("tour.e1", "Bater o ponto"), text: t("tour.e1d", "Escolha a obra (ou deixe o GPS achar) e toque em Bater entrada. O app pede uma selfie.") },
       { sel: m ? '.bottom-nav [data-id="escala"]' : '.sidebar [data-id="escala"]', title: t("tour.e2", "Sua escala"), text: t("tour.e2d", "Onde você vai trabalhar nos próximos dias.") },
@@ -162,8 +273,9 @@
     S.tour = { i: 0 }; place();
   }
   function tourEnd(finished) {
-    S.tour = null; markTour(); var l = document.getElementById("tour"); if (l) l.remove();
-    if (finished) E.toast(t("tour.done", "Pronto! O tour fica sempre na Ajuda (?)."));
+    var one = S.tour && S.tour.one; // "Mostrar onde" do assistente: não conta como tour feito
+    S.tour = null; if (!one) markTour(); var l = document.getElementById("tour"); if (l) l.remove();
+    if (finished && !one) E.toast(t("tour.done", "Pronto! O tour fica sempre na Ajuda (?)."));
     E.render();
   }
   AC.tourStart = tourStart;

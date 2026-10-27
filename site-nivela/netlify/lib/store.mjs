@@ -1,4 +1,4 @@
-// Nivela Assist — armazenamento (Netlify Blobs). Nos testes, globalThis.__ASSIST_STORE__ troca por um armazenamento em memória.
+// Bisey Assist — armazenamento (Netlify Blobs). Nos testes, globalThis.__ASSIST_STORE__ troca por um armazenamento em memória.
 // Chaves:
 //   conv/{sessionId}                 conversa (mensagens, contexto, contato)
 //   ticket/{id}                      pedido para uma pessoa (status open|answered; notifiedAt quando o dono já recebeu o e-mail)
@@ -14,7 +14,7 @@ export async function store() {
   if (globalThis.__ASSIST_STORE__) return globalThis.__ASSIST_STORE__;
   if (_store) return _store;
   const { getStore } = await import("@netlify/blobs");
-  const s = getStore({ name: "nivela-assist", consistency: "strong" });
+  const s = getStore({ name: "nivela-assist", consistency: "strong" }); // nome do armazenamento mantido de propósito (antes chamado Nivela): trocar deixaria para trás as conversas, tickets e métricas já gravados
   _store = {
     async get(key) { return (await s.get(key, { type: "json" })) || null; },
     async set(key, value) { await s.setJSON(key, value); },

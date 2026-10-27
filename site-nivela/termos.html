@@ -3,37 +3,44 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Terms of Service · Nivela</title>
-<meta name="description" content="Nivela Terms of Service (draft).">
+<title>Terms of Service · Bisey</title>
+<meta name="description" content="Bisey Terms of Service (draft).">
 <meta name="robots" content="noindex">
-<meta name="theme-color" content="#0D2B27">
-<link rel="icon" href="/app/brand/favicon-32.png" sizes="32x32">
+<meta name="theme-color" content="#0A1433" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#050A19" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/app/brand/favicon.ico" sizes="48x48">
+<link rel="icon" href="/app/brand/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/app/brand/apple-touch-icon-180.png">
 <link rel="stylesheet" href="/app/brand/tokens.css">
 <link rel="stylesheet" href="site.css">
 <script>
+  /* migração única do nome antigo (antes chamado Nivela): copia chaves nivela_* / nivela-* do localStorage e do sessionStorage para bisey_* / bisey-* (sem sobrescrever) e apaga as antigas */
+  (function () { var O = "nivela", N = "bisey"; ["localStorage", "sessionStorage"].forEach(function (n) { try { var s = window[n], ks = [], i, k; for (i = 0; i < s.length; i++) { k = s.key(i); if (k && k.indexOf(O) === 0 && /[_-]/.test(k.charAt(O.length))) ks.push(k); } ks.forEach(function (k) { try { var nk = N + k.slice(O.length), v = s.getItem(k); if (v !== null && s.getItem(nk) === null) s.setItem(nk, v.split(O + "_demo_org_").join(N + "_demo_org_")); s.removeItem(k); } catch (e) {} }); } catch (e) {} }); })();
+
   (function () {
     var d = document.documentElement, t = null, l = null;
-    try { t = localStorage.getItem('nivela-site-theme'); l = localStorage.getItem('nivela-site-lang'); } catch (e) {}
-    var q = /[?&]lang=(en|pt)/.exec(location.search); if (q) l = q[1];
+    try { t = localStorage.getItem('bisey-site-theme'); l = localStorage.getItem('bisey-site-lang'); } catch (e) {}
+    var q = /[?&]lang=(en|pt|es)/.exec(location.search); if (q) l = q[1];
     if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
     if (l === 'pt') { d.setAttribute('data-lang-init', 'pt'); d.lang = 'pt-BR'; }
+    if (l === 'es') { d.setAttribute('data-lang-init', 'es'); d.lang = 'es'; }
   })();
 </script>
 </head>
-<body data-doc data-title-en="Terms of Service · Nivela" data-title-pt="Termos de Uso · Nivela">
+<body data-doc data-title-en="Terms of Service · Bisey" data-title-pt="Termos de Uso · Bisey" data-title-es="Términos de Uso · Bisey">
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <symbol id="nivela-logo" viewBox="0 0 146.14 48"><g><rect width="48" height="48" rx="11" style="fill:var(--logo-tile)"/><g transform="translate(5.28 5.28) scale(0.78)"><path d="M18 39H9V9h30v30" fill="none" style="stroke:var(--logo-stroke)" stroke-width="6.0" stroke-linecap="square" stroke-linejoin="miter"/><path d="M18 42V18a21 21 0 0 1 21 21v3z" style="fill:var(--logo-wedge)"/></g></g><path transform="translate(62.4 35.04)" d="M1.64 0H6.21V-10.24C6.21 -11.19 6.19 -13.07 6.11 -15.38C7.35 -13.14 8.48 -11.23 9.11 -10.22L15.54 0H20.36V-22.08H15.81V-11.16C15.81 -10.22 15.83 -8.4 15.89 -6.7C15.01 -8.28 14.06 -9.96 13.54 -10.79L6.45 -22.08H1.64ZM22.79 0H27.16V-15.65H22.79ZM24.97 -17.62C26.4 -17.62 27.46 -18.61 27.46 -19.95C27.46 -21.28 26.4 -22.27 24.97 -22.27C23.53 -22.27 22.48 -21.28 22.48 -19.95C22.48 -18.61 23.53 -17.62 24.97 -17.62ZM33.91 0H38.77L44.58 -15.65H40.05L37.5 -7.91C37.13 -6.68 36.76 -5.44 36.4 -4.21C36.05 -5.44 35.68 -6.68 35.28 -7.91L32.7 -15.65H28.12ZM52.67 0.36C56.47 0.36 59.49 -1.81 60.07 -4.92H56.08C55.68 -3.7 54.51 -2.92 52.81 -2.92C50.51 -2.92 49.17 -4.42 49.1 -6.73H60.23V-7.9C60.23 -12.67 57.13 -16 52.52 -16C48.03 -16 44.85 -12.58 44.85 -7.81C44.85 -3.05 47.93 0.36 52.67 0.36ZM49.13 -9.51C49.37 -11.47 50.66 -12.68 52.61 -12.68C54.58 -12.68 55.89 -11.47 56.11 -9.51ZM66.18 -22.08H61.81V0H66.18ZM73.29 0.27C75.69 0.27 77.04 -0.68 77.87 -2.21H77.93V0H82.2V-10.61C82.2 -13.96 79.74 -15.97 75.46 -15.97C71.16 -15.97 68.61 -13.93 68.42 -10.7H72.52C72.63 -11.9 73.69 -12.73 75.32 -12.73C76.92 -12.73 77.89 -11.93 77.89 -10.77V-10.67C77.89 -9.66 76.88 -9.53 74.02 -9.25C70.76 -8.95 67.91 -7.94 67.91 -4.42C67.91 -1.29 70.17 0.27 73.29 0.27ZM74.51 -2.77C73.04 -2.77 72.09 -3.42 72.09 -4.53C72.09 -5.78 73.28 -6.36 74.78 -6.58C76.18 -6.8 77.41 -7.01 77.92 -7.29V-5.72C77.92 -4.03 76.61 -2.77 74.51 -2.77Z" fill="currentColor"/></symbol>
+  <symbol id="bisey-logo" viewBox="23.5 6.5 229.646 94.839"><path d="M23.5 13A6.5 6.5 0 0 1 36.5 13L36.5 35.546A29.5 29.5 0 1 1 47.877 89.052A6.5 6.5 0 0 1 50.135 76.249A16.5 16.5 0 1 0 36.5 60A6.5 6.5 0 0 1 23.5 60Z" style="fill:var(--logo-mark)"/><circle cx="35.381" cy="74.784" r="5.4" style="fill:var(--logo-dot)"/><g transform="translate(101.666 88.3)"><path d="M22.12 0.69C30.73 0.69 36.37 -6.18 36.37 -16.5C36.37 -26.61 30.6 -33.63 22.18 -33.63C17.91 -33.63 14.6 -31.94 12.48 -28.39H12.45V-46.48H3.24V0H12.32V-5.05H12.35C14.26 -1.22 17.78 0.69 22.12 0.69Z M19.75 -6.8C15.1 -6.8 12.01 -10.61 12.01 -16.5C12.01 -22.37 15.1 -26.2 19.75 -26.2C24.21 -26.2 27.11 -22.68 27.11 -16.5C27.11 -10.33 24.21 -6.8 19.75 -6.8Z M40.02 0H49.22V-32.94H40.02Z M38.74 -41.99a5.87 5.87 0 1 0 11.74 0a5.87 5.87 0 1 0 -11.74 0z M68.26 0.81C76.87 0.81 82.86 -3.49 82.86 -10.08C82.86 -14.91 79.8 -17.78 73.15 -19.09L66.91 -20.31C64.39 -20.84 62.92 -21.93 62.92 -23.61C62.92 -25.58 64.82 -27.11 67.98 -27.11C71.22 -27.11 73.47 -25.14 73.53 -22.49H82.04C81.86 -29.35 76.24 -33.63 67.73 -33.63C59.15 -33.63 53.75 -29.51 53.75 -23.27C53.75 -18.16 57.15 -14.91 63.55 -13.66L69.32 -12.54C72 -12.01 73.59 -10.98 73.59 -9.23C73.59 -7.21 71.5 -5.77 68.1 -5.77C64.51 -5.77 62.39 -7.49 62.05 -10.36H53C53.56 -3.28 59.71 0.81 68.26 0.81Z M101.41 0.75C109.4 0.75 115.76 -3.81 116.98 -10.36H108.59C107.75 -7.8 105.28 -6.15 101.7 -6.15C96.86 -6.15 94.05 -9.3 93.9 -14.16H117.32V-16.63C117.32 -26.67 110.8 -33.69 101.1 -33.69C91.65 -33.69 84.94 -26.48 84.94 -16.44C84.94 -6.43 91.43 0.75 101.41 0.75Z M93.96 -20.03C94.46 -24.14 97.17 -26.7 101.29 -26.7C105.44 -26.7 108.18 -24.14 108.65 -20.03Z M120.5 13.04H126.59C131.7 13.04 134.88 10.57 136.97 5.08L151.48 -32.94H141.93L136.38 -16.66C135.6 -14.32 134.88 -11.92 134.17 -9.55C133.48 -11.92 132.73 -14.29 131.98 -16.66L126.46 -32.94H116.82L129.49 -0.12L128.58 2.28C127.71 4.8 126.87 5.77 124.68 5.77H120.5Z" style="fill:var(--logo-mark)"/><circle cx="44.607" cy="-41.988" r="5.87" style="fill:var(--logo-dot)"/></g></symbol>
 </svg>
 
 <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 <header class="top" id="top">
   <div class="wrap top-in">
-    <a class="logo" href="index.html" aria-label="Nivela"><svg viewBox="0 0 146.14 48" aria-hidden="true"><use href="#nivela-logo"/></svg></a>
+    <a class="logo" href="index.html" aria-label="Bisey"><svg viewBox="0 0 229.646 94.839" aria-hidden="true"><use href="#bisey-logo"/></svg></a>
     <div class="tools">
       <div class="seg" role="group" aria-label="Language" data-i18n-attr="aria-label:lang_label">
         <button type="button" data-lang="en" aria-pressed="true" lang="en"><span aria-hidden="true">EN</span><span class="sr">English</span></button>
         <button type="button" data-lang="pt" aria-pressed="false" lang="pt-BR"><span aria-hidden="true">PT</span><span class="sr">Português</span></button>
+        <button type="button" data-lang="es" aria-pressed="false" lang="es"><span aria-hidden="true">ES</span><span class="sr">Español</span></button>
       </div>
       <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch to dark mode" data-i18n-attr="aria-label:theme_to_dark">
         <svg class="ic ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/></svg>
@@ -45,11 +52,11 @@
 </header>
 <main id="main" class="wrap doc">
   <a class="back" href="index.html" data-i18n="doc_back">← Back to home</a>
-  <p class="draft" role="note"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 16.5v.01"/><path d="M10.3 3.9 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>RASCUNHO — revisar com advogado. <span class="only-en" lang="en">(DRAFT — to be reviewed by a lawyer before publishing.)</span></span></p>
+  <p class="draft" role="note"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v5M12 16.5v.01"/><path d="M10.3 3.9 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg><span>RASCUNHO — revisar com advogado. <span class="only-en" lang="en">(DRAFT — to be reviewed by a lawyer before publishing.)</span> <span class="only-es" lang="es">(BORRADOR — debe revisarlo un abogado antes de publicar.)</span></span></p>
   <article data-lang-block="en" lang="en">
     <h1>Terms of Service</h1>
     <p class="updated">Last updated: [date]</p>
-    <p>These Terms of Service ("Terms") govern your use of Nivela, a job management app for contractors offered by [Company legal name] ("we", "us"). By creating an account or using Nivela, you agree to these Terms.</p>
+    <p>These Terms of Service ("Terms") govern your use of Bisey, a job management app for contractors offered by [Company legal name] ("we", "us"). By creating an account or using Bisey, you agree to these Terms.</p>
     <h2>1. Your account</h2>
     <p>You must provide accurate information and keep your password safe. The account owner is responsible for the users they invite (office and field users) and for everything done under the account.</p>
     <h2>2. Free trial and plans</h2>
@@ -57,24 +64,26 @@
     <h2>3. Payments and cancellation</h2>
     <p>Paid plans renew automatically until cancelled. You can cancel at any time; access continues until the end of the paid period. [Refund policy to be defined.]</p>
     <h2>4. Your data</h2>
-    <p>You own the data you put into Nivela (jobs, proposals, receipts, photos, time records). We use it only to provide and improve the service, as described in our Privacy Policy. You can request an export or deletion of your data.</p>
+    <p>You own the data you put into Bisey (jobs, proposals, receipts, photos, time records). We use it only to provide and improve the service, as described in our Privacy Policy. You can request an export or deletion of your data.</p>
     <h2>5. AI features</h2>
     <p>Voice proposals and receipt reading use artificial intelligence. Results may contain mistakes; you are responsible for reviewing proposals, amounts and job assignments before sending them to clients or relying on them.</p>
     <h2>6. Time clock, selfie and location</h2>
     <p>If you use the time clock, you are responsible for informing your employees and obtaining any consent required by the laws that apply to you for collecting photos and location data.</p>
     <h2>7. Acceptable use</h2>
-    <p>Do not use Nivela for anything illegal, to send spam, to upload harmful content or to try to access other customers' data.</p>
+    <p>Do not use Bisey for anything illegal, to send spam, to upload harmful content or to try to access other customers' data.</p>
     <h2>8. Disclaimer and liability</h2>
-    <p>Nivela is provided "as is". To the extent permitted by law, our total liability is limited to the amount you paid us in the [12] months before the claim. Nivela does not replace professional, legal, tax or code-compliance advice.</p>
-    <h2>9. Changes and governing law</h2>
+    <p>Bisey is provided "as is". To the extent permitted by law, our total liability is limited to the amount you paid us in the [12] months before the claim. Bisey does not replace professional, legal, tax or code-compliance advice.</p>
+    <h2 id="referral">9. Referral program</h2>
+    <p>Account owners can share a personal referral link. <b>Your friend:</b> a new business, separately owned, that signs up through your link gets its first paid month free (applied after the 14-day trial). <b>You:</b> when that friend pays its first monthly subscription, you get a credit equal to one month of your current plan (1/12 of the annual price on annual plans), applied to your next bill. On every 3rd paid referral you get one extra bonus month. Credits are capped at 12 months per calendar year, have no cash value, cannot be transferred or exchanged, and expire if the account is closed. Self-referrals, duplicate or fake accounts and paid ads bidding on our brand do not qualify; if a referred account is refunded or cancelled in its first paid month, the credit is not granted or is reversed. A referral code can be applied at sign-up or during the trial. We may change or end the program with notice; credits already earned stay valid.</p>
+    <h2>10. Changes and governing law</h2>
     <p>We may update these Terms and will notify account owners of material changes. These Terms are governed by the laws of [the Commonwealth of Massachusetts].</p>
-    <h2>10. Contact</h2>
-    <p>Questions: <a href="mailto:hello@getnivela.com">hello@getnivela.com</a> [confirm address].</p>
+    <h2>11. Contact</h2>
+    <p>Questions: <a href="mailto:hello@getbisey.com">hello@getbisey.com</a> [confirm address].</p>
   </article>
   <article data-lang-block="pt" lang="pt-BR">
     <h1>Termos de Uso</h1>
     <p class="updated">Última atualização: [data]</p>
-    <p>Estes Termos de Uso ("Termos") regem o uso do Nivela, app de gestão de obras para empreiteiros oferecido por [Razão social da empresa] ("nós"). Ao criar uma conta ou usar o Nivela, você concorda com estes Termos.</p>
+    <p>Estes Termos de Uso ("Termos") regem o uso do Bisey, app de gestão de obras para empreiteiros oferecido por [Razão social da empresa] ("nós"). Ao criar uma conta ou usar o Bisey, você concorda com estes Termos.</p>
     <h2>1. Sua conta</h2>
     <p>Você deve informar dados corretos e manter sua senha em segurança. O dono da conta responde pelos usuários que convidar (de escritório e de campo) e por tudo o que for feito na conta.</p>
     <h2>2. Teste grátis e planos</h2>
@@ -82,33 +91,62 @@
     <h2>3. Pagamento e cancelamento</h2>
     <p>Os planos pagos renovam automaticamente até serem cancelados. Você pode cancelar quando quiser; o acesso continua até o fim do período pago. [Política de reembolso a definir.]</p>
     <h2>4. Seus dados</h2>
-    <p>Os dados que você coloca no Nivela (obras, propostas, notas, fotos, registros de ponto) são seus. Nós os usamos só para prestar e melhorar o serviço, como descrito na Política de Privacidade. Você pode pedir a exportação ou a exclusão dos seus dados.</p>
+    <p>Os dados que você coloca no Bisey (obras, propostas, notas, fotos, registros de ponto) são seus. Nós os usamos só para prestar e melhorar o serviço, como descrito na Política de Privacidade. Você pode pedir a exportação ou a exclusão dos seus dados.</p>
     <h2>5. Recursos de IA</h2>
     <p>A proposta por voz e a leitura de notas usam inteligência artificial. O resultado pode ter erros; cabe a você revisar propostas, valores e a obra escolhida antes de enviar ao cliente ou de usar esses dados.</p>
     <h2>6. Ponto, selfie e localização</h2>
     <p>Se usar o ponto, você é responsável por informar seus funcionários e obter o consentimento exigido pelas leis aplicáveis para coletar fotos e localização.</p>
     <h2>7. Uso aceitável</h2>
-    <p>Não use o Nivela para nada ilegal, para enviar spam, subir conteúdo nocivo ou tentar acessar dados de outros clientes.</p>
+    <p>Não use o Bisey para nada ilegal, para enviar spam, subir conteúdo nocivo ou tentar acessar dados de outros clientes.</p>
     <h2>8. Garantias e responsabilidade</h2>
-    <p>O Nivela é oferecido "no estado em que se encontra". Na medida permitida em lei, nossa responsabilidade total fica limitada ao valor pago por você nos [12] meses anteriores à reclamação. O Nivela não substitui orientação profissional, jurídica, contábil ou de código de obras.</p>
-    <h2>9. Mudanças e lei aplicável</h2>
+    <p>O Bisey é oferecido "no estado em que se encontra". Na medida permitida em lei, nossa responsabilidade total fica limitada ao valor pago por você nos [12] meses anteriores à reclamação. O Bisey não substitui orientação profissional, jurídica, contábil ou de código de obras.</p>
+    <h2 id="indicacao">9. Programa de indicação</h2>
+    <p>O dono da conta pode compartilhar um link pessoal de indicação. <b>Seu amigo:</b> uma empresa nova, de outro dono, que criar a conta pelo seu link ganha o 1º mês pago grátis (depois dos 14 dias de teste). <b>Você:</b> quando esse amigo pagar a 1ª mensalidade, você ganha um crédito igual a 1 mês do seu plano atual (1/12 do valor anual em planos anuais), aplicado na sua próxima fatura. A cada 3 indicações pagas você ganha mais 1 mês de bônus. Os créditos têm limite de 12 meses por ano, não valem dinheiro, não podem ser transferidos nem trocados e perdem a validade se a conta for encerrada. Não valem: indicar a si mesmo, contas duplicadas ou falsas e anúncios pagos com a nossa marca; se a conta indicada for reembolsada ou cancelada no 1º mês pago, o crédito não é dado ou é estornado. O código pode ser usado no cadastro ou durante o teste. Podemos mudar ou encerrar o programa com aviso; créditos já ganhos continuam valendo.</p>
+    <h2>10. Mudanças e lei aplicável</h2>
     <p>Podemos atualizar estes Termos e avisaremos os donos de conta sobre mudanças importantes. Estes Termos seguem as leis de [Commonwealth of Massachusetts, EUA].</p>
-    <h2>10. Contato</h2>
-    <p>Dúvidas: <a href="mailto:hello@getnivela.com">hello@getnivela.com</a> [confirmar endereço].</p>
+    <h2>11. Contato</h2>
+    <p>Dúvidas: <a href="mailto:hello@getbisey.com">hello@getbisey.com</a> [confirmar endereço].</p>
+  </article>
+  <article data-lang-block="es" lang="es">
+    <h1>Términos de Uso</h1>
+    <p class="updated">Última actualización: [fecha]</p>
+    <p>Estos Términos de Uso (“Términos”) rigen tu uso de Bisey, una app de gestión de obras para contratistas ofrecida por [Razón social de la empresa] (“nosotros”). Al crear una cuenta o usar Bisey, aceptas estos Términos. La versión en inglés es la versión de referencia; esta traducción es para tu comodidad.</p>
+    <h2>1. Tu cuenta</h2>
+    <p>Debes dar información correcta y mantener tu contraseña segura. El dueño de la cuenta es responsable de los usuarios que invita (de oficina y de campo) y de todo lo que se haga con la cuenta.</p>
+    <h2>2. Prueba gratis y planes</h2>
+    <p>Las cuentas nuevas tienen 14 días de prueba gratis sin tarjeta de crédito. Después de la prueba, seguir usando la app requiere un plan pagado (Starter, Pro o Business), con cobro mensual o anual. Los precios, los usuarios incluidos y los límites de IA están en nuestra página de precios y pueden cambiar con [30] días de aviso.</p>
+    <h2>3. Pagos y cancelación</h2>
+    <p>Los planes pagados se renuevan automáticamente hasta que se cancelen. Puedes cancelar en cualquier momento; el acceso sigue hasta el final del período pagado. [Política de reembolso por definir.]</p>
+    <h2>4. Tus datos</h2>
+    <p>Los datos que pones en Bisey (obras, estimados, recibos, fotos, registros de horas) son tuyos. Los usamos solo para prestar y mejorar el servicio, como se describe en nuestra Política de Privacidad. Puedes pedir la exportación o la eliminación de tus datos.</p>
+    <h2>5. Funciones de IA</h2>
+    <p>Los estimados por voz y la lectura de recibos usan inteligencia artificial. Los resultados pueden tener errores; tú eres responsable de revisar los estimados, los montos y la asignación de obras antes de enviarlos a los clientes o de basarte en ellos.</p>
+    <h2>6. Reloj, selfie y ubicación</h2>
+    <p>Si usas el reloj, eres responsable de informar a tus empleados y de obtener el consentimiento que exijan las leyes que te apliquen para recolectar fotos y datos de ubicación.</p>
+    <h2>7. Uso aceptable</h2>
+    <p>No uses Bisey para nada ilegal, para enviar spam, para subir contenido dañino ni para intentar acceder a datos de otros clientes.</p>
+    <h2>8. Exención y responsabilidad</h2>
+    <p>Bisey se ofrece “tal cual”. En la medida que permita la ley, nuestra responsabilidad total se limita al monto que nos pagaste en los [12] meses anteriores al reclamo. Bisey no reemplaza la asesoría profesional, legal, fiscal ni de cumplimiento del código.</p>
+    <h2 id="recomendacion">9. Programa de recomendaciones</h2>
+    <p>Los dueños de cuenta pueden compartir un enlace personal de recomendación. <b>Tu amigo:</b> un negocio nuevo, de otro dueño, que se registre con tu enlace recibe gratis su primer mes pagado (aplicado después de los 14 días de prueba). <b>Tú:</b> cuando ese amigo pague su primera mensualidad, recibes un crédito igual a un mes de tu plan actual (1/12 del precio anual en planes anuales), aplicado en tu próxima factura. Por cada 3.ª recomendación pagada recibes un mes de bono adicional. Los créditos tienen un tope de 12 meses por año calendario, no se cambian por dinero, no se pueden transferir ni canjear y vencen si se cierra la cuenta. No califican las autorrecomendaciones, las cuentas duplicadas o falsas ni los anuncios pagados que pujen por nuestra marca; si la cuenta recomendada recibe un reembolso o se cancela en su primer mes pagado, el crédito no se otorga o se revierte. El código de recomendación se puede aplicar al registrarse o durante la prueba. Podemos cambiar o terminar el programa con aviso; los créditos ya ganados siguen siendo válidos.</p>
+    <h2>10. Cambios y ley aplicable</h2>
+    <p>Podemos actualizar estos Términos y avisaremos a los dueños de cuenta de los cambios importantes. Estos Términos se rigen por las leyes de [la Mancomunidad de Massachusetts].</p>
+    <h2>11. Contacto</h2>
+    <p>Preguntas: <a href="mailto:hello@getbisey.com">hello@getbisey.com</a> [confirmar dirección].</p>
   </article>
 </main>
 <footer class="foot">
   <div class="wrap foot-in">
     <div class="foot-brand">
-      <a class="logo" href="#top" aria-label="Nivela"><svg viewBox="0 0 146.14 48" aria-hidden="true"><use href="#nivela-logo"/></svg></a>
+      <a class="logo" href="#top" aria-label="Bisey"><svg viewBox="0 0 229.646 94.839" aria-hidden="true"><use href="#bisey-logo"/></svg></a>
       <p data-i18n="foot_tag">Built by contractors, for contractors.</p>
     </div>
     <nav class="foot-links" aria-label="Footer" data-i18n-attr="aria-label:foot_label">
       <a href="termos.html" data-i18n="foot_terms">Terms</a>
       <a href="privacidade.html" data-i18n="foot_privacy">Privacy</a>
-      <a href="mailto:hello@getnivela.com" data-i18n="foot_contact">Contact</a>
+      <a href="mailto:hello@getbisey.com" data-i18n="foot_contact">Contact</a>
     </nav>
-    <p class="foot-copy">© 2026 Nivela</p>
+    <p class="foot-copy">© 2026 Bisey</p>
   </div>
 </footer>
 <script src="site.js"></script>

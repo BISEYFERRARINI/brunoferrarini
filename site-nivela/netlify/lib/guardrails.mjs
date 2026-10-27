@@ -1,7 +1,7 @@
-// Nivela Assist — guardrails em CÓDIGO (não dependem do modelo obedecer ao prompt).
+// Bisey Assist — guardrails em CÓDIGO (não dependem do modelo obedecer ao prompt).
 // Entrada: mascara senha/cartão/SSN/CPF, detecta prompt injection, pedido de humano e irritação, idioma.
 // Saída: bloqueia promessa de desconto/reembolso/crédito, prazo de funcionalidade, pedido de senha/cartão,
-// valores em dinheiro para funcionário, vazamento do prompt; remove URLs/e-mails que não são do getnivela.com; põe a assinatura.
+// valores em dinheiro para funcionário, vazamento do prompt; remove URLs/e-mails que não são do getbisey.com; põe a assinatura.
 import { SIGNATURE } from "../functions/_kb.mjs";
 
 const L = "\\p{L}";
@@ -11,19 +11,19 @@ function rx(src, flags) { return new RegExp(src, (flags || "") + "iu"); }
 // ─── textos fixos (PT/EN/ES) ───
 export const CANNED = {
   injection: {
-    pt: "Não consigo fazer isso. Posso ajudar com o Nivela — o que você precisa no app?",
-    en: "I can't do that. I can help with Nivela — what do you need in the app?",
-    es: "No puedo hacer eso. Puedo ayudarte con Nivela — ¿qué necesitas en la app?"
+    pt: "Não consigo fazer isso. Posso ajudar com o Bisey — o que você precisa no app?",
+    en: "I can't do that. I can help with Bisey — what do you need in the app?",
+    es: "No puedo hacer eso. Puedo ayudarte con Bisey — ¿qué necesitas en la app?"
   },
   money: {
-    pt: "Não consigo conceder desconto, reembolso, crédito ou condição especial por aqui — o preço é o da tabela (https://getnivela.com/#pricing). Vou passar seu pedido para uma pessoa da equipe.",
-    en: "I can't give discounts, refunds, credits or special terms here — pricing is the same for everyone (https://getnivela.com/#pricing). I'll pass your request to a person on the team.",
-    es: "No puedo dar descuentos, reembolsos, créditos ni condiciones especiales por aquí — el precio es el de la tabla (https://getnivela.com/#pricing). Voy a pasar tu pedido a una persona del equipo."
+    pt: "Não consigo conceder desconto, reembolso, crédito ou condição especial por aqui — o preço é o da tabela (https://getbisey.com/#pricing). Vou passar seu pedido para uma pessoa da equipe.",
+    en: "I can't give discounts, refunds, credits or special terms here — pricing is the same for everyone (https://getbisey.com/#pricing). I'll pass your request to a person on the team.",
+    es: "No puedo dar descuentos, reembolsos, créditos ni condiciones especiales por aquí — el precio es el de la tabla (https://getbisey.com/#pricing). Voy a pasar tu pedido a una persona del equipo."
   },
   credentials: {
-    pt: "Por segurança: nunca envie senha, código de verificação, número de cartão ou documento por aqui. A equipe do Nivela nunca pede isso. Se você já enviou uma senha, troque-a assim que puder.",
-    en: "For your security: never send a password, verification code, card number or ID here. The Nivela team never asks for them. If you already sent a password, change it as soon as you can.",
-    es: "Por seguridad: nunca envíes contraseña, código de verificación, número de tarjeta ni documentos por aquí. El equipo de Nivela nunca los pide. Si ya enviaste una contraseña, cámbiala cuanto antes."
+    pt: "Por segurança: nunca envie senha, código de verificação, número de cartão ou documento por aqui. A equipe do Bisey nunca pede isso. Se você já enviou uma senha, troque-a assim que puder.",
+    en: "For your security: never send a password, verification code, card number or ID here. The Bisey team never asks for them. If you already sent a password, change it as soon as you can.",
+    es: "Por seguridad: nunca envíes contraseña, código de verificación, número de tarjeta ni documentos por aquí. El equipo de Bisey nunca los pide. Si ya enviaste una contraseña, cámbiala cuanto antes."
   },
   sensitiveNote: {
     pt: "Atenção: apaguei da conversa um dado que parecia senha, cartão ou documento. Não mande senha, cartão nem documento por aqui.",
@@ -41,9 +41,9 @@ export const CANNED = {
     es: "Todavía no tenemos fecha para eso."
   },
   human: {
-    pt: "Claro. Vou passar para uma pessoa da equipe. Deixe seu e-mail em **Falar com uma pessoa**: a conversa vai junto, você não precisa repetir nada. Respondemos por e-mail em até 1 dia útil (seg–sex). Se preferir, escreva para hello@getnivela.com — não envie senha nem cartão.",
-    en: "Sure. I'll pass this to a person on the team. Leave your email under **Talk to a person**: the conversation goes along, so you won't need to repeat anything. We reply by email within 1 business day (Mon–Fri). You can also write to hello@getnivela.com — never send passwords or card numbers.",
-    es: "Claro. Voy a pasarlo a una persona del equipo. Deja tu e-mail en **Hablar con una persona**: la conversación va junto, no necesitas repetir nada. Respondemos por e-mail en hasta 1 día hábil (lun–vie). También puedes escribir a hello@getnivela.com — no envíes contraseñas ni tarjetas."
+    pt: "Claro. Vou passar para uma pessoa da equipe. Deixe seu e-mail em **Falar com uma pessoa**: a conversa vai junto, você não precisa repetir nada. Respondemos por e-mail em até 1 dia útil (seg–sex). Se preferir, escreva para hello@getbisey.com — não envie senha nem cartão.",
+    en: "Sure. I'll pass this to a person on the team. Leave your email under **Talk to a person**: the conversation goes along, so you won't need to repeat anything. We reply by email within 1 business day (Mon–Fri). You can also write to hello@getbisey.com — never send passwords or card numbers.",
+    es: "Claro. Voy a pasarlo a una persona del equipo. Deja tu e-mail en **Hablar con una persona**: la conversación va junto, no necesitas repetir nada. Respondemos por e-mail en hasta 1 día hábil (lun–vie). También puedes escribir a hello@getbisey.com — no envíes contraseñas ni tarjetas."
   },
   budget: {
     pt: "O atendimento automático atingiu o limite de uso de hoje, então não vou arriscar uma resposta incompleta. Já registrei sua pergunta para a equipe: deixe seu e-mail em **Falar com uma pessoa** e respondemos por e-mail em até 1 dia útil (seg–sex).",
@@ -51,19 +51,19 @@ export const CANNED = {
     es: "La atención automática llegó al límite de uso de hoy, así que no voy a arriesgar una respuesta incompleta. Ya registré tu pregunta para el equipo: deja tu e-mail en **Hablar con una persona** y respondemos por e-mail en hasta 1 día hábil (lun–vie)."
   },
   unavailable: {
-    pt: "O atendimento automático está indisponível agora. Sua pergunta ficou registrada: deixe seu e-mail em **Falar com uma pessoa** ou escreva para hello@getnivela.com.",
-    en: "Automated support is unavailable right now. Your question is saved: leave your email under **Talk to a person** or write to hello@getnivela.com.",
-    es: "La atención automática no está disponible ahora. Tu pregunta quedó registrada: deja tu e-mail en **Hablar con una persona** o escribe a hello@getnivela.com."
+    pt: "O atendimento automático está indisponível agora. Sua pergunta ficou registrada: deixe seu e-mail em **Falar com uma pessoa** ou escreva para hello@getbisey.com.",
+    en: "Automated support is unavailable right now. Your question is saved: leave your email under **Talk to a person** or write to hello@getbisey.com.",
+    es: "La atención automática no está disponible ahora. Tu pregunta quedó registrada: deja tu e-mail en **Hablar con una persona** o escribe a hello@getbisey.com."
   },
   rate: {
-    pt: "Muitas mensagens em pouco tempo. Espere alguns minutos ou fale com uma pessoa: hello@getnivela.com.",
-    en: "Too many messages in a short time. Please wait a few minutes or talk to a person: hello@getnivela.com.",
-    es: "Demasiados mensajes en poco tiempo. Espera unos minutos o habla con una persona: hello@getnivela.com."
+    pt: "Muitas mensagens em pouco tempo. Espere alguns minutos ou fale com uma pessoa: hello@getbisey.com.",
+    en: "Too many messages in a short time. Please wait a few minutes or talk to a person: hello@getbisey.com.",
+    es: "Demasiados mensajes en poco tiempo. Espera unos minutos o habla con una persona: hello@getbisey.com."
   },
   leak: {
-    pt: "Não posso compartilhar isso. Posso ajudar com o Nivela — o que você precisa?",
-    en: "I can't share that. I can help with Nivela — what do you need?",
-    es: "No puedo compartir eso. Puedo ayudarte con Nivela — ¿qué necesitas?"
+    pt: "Não posso compartilhar isso. Posso ajudar com o Bisey — o que você precisa?",
+    en: "I can't share that. I can help with Bisey — what do you need?",
+    es: "No puedo compartir eso. Puedo ayudarte con Bisey — ¿qué necesitas?"
   }
 };
 export function canned(key, lang) { const c = CANNED[key]; return c[lang] || c.en; }
@@ -132,7 +132,7 @@ export function detectBilling(text) { return BILLING.test(String(text || "")); }
 // ─── saída ───
 function sentences(s) { return String(s).split(/(?<=[.!?…])\s+|\n+/u).map((x) => x.trim()).filter(Boolean); }
 const NEG = rx(B + "(não|nao|nem|nunca|jamais|not|n't|cannot|can't|never|no puedo|no podemos|no se puede|no|ningún|nenhum|sem|without|sin)" + E);
-const HANDOFF_WORDS = rx(B + "(pessoa|equipe|team|person|humano|human|persona|equipo|bruno|hello@getnivela\\.com|atendente|passar seu pedido|pass (it|this|your request))" + E);
+const HANDOFF_WORDS = rx(B + "(pessoa|equipe|team|person|humano|human|persona|equipo|bruno|hello@getbisey\\.com|atendente|passar seu pedido|pass (it|this|your request))" + E);
 
 const MONEY_WORD = "(desconto|descontos|discount|discounts|descuento|descuentos|cupom|cupons|coupon|cup[óo]n|reembolso|reembolsos|refund|refunds|estorno|chargeback|cr[ée]dito|credit|credits|pre[çc]o especial|special (price|pricing|deal)|precio especial|plano gr[áa]tis|free plan|plan gratis|m[êe]s gr[áa]tis extra|free month|mes gratis|extens[ãa]o do teste|extend(ed)? (your |the )?trial|trial extension|estender (o |seu )?teste|mais dias de teste|extra trial days|extender (la |tu )?prueba)";
 const PROMISE = "(vou|vamos|posso|podemos|consigo|conseguimos|te dou|lhe dou|dou|daremos|darei|garanto|garantimos|liberei|liberamos|liberado|apliquei|aplicamos|aplicado|aprovei|aprovamos|aprovado|concedi|concedemos|concedido|reembolsei|reembolsamos|i'll|i will|we'll|we will|i can|we can|i've|we've|i have|we have|approved|applied|granted|issued|processed|here's|here is|enjoy|te doy|le doy|puedo|podemos|vamos a|aplicamos|aprobamos|aprobado|daremos|te damos)";
@@ -157,20 +157,20 @@ const CRED_RES = [
   rx(B + "(preciso|precisamos|i need|we need|necesito|necesitamos)\\s+(d[ae]\\s+|de\\s+)?(sua|seu|your|tu|su)\\s+" + SENS)
 ];
 const EMP_MONEY = /(US\$|R\$|\$\s?\d|\d\s?(dólares|dolares|dollars|usd)\b)/iu;
-const LEAK = rx("(status-internal|policies\\.md|kb\\.status\\.md|kb\\.pt\\.md|kb\\.en\\.md|<kb|<\\/kb|<policies|system prompt|prompt do sistema|minhas instru[çc][õo]es (s[ãa]o|dizem)|my instructions (are|say)|NIVELA_ASSIST_RULES)");
+const LEAK = rx("(status-internal|policies\\.md|kb\\.status\\.md|kb\\.pt\\.md|kb\\.en\\.md|<kb|<\\/kb|<policies|system prompt|prompt do sistema|minhas instru[çc][õo]es (s[ãa]o|dizem)|my instructions (are|say)|BISEY_ASSIST_RULES)");
 
 function flagged(sentence, res) {
   for (const r of res) { const m = r.exec(sentence); if (m) { const before = sentence.slice(0, m.index + 2); if (NEG.test(before) || NEG.test(m[0].slice(0, 30))) continue; return true; } }
   return false;
 }
 
-// URL e e-mail: só getnivela.com (e o e-mail do próprio cliente)
-const HOST_OK = /^([a-z0-9-]+\.)*getnivela\.com$/i;
+// URL e e-mail: só getbisey.com (e o e-mail do próprio cliente)
+const HOST_OK = /^([a-z0-9-]+\.)*getbisey\.com$/i;
 export function sanitizeUrl(u) {
   u = String(u || "").trim();
   if (!u) return null;
   if (/^(#[a-z0-9_-]*|\/(?!\/)[^\s]*)$/i.test(u)) return u; // relativo ao site (ex.: /app/#projects, #pricing)
-  if (/^mailto:/i.test(u)) return /^mailto:[^@\s]+@([a-z0-9-]+\.)*getnivela\.com(\?.*)?$/i.test(u) ? u : null;
+  if (/^mailto:/i.test(u)) return /^mailto:[^@\s]+@([a-z0-9-]+\.)*getbisey\.com(\?.*)?$/i.test(u) ? u : null;
   try { const x = new URL(u); if ((x.protocol === "https:" || x.protocol === "http:") && HOST_OK.test(x.hostname)) return "https://" + x.host + x.pathname + x.search + x.hash; } catch (e) { /* inválida */ }
   return null;
 }
@@ -179,7 +179,7 @@ function stripForeign(text, allowEmails) {
   // [texto](url) → texto (ou mantém, se o link é nosso)
   text = text.replace(/\[([^\]]{1,120})\]\(([^)\s]{1,400})\)/g, (m, label, url) => { const ok = sanitizeUrl(url); if (ok) return "[" + label + "](" + ok + ")"; removed++; return label; });
   text = text.replace(/\b(?:https?:\/\/|www\.)[^\s<>()"'\]]+/gi, (m) => { const u = m.replace(/[.,;:!?]+$/, ""); const tail = m.slice(u.length); const ok = sanitizeUrl(/^www\./i.test(u) ? "https://" + u : u); if (ok) return m; removed++; return "" + tail; });
-  text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, (m) => { if (/@([a-z0-9-]+\.)*getnivela\.com$/i.test(m) || (allowEmails || []).includes(m.toLowerCase())) return m; removed++; return "[e-mail removido]"; });
+  text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, (m) => { if (/@([a-z0-9-]+\.)*getbisey\.com$/i.test(m) || (allowEmails || []).includes(m.toLowerCase())) return m; removed++; return "[e-mail removido]"; });
   // domínios soltos (ex.: quickbooks.com) que não sejam nossos
   text = text.replace(/(?<![@\w.\/-])((?:[a-z0-9-]+\.)+(?:com|net|org|gov|edu|io|app|co|br|us|ai|dev|info|biz|me|ly|gg|xyz|site|online))(\/[^\s)]*)?(?![\w-])/gi, (m, host) => { if (HOST_OK.test(host)) return m; removed++; return ""; });
   return { text: text.replace(/[ \t]{2,}/g, " ").replace(/\(\s*\)/g, ""), removed };
@@ -189,7 +189,7 @@ export function signature(lang) { return SIGNATURE[lang] || SIGNATURE.en; }
 export function stripSignature(text) {
   let s = String(text || "");
   Object.values(SIGNATURE).forEach((sig) => { s = s.split(sig).join(""); });
-  return s.replace(/\n*—\s*Nivela Assist[^\n]*$/u, "").trim();
+  return s.replace(/\n*—\s*Bisey Assist[^\n]*$/u, "").trim();
 }
 export function withSignature(text, lang) { return stripSignature(text) + "\n\n" + signature(lang); }
 

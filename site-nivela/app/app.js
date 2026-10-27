@@ -43,7 +43,7 @@
   // leave: funções que devolvem { label, save(): Promise<bool>, discard() } quando a tela atual tem alterações não salvas (rascunho) — go() pergunta antes de sair
   // beforeReload: chamadas antes de recarregar a página (troca de idioma) para guardar rascunhos
 
-  // Ícones Nivela: traço 1,75 em grade 24, cantos arredondados (docs/02-design-system.md §5)
+  // Ícones Bisey: traço 1,75 em grade 24, cantos arredondados (docs/02-design-system.md §5)
   var ICON_PATHS = {
     bolt: '<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>',
     flake: '<path d="M12 2.5v19M4.2 7l15.6 10M4.2 17l15.6-10M9 4.3 12 6.5l3-2.2M9 19.7l3-2.2 3 2.2"/>',
@@ -94,7 +94,13 @@
     upload: '<path d="M12 15.5V4.5M7 9l5-5 5 5M5 19.5h14"/>',
     card: '<rect x="2.5" y="5.5" width="19" height="13" rx="2"/><path d="M2.5 10h19M6.5 14.5h4"/>',
     lock: '<rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
-    star: '<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>'
+    star: '<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6L12 16.7l-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>',
+    percent: '<path d="M18.5 5.5 5.5 18.5"/><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/>',
+    gift: '<rect x="3.5" y="8" width="17" height="4.5" rx="1"/><path d="M5 12.5v8h14v-8M12 8v12.5"/><path d="M12 8C10.6 5 7 4.4 7 6.6 7 8 9.3 8 12 8zm0 0c1.4-3 5-3.6 5-1.4C17 8 14.7 8 12 8z"/>',
+    send: '<path d="M4 12 20 4l-6 16-2.5-6.5z"/><path d="M11.5 13.5 20 4"/>',
+    phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    mail: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m3.5 7 8.5 6.5L20.5 7"/>',
+    spark: '<path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>'
   };
   // ícones dos ramos: um ramo pode trazer o próprio SVG (trades.js → icon: { svg }) e vira o ícone "trade-<id>"
   function iconPath(name) {
@@ -112,7 +118,7 @@
   // Despesas da obra (as mesmas opções da aba Notas). Mão de obra = horas trabalhadas (calculada pelo ponto).
   var EXPENSE_CATS = [
     { id: "material", label: "Material", color: "var(--c1)" },
-    { id: "permit", label: "Permit", color: "var(--c3)" },
+    { id: "permit", label: t("catalog.permit", "Permit"), color: "var(--c3)" },
     { id: "equipamento", label: t("catalog.equipmentRental", "Equipamento / aluguel"), color: "var(--c7)" },
     { id: "outros", label: t("catalog.other", "Outros"), color: "var(--c6)" }
   ];
@@ -138,8 +144,10 @@
   // Cada definição traz workType, fields (ficha técnica), text, tasks, suggest, group, sysKeys, stepName, kind, proposal e prices.
   var TRADE = NV.TRADES;
   function tradeDef(id) { return NV.tradeDef(id); }
-  // Marca do PRODUTO (Nivela) x marca da EMPRESA do cliente (vem de API.companies / config; trocável por applyBrand)
-  var PRODUCT = "Nivela";
+  // Marca do PRODUTO (Bisey) x marca da EMPRESA do cliente (vem de API.companies / config; trocável por applyBrand)
+  var PRODUCT = "Bisey";
+  // endereço público do produto (página de vendas): usado no link de indicação. Troca num lugar só: APP_CONFIG.SITE_URL no config.js
+  var SITE_URL = String((window.APP_CONFIG && window.APP_CONFIG.SITE_URL) || "https://getbisey.com").replace(/\/+$/, "");
   var APPCO = API.companies[0], BRAND = APPCO.name, BRAND_ICON = '<img src="icons/mark-' + APPCO.id + '.png" alt="">';
   var KNOWN_LOGOS = { eternity: "icons/mark-eternity.png", bluestar: "icons/mark-bluestar.png" };
   var BRAND_OVR = {}; // preenchido por applyBrand (onboarding / configurações)
@@ -158,7 +166,7 @@
   /* Gancho para onboarding/configurações: aplica a marca da empresa do cliente.
      applyBrand({ name: "Minha Empresa", logo: "data:image/png;base64,…" | "url" | "", accent: "#C98200" })
      – accent vira --accent (claro) e uma versão mais clara no escuro; --accent-ink é preto/branco pela luminância.
-     – passar accent: null volta à cor padrão (verdigris ou a do data-company do seed). */
+     – passar accent: null volta à cor padrão (cobalto Bisey ou a do data-company do seed). */
   function applyBrand(b) {
     b = b || {};
     if (b.reset) BRAND_OVR = {}; // reset:true limpa a marca aplicada antes (usado para desfazer a prévia do onboarding)
@@ -170,7 +178,7 @@
   }
   function brandOverride() { return Object.assign({}, BRAND_OVR); }
   // cor efetiva: a de applyBrand (config / prévia) para a empresa principal, senão a cor salva da empresa ativa;
-  // sem nenhuma, vale o CSS (verdigris ou o data-company das empresas de exemplo)
+  // sem nenhuma, vale o CSS (cobalto Bisey ou o data-company das empresas de exemplo)
   var painted = null;
   function activeCompanyId() { return S && S.user ? (isStaff() ? S.company : S.user.companyId) : (S ? S.company : APPCO.id); }
   function effectiveAccent() {
@@ -187,8 +195,8 @@
     var ink = luminance(a) > 0.45 ? "#111111" : "#FFFFFF", mix = luminance(a) > 0.35 ? 50 : 62;
     var dark = "color-mix(in srgb, " + a + " 72%, #FFFFFF)", R = ":root:root:root:root"; // vence o :root[data-company=…][data-theme=…] do tokens.css
     st.textContent = R + "{--accent:" + a + ";--accent-ink:" + ink + ";--accent-text:color-mix(in srgb, " + a + " " + mix + "%, var(--ink))}" +
-      R + "[data-theme=dark]{--accent:" + dark + ";--accent-ink:#0A1513}" +
-      "@media (prefers-color-scheme: dark){" + R + ":not([data-theme=light]){--accent:" + dark + ";--accent-ink:#0A1513}}";
+      R + "[data-theme=dark]{--accent:" + dark + ";--accent-ink:#04091E}" +
+      "@media (prefers-color-scheme: dark){" + R + ":not([data-theme=light]){--accent:" + dark + ";--accent-ink:#04091E}}";
   }
   // imagem → dataURL redimensionada no canvas (logo: PNG com transparência; se ficar grande, JPEG em fundo branco)
   function resizeImage(file, max) {
@@ -223,7 +231,7 @@
     employee: {}
   };
   // telas que pedem uma permissão (as outras telas do escritório pedem só "staff")
-  var VIEW_PERM = { gastos: "finance", hours: "finance", reports: "finance", team: "team", settings: "settings" };
+  var VIEW_PERM = { gastos: "finance", hours: "finance", reports: "finance", team: "team", settings: "settings", impostos: "finance", indicar: "settings" };
   function roleOf(u) { u = u || (S && S.user); if (!u) return null; return u.role === "admin" || u.role === "manager" ? u.role : "employee"; }
   function can(perm, u) { var r = roleOf(u); if (!r) return false; if (r === "admin") return true; return !!(PERMS[r] || {})[perm]; }
   function isStaff(u) { return can("staff", u); }
@@ -233,8 +241,8 @@
   function currentTheme() { var t = document.documentElement.getAttribute("data-theme"); if (t) return t; return window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
   function setTheme(t) {
     if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); else document.documentElement.removeAttribute("data-theme");
-    try { if (t === "dark" || t === "light") localStorage.setItem("nivela_theme", t); else localStorage.removeItem("nivela_theme"); } catch (e) {}
-    var meta = document.querySelectorAll('meta[name="theme-color"]'); meta.forEach(function (m) { m.setAttribute("content", currentTheme() === "dark" ? "#06110F" : "#0D2B27"); });
+    try { if (t === "dark" || t === "light") localStorage.setItem("bisey_theme", t); else localStorage.removeItem("bisey_theme"); } catch (e) {}
+    var meta = document.querySelectorAll('meta[name="theme-color"]'); meta.forEach(function (m) { m.setAttribute("content", currentTheme() === "dark" ? "#050A19" : "#0A1433"); });
   }
   function tradeOf(companyId) { var c = API.companies.find(function (x) { return x.id === companyId; }); return c ? c.trade : "electrical"; }
   // opções da empresa (Configurações → Empresa), ex.: { noGas: true } — "Não fazemos gás". Demo: no registro da empresa; Supabase: companies.settings
@@ -271,7 +279,29 @@
   function userById(id) { return S.users.find(function (u) { return u.id === id; }); }
   function userName(id) { var u = userById(id); return u ? u.name : (S.user && S.user.id === id ? S.user.name : "—"); }
 
+  // ═══════════ "Quem fez": autoria em tudo (tarefas, avisos, notas, arquivos, agenda, escala, propostas, ponto) ═══════════
+  // Mostra "Carla · 27 out, 14:32" com a inicial; "Feito por João · ontem, 16:05" nas tarefas; "Editado por …" quando mudou.
+  var MON = t("who.months", "jan,fev,mar,abr,mai,jun,jul,ago,set,out,nov,dez").split(",");
+  function whenShort(iso) {
+    if (!iso) return "";
+    var dateOnly = String(iso).length === 10, d = new Date(dateOnly ? iso + "T12:00:00" : iso); if (isNaN(d)) return "";
+    var today = new Date(); today.setHours(0, 0, 0, 0); var day = new Date(d); day.setHours(0, 0, 0, 0);
+    var diff = Math.round((today - day) / 864e5);
+    var dl = diff === 0 ? t("who.today", "hoje") : diff === 1 ? t("who.yesterday", "ontem") : (LANG === "en" ? MON[d.getMonth()] + " " + d.getDate() : d.getDate() + " " + MON[d.getMonth()]) + (d.getFullYear() !== today.getFullYear() ? " " + d.getFullYear() : "");
+    return dateOnly ? dl : t("who.at", "{d}, {t}", { d: dl, t: fmtTime(iso) });
+  }
+  function firstName(n) { return String(n || "").trim().split(/\s+/)[0] || ""; }
+  // tpl = texto com {n} (nome); o nome sai em negrito. Sem nome → "".
+  function byLine(tpl, name, iso, cls) {
+    if (!name) return "";
+    var txt = esc(tpl.replace("{n}", "\u0001")).replace("\u0001", "<b>" + esc(firstName(name)) + "</b>"), when = whenShort(iso);
+    return '<span class="byline' + (cls ? " " + cls : "") + '" title="' + esc(name + (iso ? " · " + fmtDate(iso) + (String(iso).length > 10 ? " " + fmtTime(iso) : "") : "")) + '"><span class="avatar xs" aria-hidden="true">' + esc(initials(name)) + "</span><span>" + txt + (when ? " · " + esc(when) : "") + "</span></span>";
+  }
+  // só o nome + quando (colunas "Lançado por")
+  function byCell(name, iso) { return name ? byLine("{n}", name, iso, "cell") : '<span class="muted">—</span>'; }
+
   function loadData() {
+    if (typeof dropActs === "function") dropActs(); // a atividade da obra recarrega junto com os dados
     var isAdmin = isStaff(), money = can("finance"); // gerente: carrega como o escritório, mas sem o financeiro das obras
     var co = isAdmin ? S.company : S.user.companyId;
     var jobs = [API.listProjects(co), API.listTime({ companyId: isAdmin ? co : null }), API.listExpenses({ companyId: isAdmin ? co : null }), API.listNotices ? API.listNotices().catch(function () { return []; }) : Promise.resolve([])];
@@ -296,8 +326,8 @@
 
   // preferências de notificação (Configurações → Notificações): ficam neste aparelho
   var NOTIF_DEF = { notices: true, browser: false, todayAgenda: false };
-  function notifPrefs() { var o = {}; try { o = JSON.parse(storeGet("nivela_notif") || "{}") || {}; } catch (e) { o = {}; } return Object.assign({}, NOTIF_DEF, o); }
-  function setNotifPref(k, v) { var o = notifPrefs(); o[k] = v; storeSet("nivela_notif", JSON.stringify(o)); }
+  function notifPrefs() { var o = {}; try { o = JSON.parse(storeGet("bisey_notif") || "{}") || {}; } catch (e) { o = {}; } return Object.assign({}, NOTIF_DEF, o); }
+  function setNotifPref(k, v) { var o = notifPrefs(); o[k] = v; storeSet("bisey_notif", JSON.stringify(o)); }
   function checkNewNotices() {
     var seen = storeGet("ee_notice_seen") || "", fresh = (S.notices || []).filter(function (n) { return !n.resolved && n.createdAt > seen; }), pr = notifPrefs();
     if (fresh.length && S.view !== "avisos" && pr.notices) setTimeout(function () { toast(fresh.length === 1 ? t("notices.newNoticeFrom", "Aviso novo de ") + (fresh[0].authorName || t("notices.crewMember", "funcionário")) + ": " + fresh[0].text.slice(0, 80) : fresh.length + t("notices.newNoticesFromThe", " avisos novos da equipe. Veja em Avisos.")); }, 900);
@@ -409,14 +439,14 @@
   function wizSnap(d) { var c = JSON.parse(JSON.stringify(d)); delete c._moneyOk; return JSON.stringify(c); }
   function markWizClean() { S.draftBase = S.draft ? wizSnap(S.draft) : null; }
   function wizDirty() { return !!(S.draft && ((S.draftFiles && S.draftFiles.length) || S.draftBase == null || wizSnap(S.draft) !== S.draftBase)); }
-  function restoreWizard() { try { var w = JSON.parse(sessionStorage.getItem("nivela_wizdraft") || "null"); sessionStorage.removeItem("nivela_wizdraft"); if (w && w.d) { S.draft = w.d; S.draftBase = w.base == null ? null : w.base; S.wizStep = w.step || 0; S.draftFiles = []; } } catch (e) {} }
+  function restoreWizard() { try { var w = JSON.parse(sessionStorage.getItem("bisey_wizdraft") || "null"); sessionStorage.removeItem("bisey_wizdraft"); if (w && w.d) { S.draft = w.d; S.draftBase = w.base == null ? null : w.base; S.wizStep = w.step || 0; S.draftFiles = []; } } catch (e) {} }
   EXT.leave.push(function () {
     if (S.view !== "projectForm" || !wizDirty()) return null;
     return { label: t("leave.project", "“{p}”", { p: S.draft.name || t("projects.newProject2", "Novo projeto") }),
       save: function () { A.saveProject(); return false; }, // o salvar normal (com os avisos dele) e abre o projeto salvo
       discard: function () { S.draft = null; S.draftBase = null; S.draftFiles = []; } };
   });
-  EXT.beforeReload.push(function () { if (S.view === "projectForm" && S.draft) try { sessionStorage.setItem("nivela_wizdraft", JSON.stringify({ d: S.draft, base: S.draftBase, step: S.wizStep })); } catch (e) {} });
+  EXT.beforeReload.push(function () { if (S.view === "projectForm" && S.draft) try { sessionStorage.setItem("bisey_wizdraft", JSON.stringify({ d: S.draft, base: S.draftBase, step: S.wizStep })); } catch (e) {} });
 
   // foco: abre modal/folha → foca o 1º campo; fecha → volta para o botão que abriu
   function afterRender() {
@@ -438,7 +468,7 @@
 
   // ═══════════ login ═══════════
   function loginAside() {
-    return '<aside class="login-aside"><img class="login-logo" src="brand/logo-escuro.svg" alt="' + PRODUCT + '" width="110" height="36">' +
+    return '<aside class="login-aside"><img class="login-logo" src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + PRODUCT + '" width="97" height="40">' +
       t("login.yourJobOnThe", '<div class="login-pitch"><h1>Sua obra no nível.</h1><p>Propostas por voz, notas que se lançam sozinhas e ponto com selfie e GPS.</p>') +
       '<ul class="login-feats"><li>' + ic("mic") + t("login.talkInsteadOfTyping", '<div><b>Fale em vez de digitar</b><span>Descreva o serviço e a proposta sai no padrão da sua empresa.</span></div></li>') +
       "<li>" + ic("camera") + t("login.receiptsThatLogThemselves", '<div><b>Notas que se lançam sozinhas</b><span>Foto do recibo: a IA descobre a obra e a categoria.</span></div></li>') +
@@ -447,7 +477,7 @@
   }
   function setupView() {
     return '<div class="login">' + loginAside() + '<main class="login-main" id="conteudo">' + langSwitch("login-lang") + '<form class="login-card" id="setupForm">' +
-      '<img class="login-logo-m only-light" src="brand/logo-claro.svg" alt="' + PRODUCT + '" width="100" height="33"><img class="login-logo-m only-dark" src="brand/logo-escuro.svg" alt="' + PRODUCT + '" width="100" height="33">' +
+      '<img class="login-logo-m only-light" src="brand/logo/bisey-lockup-horizontal-color.svg" alt="' + PRODUCT + '" width="82" height="34"><img class="login-logo-m only-dark" src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + PRODUCT + '" width="82" height="34">' +
       t("login.firstTimeSetupNew", '<div><h2>Primeiro acesso</h2><p class="muted">Banco de dados novo. Crie agora o login do administrador (você). Os funcionários você cadastra depois, dentro do app.</p></div>') +
       t("login.yourName", '<label class="field"><span>Seu nome</span><input type="text" id="suName" required></label>') +
       t("login.usernameToSignIn", '<label class="field"><span>Usuário (para entrar)</span><input type="text" id="suUser" autocapitalize="none" autocomplete="username" required placeholder="ex.: bruno"></label>') +
@@ -458,7 +488,7 @@
     if (S.setup) return setupView();
     var co = companyBrand(S.company), emp = S.company === "bluestar" ? "pedro" : "joao";
     return '<div class="login">' + loginAside() + '<main class="login-main" id="conteudo">' + langSwitch("login-lang") + '<form class="login-card" id="loginForm" novalidate>' +
-      '<img class="login-logo-m only-light" src="brand/logo-claro.svg" alt="' + PRODUCT + '" width="100" height="33"><img class="login-logo-m only-dark" src="brand/logo-escuro.svg" alt="' + PRODUCT + '" width="100" height="33">' +
+      '<img class="login-logo-m only-light" src="brand/logo/bisey-lockup-horizontal-color.svg" alt="' + PRODUCT + '" width="82" height="34"><img class="login-logo-m only-dark" src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + PRODUCT + '" width="82" height="34">' +
       (EXT.signupView ? '<div class="auth-tabs" role="tablist" aria-label="' + esc(t("auth.tabs", "Entrar ou criar conta")) + '"><button type="button" role="tab" aria-selected="true" class="on">' + esc(t("auth.signin", "Entrar")) + '</button><button type="button" role="tab" aria-selected="false" data-act="signupStart">' + esc(t("auth.signup", "Criar conta")) + "</button></div>" : "") +
       t("login.signInUseThe", '<div><h2>Entrar</h2><p class="muted">Use o usuário e a senha que o administrador da sua empresa criou.</p></div>') +
       '<div class="login-co">' + coLogo(co) + '<span><b>' + esc(co.name) + "</b><span>" + esc(tradeLabel(co.trade)) + "</span></span></div>" +
@@ -471,7 +501,7 @@
         t("login.signInAsOwner", '<div class="row"><button type="button" class="btn ghost" data-act="demoLogin" data-id="bruno">Entrar como dono</button><button type="button" class="btn ghost" data-act="demoLogin" data-id="') + emp + t("login.asEmployee", '">Como funcionário</button>') +
         (S.company === "eternity" ? '<button type="button" class="btn ghost" data-act="demoLogin" data-id="carla">' + esc(t("login.asManager", "Como gerente")) + "</button>" : "") + "</div></div>"
         : t("login.forgotYourPasswordAsk", '<div class="login-hint">Esqueceu a senha? Peça ao administrador para criar uma nova.</div>')) +
-      (EXT.signupView ? '<div class="login-new">' + esc(t("auth.noAccount", "Ainda não usa o Nivela?")) + ' <button type="button" class="link-btn" data-act="signupStart">' + esc(t("auth.createTrial", "Criar conta · 14 dias grátis")) + "</button></div>" : "") +
+      (EXT.signupView ? '<div class="login-new">' + esc(t("auth.noAccount", "Ainda não usa o Bisey?")) + ' <button type="button" class="link-btn" data-act="signupStart">' + esc(t("auth.createTrial", "Criar conta · 14 dias grátis")) + "</button></div>" : "") +
       '<div class="login-powered">' + esc(PRODUCT) + t("login.constructionManagement", " · gestão de obras</div></form></main></div>");
   }
 
@@ -481,8 +511,8 @@
     [t("nav.jobs", "Obras"), [["projects", t("nav.projects", "Projetos"), "folder"], ["escala", t("nav.schedule", "Escala"), "pin"]]],
     [t("nav.sales", "Vendas"), [["proposals", t("nav.estimates", "Propostas"), "doc"], ["prices", t("nav.prices", "Preços"), "tag"]]],
     [t("nav.team", "Equipe"), [["time", t("nav.timeClock", "Ponto"), "clock"], ["team", t("nav.team", "Equipe"), "team"]]],
-    [t("nav.finance", "Finanças"), [["gastos", t("nav.expenses", "Despesas"), "money"], ["notas", t("nav.receipts", "Notas"), "receipt"], ["reports", t("nav.reports", "Relatórios"), "report"]]],
-    [t("nav.account", "Conta"), [["settings", t("nav.settings", "Configurações"), "gear"]]]
+    [t("nav.finance", "Finanças"), [["gastos", t("nav.expenses", "Despesas"), "money"], ["notas", t("nav.receipts", "Notas"), "receipt"], ["reports", t("nav.reports", "Relatórios"), "report"], ["impostos", t("nav.taxes", "Impostos"), "percent"]]],
+    [t("nav.account", "Conta"), [["settings", t("nav.settings", "Configurações"), "gear"], ["indicar", t("nav.refer", "Indique e ganhe"), "gift"]]]
   ];
   // menu do escritório filtrado pelo papel (o gerente não vê Despesas, Relatórios, Equipe nem Configurações)
   function groupsFor(role) {
@@ -513,13 +543,13 @@
       API.companies.map(function (c) { var x = companyBrand(c.id); return '<button type="button" role="menuitem" data-act="company" data-id="' + c.id + '" class="' + (c.id === coId ? "on" : "") + '">' + coLogo(x) + esc(x.name) + "</button>"; }).join("") + "</div></details>";
   }
   // ═══════════ idioma (por pessoa) ═══════════
-  function speechLang() { return LANG === "en" ? "en-US" : "pt-BR"; }
+  function speechLang() { return NV.locale(); } // pt-BR / en-US / es-US
   // troca o idioma: grava no perfil (quando há login) e neste aparelho, e recarrega voltando para a mesma tela
   function setLang(l) {
     if (!l || l === LANG) return;
     var resume = S.user ? { view: S.view, params: S.params } : S.signup ? { signup: 1 } : null;
-    if (!S.user) { try { sessionStorage.setItem("nivela_lang_explicit", "1"); } catch (e) {} }
-    var loc = l === "en" ? "en-US" : "pt-BR";
+    if (!S.user) { try { sessionStorage.setItem("bisey_lang_explicit", "1"); } catch (e) {} }
+    var loc = l === "en" ? "en-US" : l === "es" ? "es-US" : "pt-BR";
     var save = S.user && API.setLocale ? API.setLocale(loc).catch(function () {}) : Promise.resolve();
     EXT.beforeReload.forEach(function (f) { try { f(); } catch (e) {} }); // rascunhos guardados antes de recarregar (voltam abertos no outro idioma)
     save.then(function () { NV.setLang(l, resume); });
@@ -527,7 +557,7 @@
   // seletor compacto PT | EN (tela de entrar, menu do usuário, configurações)
   function langSwitch(cls) {
     return '<div class="lang-sw ' + (cls || "") + '" role="group" aria-label="' + esc(t("lang.label", "Idioma")) + '">' + NV.langs.map(function (x) {
-      return '<button type="button" data-act="setLang" data-id="' + x[0] + '" class="' + (x[0] === LANG ? "on" : "") + '" aria-pressed="' + (x[0] === LANG) + '" lang="' + (x[0] === "en" ? "en" : "pt-BR") + '" title="' + esc(x[1]) + '">' + x[0].toUpperCase() + "</button>";
+      return '<button type="button" data-act="setLang" data-id="' + x[0] + '" class="' + (x[0] === LANG ? "on" : "") + '" aria-pressed="' + (x[0] === LANG) + '" lang="' + NV.langTag(x[0]) + '" title="' + esc(x[1]) + '">' + x[0].toUpperCase() + "</button>";
     }).join("") + "</div>";
   }
   function themeBtn(cls) { var dark = currentTheme() === "dark"; return '<button type="button" class="icon-btn ' + (cls || "") + '" data-act="theme" aria-label="' + (dark ? t("nav.useLightTheme", "Usar tema claro") : t("nav.useDarkTheme", "Usar tema escuro")) + '" title="' + (dark ? t("nav.lightTheme", "Tema claro") : t("nav.darkTheme", "Tema escuro")) + '">' + ic(dark ? "sun" : "moon") + "</button>"; }
@@ -535,7 +565,7 @@
     return '<div class="side-foot"><span class="avatar" aria-hidden="true">' + esc(initials(S.user.name)) + '</span><span class="who"><b>' + esc(S.user.name) + "</b>" + esc(roleLabel) + "</span>" +
       themeBtn("nav-ib") + t("nav.html", '<button type="button" class="icon-btn nav-ib" data-act="logout" aria-label="Sair" title="Sair">') + ic("logout") + "</button></div>" +
       '<div class="side-lang"><span>' + esc(t("lang.label", "Idioma")) + "</span>" + langSwitch("nav-ib") + "</div>" +
-      installBtn() + t("nav.madeWithImgSrc", '<div class="powered">feito com <img src="brand/logo-escuro.svg" alt="') + PRODUCT + '" width="58" height="19"></div>';
+      installBtn() + t("nav.madeWithImgSrc", '<div class="powered">feito com <img src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="') + PRODUCT + '" width="80" height="33"></div>';
   }
   var isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
   function searchBtn() { return '<button type="button" class="search" data-act="search" aria-label="' + esc(t("nav.searchAria", "Buscar ({k} K)", { k: isMac ? "⌘" : "Ctrl" })) + '">' + ic("search", 18) + t("nav.searchJobEstimateCustomer", '<span class="search-l">Buscar obra, proposta, cliente ou ação</span><kbd>') + (isMac ? "⌘" : "Ctrl") + " K</kbd></button>"; }
@@ -709,8 +739,8 @@
     // contexto (antes era o banner escuro): projeto selecionado ou todos, período, orçamento e limite
     var ctx = '<div class="ctx" aria-label="' + esc(t("dashboard.summaryAria", "Resumo")) + '">' +
       '<div><div class="k">' + (sel ? t("dashboard.selectedProject", "Projeto selecionado") : t("dashboard.projects", "Projetos")) + '</div><div class="v">' + (sel ? "1" : m.scope.length) + "</div></div>" +
-      t("dashboard.contractValue", '<div><div class="k">Orçamento</div><div class="v">') + money(m.contract) + "</div></div>" +
-      t("dashboard.spendingLimit", '<div><div class="k">Limite de gastos</div><div class="v">') + money(m.budget) + "</div></div></div>";
+      t("dashboard.contractValue", '<div><div class="k">Valor dos contratos</div><div class="v">') + money(m.contract) + "</div></div>" +
+      "</div>";
     var head = t("dashboard.dashboardOverviewOfYour", '<div class="page-head"><div><h1>Painel</h1><p>Visão geral das obras, gastos e progresso</p>') +
       '<p class="ctx-line">' + ic(sel ? "folder" : "grid", 16) + "<b>" + esc(sel ? sel.name : t("dashboard.allProjects2", "Todos os projetos")) + "</b>" + (sel ? '<span class="muted"> · ' + esc([sel.client, sel.address].filter(Boolean).join(" · ")) + "</span>" : "") + t("dashboard.period2", '<span class="muted"> · Período: ') + periodLabel() + "</span>" +
       (sel ? ' <button type="button" class="btn quiet sm" data-act="openProject" data-id="' + sel.id + t("dashboard.openProject", '">Abrir projeto') + ic("chevr", 14) + "</button>" : "") + "</p></div>" + ctx + "</div>";
@@ -821,13 +851,13 @@
     var detail = t("expenses.dateProjectVendorDescription", '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Projeto</th><th>Fornecedor / descrição</th><th>Lançado por</th><th class="n">Valor</th><th></th></tr></thead><tbody>') +
       (list.length ? list.map(function (x) {
         var p = projectById(x.projectId);
-        return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(x.vendor || "") + (x.category !== cat ? ' <span class="pill neutral">' + esc(catLabel(x.category)) + "</span>" : "") + (x.note ? '<div class="muted small">' + esc(x.note) + "</div>" : "") + "</td><td>" + esc(userName(x.createdBy)) + '</td><td class="n"><b>' + money(x.amount, 2) + '</b></td><td class="n">' +
+        return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(x.vendor || "") + (x.category !== cat ? ' <span class="pill neutral">' + esc(catLabel(x.category)) + "</span>" : "") + (x.note ? '<div class="muted small">' + esc(x.note) + "</div>" : "") + "</td><td>" + byCell(x.createdByName || (x.createdBy ? userName(x.createdBy) : ""), x.createdAt || x.date) + '</td><td class="n"><b>' + money(x.amount, 2) + '</b></td><td class="n">' +
           (x.receipt ? '<button class="btn ghost sm" data-act="viewReceipt" data-id="' + x.id + t("expenses.receipt", '">Nota</button> ') : "") + '<button class="btn ghost sm" data-act="delExpense" data-id="' + x.id + t("expenses.html", '" aria-label="Apagar">✕</button></td></tr>');
       }).join("") + t("expenses.total", '<tr><td colspan="4"><b>Total</b></td><td class="n"><b>') + money(total, 2) + "</b></td><td></td></tr>" : emptyRow(6, t("expenses.noExpensesInThis", "Nenhuma despesa nesta categoria no período."))) +
       "</tbody></table></div>";
     return t("expenses.expensesMaterialPermitsEquipment", '<div class="page-head"><div><h1>Despesas</h1><p>Material, permit, equipamento e outros — as notas lançadas entram aqui sozinhas</p></div><button class="btn ghost" data-act="newExpense">+ Lançamento manual</button></div>') +
       filtersBar({ noUser: true }) +
-      '<div class="split"><div class="panel donut-wrap" style="flex-direction:column;align-items:center;gap:10px">' + donut(segs, 220, money(P.exp, 0), "despesas") +
+      '<div class="split"><div class="panel donut-wrap" style="flex-direction:column;align-items:center;gap:10px">' + donut(segs, 220, money(P.exp, 0), t("expenses.donutSub", "despesas")) +
       '<div class="muted small" style="text-align:center">' + esc(f.projectId ? (projectById(f.projectId) || {}).name : t("expenses.allProjects", "Todos os projetos")) + "<br>" + periodLabel() + "</div></div>" + tiles + "</div>" +
       '<div class="section-title"><h3>' + esc(catLabel(cat)) + "</h3></div>" + detail;
   }
@@ -879,13 +909,15 @@
     var pn = (S.notices || []).filter(function (n) { return n.projectId === p.id && !n.resolved; }).length;
     var s = projectStats(p), d = p.details || {};
     var tabs = [["overview", t("projects.overview", "Visão geral")], ["scope", t("projects.tasks2", "Tarefas"), s.done + "/" + s.total], ["avisos", t("projects.notices", "Avisos"), pn || ""], ["files", t("projects.drawingsAndFiles", "Plantas e arquivos"), String((p.files || []).length)]];
-    if (admin) { if (fin) tabs.push(["money", t("projects.financials", "Financeiro")]); tabs.push(["ptime", t("projects.timeClock", "Ponto")]); }
+    if (admin) { if (fin) tabs.push(["money", t("projects.financials", "Financeiro")]); tabs.push(["ptime", t("projects.timeClock", "Ponto")]); tabs.push(["activity", t("act.tab", "Atividade")]); }
+    if (tab === "activity" && !admin) tab = "overview";
     var maps = p.address ? '<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(p.address) + '" target="_blank" rel="noopener">' + ic("map", 16) + t("projects.openInMaps", "Abrir no mapa</a>") : "";
     var meta = [p.client ? "<span>" + ic("user", 16) + esc(p.client) + "</span>" : "", p.address ? "<span>" + ic("pin", 16) + esc(p.address) + "</span>" : "", maps,
       (p.startDate || p.estCompletion) ? '<span>' + ic("calendar", 16) + fmtDate(p.startDate) + t("common.to", " a ") + fmtDate(p.estCompletion) + "</span>" : ""].filter(Boolean).join("");
     var head = crumb(admin ? "projects" : "jobs", admin ? t("dashboard.projects", "Projetos") : t("dashboard.jobs", "Obras"), p.name.replace(/^(EXEMPLO|SAMPLE)\s*·\s*/, "")) +
       '<div class="p-head"><div style="min-width:0"><div class="p-title"><h1>' + esc(p.name) + "</h1>" + statusPill(p.status) + "</div>" +
-      '<div class="p-meta">' + meta + "</div>" + '<div class="tags">' + tagsOf(d) + "</div></div>" +
+      '<div class="p-meta">' + meta + "</div>" + '<div class="tags">' + tagsOf(d) + "</div>" +
+      (p.createdByName || p.updatedByName ? '<div class="bylines p-who">' + byLine(t("who.createdBy", "Criado por {n}"), p.createdByName, p.createdAt) + byLine(t("who.editedBy", "Editado por {n}"), p.updatedByName, p.updatedAt) + "</div>" : "") + "</div>" +
       (admin ? '<div class="p-actions"><button class="btn ghost" data-act="editProject" data-id="' + p.id + '">' + ic("edit", 18) + t("dashboard.edit", '<span class="lbl">Editar</span></button>') +
         (canDel ? t("dashboard.html3", '<details class="dd"><summary class="btn ghost icon-only" aria-label="Mais ações do projeto">') + ic("more") + '</summary><div class="dd-menu right" role="menu">' +
         '<button type="button" role="menuitem" data-act="editProject" data-id="' + p.id + '">' + ic("edit", 18) + t("dashboard.editProject", "Editar projeto</button>") +
@@ -943,7 +975,7 @@
     } else if (tab === "money" && admin && fin) {
       var fi = S.fin[p.id] || {};
       var segs = [{ id: "labor", label: t("common.laborHours", "Mão de obra (horas)"), value: s.labor, color: "var(--c2)" }].concat(EXPENSE_CATS.map(function (c) { var v = S.expenses.filter(function (x) { return x.projectId === p.id && x.kind !== "revenue" && catKey(x.category) === c.id; }).reduce(function (a, x) { return a + x.amount; }, 0); return { id: c.id, label: c.label, value: v, color: c.color }; }));
-      body = (fi.contractValue == null ? '<div class="demo-flag">' + ic("info", 18) + t("projects.noBudgetEnteredYet", "<span>Valores ainda não cadastrados. Use “Editar” → etapa “Valores”.</span></div>") : "") +
+      body = (fi.updatedByName ? '<div class="bylines" style="margin-bottom:12px">' + byLine(t("who.valuesEditedBy", "Valores editados por {n}"), fi.updatedByName, fi.updatedAt) + "</div>" : "") + (fi.contractValue == null ? '<div class="demo-flag">' + ic("info", 18) + t("projects.noBudgetEnteredYet", "<span>Valores ainda não cadastrados. Use “Editar” → etapa “Valores”.</span></div>") : "") +
         t("projects.spendingLimit", '<section class="panel" style="margin-bottom:16px"><div class="panel-head"><h3>Limite de gastos</h3><span class="muted num">') + money(s.cost) + t("common.of", " de ") + money(s.budget) + "</span></div>" + level(pct(s.cost, s.budget), { label: fmtPct(pct(s.cost, s.budget)) + t("projects.ofTheLimit", " do limite") }) +
         '<div class="level-scale"><span>$0</span><span>' + fmtPct(pct(s.cost, s.budget)) + t("projects.ofTheSpendingLimit", " do limite de gastos</span><span>") + money(s.budget) + "</span></div></section>" +
         '<div class="kpis">' +
@@ -957,12 +989,69 @@
         (fi.clientEmail ? '<button class="btn ghost sm" data-act="reportNow" data-id="' + p.id + t("projects.sendReportNow", '">Enviar relatório agora</button>') + demoNote() : "") + "</div></section>";
     } else if (tab === "ptime" && admin) {
       body = timeTable(S.time.filter(function (t) { return t.projectId === p.id; }).slice(0, 300), true);
+    } else if (tab === "activity" && admin) {
+      body = activityView(p);
     }
     return head + tabsHtml + '<div role="tabpanel">' + body + "</div>";
   }
-  function taskRow(p, t, compact) {
-    return '<label class="check' + (t.done ? " done" : "") + (compact ? " compact" : "") + '"><input type="checkbox" data-act="task" data-pid="' + p.id + '" data-id="' + t.id + '"' + (t.done ? " checked" : "") + '><span class="cbox" aria-hidden="true">' + ic("check", 16) + '</span><div><div class="t">' + esc(t.label) + "</div>" +
-      (t.done && t.doneBy ? NV.t("projects.doneBy", '<div class="by">Feito por ') + esc(t.doneBy) + " · " + fmtDate(t.doneAt) + "</div>" : compact && t.group ? '<div class="by">' + esc(tv(t.group)) + "</div>" : "") + "</div></label>";
+  function taskRow(p, tk, compact) {
+    return '<label class="check' + (tk.done ? " done" : "") + (compact ? " compact" : "") + '"><input type="checkbox" data-act="task" data-pid="' + p.id + '" data-id="' + tk.id + '"' + (tk.done ? " checked" : "") + '><span class="cbox" aria-hidden="true">' + ic("check", 16) + '</span><div><div class="t">' + esc(tk.label) + "</div>" +
+      (tk.done && tk.doneBy ? '<div class="by">' + byLine(t("who.doneBy", "Feito por {n}"), tk.doneBy, tk.doneAt) + "</div>" : compact && tk.group ? '<div class="by">' + esc(tv(tk.group)) + "</div>" : "") + "</div></label>";
+  }
+
+  // ═══════════ Atividade da obra: quem fez o quê, quando (dono e gerente; o gerente não vê nada de dinheiro) ═══════════
+  var actCache = {};
+  function dropActs() { actCache = {}; }
+  function ensureAct(pid) {
+    if (actCache[pid] === "ok") return true;
+    if (actCache[pid] === "loading" || !API.listActivity) return false;
+    actCache[pid] = "loading";
+    API.listActivity({ projectId: pid }).then(function (l) { S.acts = S.acts || {}; S.acts[pid] = l || []; actCache[pid] = "ok"; if (S.view === "project") render(); })
+      .catch(function () { actCache[pid] = "ok"; S.acts = S.acts || {}; S.acts[pid] = []; if (S.view === "project") render(); });
+    return false;
+  }
+  var ACT_KIND = { task: ["task.done", "task.undone"], notice: ["notice.create", "notice.resolve", "notice.reopen", "notice.delete"], money: ["expense.create", "expense.delete", "revenue.create", "revenue.delete", "financials.update"], files: ["file.upload", "file.delete"] };
+  function actGroup(type) { for (var k in ACT_KIND) if (ACT_KIND[k].indexOf(type) >= 0) return k; return "other"; }
+  function actLine(a) {
+    var x = a.extra || {}, fin = can("finance"), amt = "";
+    if (fin && /^(expense|revenue)\.create$/.test(a.type)) { var ex = (S.expenses || []).find(function (e) { return e.id === a.ref; }); if (ex) amt = money(ex.amount, 2); }
+    var docName = x.docType === "invoice" ? t("act.invoice", "o invoice") : t("act.estimate", "a proposta");
+    var M = {
+      "task.done": ["check", t("act.taskDone", "{n} marcou como feita: {x}")], "task.undone": ["x", t("act.taskUndone", "{n} desmarcou a tarefa: {x}")],
+      "notice.create": ["bell", x.photo ? t("act.noticeCreatePhoto", "{n} mandou um aviso com foto: “{x}”") : t("act.noticeCreate", "{n} mandou um aviso: “{x}”")], "notice.resolve": ["check", t("act.noticeResolve", "{n} resolveu o aviso: “{x}”")],
+      "notice.reopen": ["bell", t("act.noticeReopen", "{n} reabriu o aviso: “{x}”")], "notice.delete": ["trash", t("act.noticeDelete", "{n} apagou o aviso: “{x}”")],
+      "expense.create": ["receipt", x.receipt ? t("act.receiptCreate", "{n} lançou uma nota ({c}): {x}") : t("act.expenseCreate", "{n} lançou uma despesa ({c}): {x}")], "expense.delete": ["trash", t("act.expenseDelete", "{n} apagou um lançamento ({c}): {x}")],
+      "revenue.create": ["money", t("act.revenueCreate", "{n} registrou um pagamento recebido")], "revenue.delete": ["trash", t("act.revenueDelete", "{n} apagou um pagamento recebido")],
+      "financials.update": ["money", t("act.financials", "{n} alterou os valores da obra")],
+      "file.upload": ["upload", t("act.fileUpload", "{n} enviou o arquivo {x}")], "file.delete": ["trash", t("act.fileDelete", "{n} apagou o arquivo {x}")],
+      "project.create": ["folder", t("act.projectCreate", "{n} criou o projeto")], "project.update": ["edit", t("act.projectUpdate", "{n} editou o projeto")],
+      "event.create": ["calendar", t("act.eventCreate", "{n} marcou na agenda: {x} ({d})")], "event.update": ["calendar", t("act.eventUpdate", "{n} alterou na agenda: {x} ({d})")],
+      "event.done": ["check", t("act.eventDone", "{n} concluiu na agenda: {x}")], "event.undone": ["calendar", t("act.eventUndone", "{n} reabriu na agenda: {x}")], "event.delete": ["trash", t("act.eventDelete", "{n} tirou da agenda: {x}")],
+      "shift.create": ["pin", t("act.shiftCreate", "{n} escalou {x} para {d}")], "shift.update": ["pin", t("act.shiftUpdate", "{n} mudou a escala de {x} ({d})")], "shift.delete": ["trash", t("act.shiftDelete", "{n} tirou {x} da escala ({d})")],
+      "time.fix": ["clock", t("act.timeFix", "{n} corrigiu o ponto de {x}")],
+      "proposal.create": ["doc", t("act.proposalCreate", "{n} criou {k} {x}")], "proposal.status": ["doc", t("act.proposalStatus", "{n} mudou {k} {x} para “{s}”")], "proposal.delete": ["trash", t("act.proposalDelete", "{n} apagou {k} {x}")]
+    };
+    var m = M[a.type] || ["info", t("act.generic", "{n} fez uma alteração")];
+    var B = function (v) { return "<b>" + esc(v) + "</b>"; };
+    var html = esc(m[1]).replace("{n}", B(firstName(a.byName) || t("act.someone", "Alguém"))).replace("{x}", a.label ? B(a.label) : "").replace("{c}", esc(catLabel(x.category || ""))).replace("{d}", esc(x.date ? fmtDate(x.date) : "")).replace("{k}", esc(docName)).replace("{s}", esc(tv(x.status || "")));
+    return { icon: m[0], html: html + (amt ? ' <span class="act-amt num">' + amt + "</span>" : "") };
+  }
+  function activityView(p) {
+    var ready = ensureAct(p.id), list = ((S.acts || {})[p.id] || []).filter(function (a) { return can("finance") || !a.money; });
+    var f = S.actFilter || "all", shown = list.filter(function (a) { return f === "all" || actGroup(a.type) === f; });
+    var chips = [["all", t("act.all", "Tudo")], ["task", t("act.fTasks", "Tarefas")], ["notice", t("act.fNotices", "Avisos")], ["money", can("finance") ? t("act.fMoney", "Notas e gastos") : t("act.fReceipts", "Notas")], ["files", t("act.fFiles", "Arquivos")], ["other", t("act.fOther", "Agenda, escala e edições")]];
+    var head = '<div class="panel-head" style="margin-bottom:10px"><div><h3>' + esc(t("act.title", "Atividade da obra")) + '</h3><span class="muted small">' + esc(can("finance") ? t("act.sub", "Quem fez o quê, e quando — cada mudança fica registrada com o nome de quem fez.") : t("act.subMgr", "Quem fez o quê, e quando. Valores em dinheiro não aparecem aqui.")) + "</span></div></div>" +
+      '<div class="chips" role="group" aria-label="' + esc(t("act.filter", "Filtrar atividade")) + '" style="margin-bottom:12px">' + chips.map(function (c) { return '<button type="button" class="chip' + (f === c[0] ? " on" : "") + '" data-act="actFilter" data-id="' + c[0] + '" aria-pressed="' + (f === c[0]) + '">' + esc(c[1]) + "</button>"; }).join("") + "</div>";
+    if (!ready && !list.length) return head + '<div class="panel" aria-busy="true"><span class="spin" aria-hidden="true"></span> ' + esc(t("act.loading", "Carregando atividade…")) + "</div>";
+    if (!shown.length) return head + emptyState({ icon: "clock", title: t("act.empty", "Nada registrado ainda"), text: t("act.emptyText", "Quando alguém marcar uma tarefa, mandar um aviso, lançar uma nota ou enviar um arquivo nesta obra, aparece aqui com o nome e a hora.") });
+    var out = "", lastDay = "";
+    shown.slice(0, 120).forEach(function (a) {
+      var d = new Date(a.at), dk = isNaN(d) ? "" : isoLocal(d);
+      if (dk !== lastDay) { out += (lastDay ? "</ol>" : "") + '<h4 class="act-day">' + esc(whenShort(dk)) + '</h4><ol class="act-list">'; lastDay = dk; }
+      var L = actLine(a);
+      out += '<li class="act-item"><span class="act-ic act-' + actGroup(a.type) + '" aria-hidden="true">' + ic(L.icon, 16) + '</span><span class="act-txt">' + L.html + '</span><time class="act-time" datetime="' + esc(a.at) + '">' + esc(isNaN(d) ? "" : fmtTime(a.at)) + "</time></li>";
+    });
+    return head + '<section class="panel act-panel">' + out + "</ol></section>";
   }
 
   function filesBlock(p, canEdit) {
@@ -970,7 +1059,7 @@
     return (canEdit ? '<label class="drop" style="margin-bottom:16px"><input type="file" data-act="uploadFiles" data-id="' + p.id + '" multiple accept=".pdf,image/*,.dwg,.dxf,.doc,.docx,.xls,.xlsx"><span class="em-ic">' + ic("plus", 24) + t("projects.uploadADrawingPlan", "</span><b>Enviar planta, desenho ou documento</b><span class=\"small\">PDF, foto, Word, Excel. Toque aqui para escolher os arquivos.</span></label>") : "") +
       (files.length ? '<div class="files">' + files.map(function (f) {
         var isImg = /^image\//.test(f.mime || ""), ext = (f.name.split(".").pop() || "").toUpperCase().slice(0, 4);
-        return '<div class="file"><div class="thumb" data-thumb="' + f.id + '">' + (isImg ? "IMG" : esc(ext)) + '</div><div class="fname">' + esc(f.name) + '</div><div class="muted small">' + (f.size ? (f.size / 1048576).toFixed(1) + " MB · " : "") + fmtDate(f.createdAt) + "</div>" +
+        return '<div class="file"><div class="thumb" data-thumb="' + f.id + '">' + (isImg ? "IMG" : esc(ext)) + '</div><div class="fname">' + esc(f.name) + '</div><div class="muted small">' + (f.size ? (f.size / 1048576).toFixed(1) + " MB · " : "") + fmtDate(f.createdAt) + "</div>" + (f.createdByName ? '<div class="by">' + byLine(t("who.uploadedBy", "Enviado por {n}"), f.createdByName, f.createdAt) + "</div>" : "") +
           '<div class="row"><button class="btn sm" data-act="openFile" data-pid="' + p.id + '" data-id="' + f.id + t("projects.open2", '">Abrir</button>') + (canEdit ? '<button class="btn ghost sm" data-act="delFile" data-pid="' + p.id + '" data-id="' + f.id + t("projects.delete", '">Apagar</button>') : "") + "</div></div>";
       }).join("") + "</div>" : emptyState({ icon: "file", title: t("projects.noDrawingsUploadedYet", "Nenhuma planta enviada ainda"), text: canEdit ? t("projects.useTheButtonAbove", "Use o botão acima: PDF, foto, Word ou Excel. A equipe vê no celular.") : t("projects.whenTheAdminUploads", "Quando o administrador enviar plantas, elas aparecem aqui.") }));
   }
@@ -1075,7 +1164,7 @@
       (list.length ? list.map(function (t) {
         var p = projectById(t.projectId), h = hoursOf(t);
         var gps = t.inLoc && t.inLoc.ok ? '<span class="pill good">ok</span>' : NV.t("common.noGps", '<span class="pill warn">sem GPS</span>');
-        return "<tr><td>" + esc(userName(t.userId)) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + fmtDate(t.checkIn) + "</td><td>" + fmtTime(t.checkIn) + "</td><td>" + (t.checkOut ? fmtTime(t.checkOut) : NV.t("time.onTheClock", '<span class="pill good">trabalhando</span>')) + '</td><td class="n">' + (t.checkOut ? hrs(h) : "—") + "</td>" +
+        return "<tr><td>" + esc(userName(t.userId)) + (t.updatedByName ? '<div class="by">' + byLine(NV.t("who.fixedBy", "Corrigido por {n}"), t.updatedByName, t.updatedAt) + "</div>" : "") + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + fmtDate(t.checkIn) + "</td><td>" + fmtTime(t.checkIn) + "</td><td>" + (t.checkOut ? fmtTime(t.checkOut) : NV.t("time.onTheClock", '<span class="pill good">trabalhando</span>')) + '</td><td class="n">' + (t.checkOut ? hrs(h) : "—") + "</td>" +
           (withCost ? '<td class="n">' + money(h * (t.rate || 0)) + "</td>" : "") +
           "<td>" + (t.inPhoto || t.outPhoto ? '<button class="btn ghost sm" data-act="viewPunch" data-id="' + t.id + NV.t("time.view", '">Ver</button>') : '<span class="muted">—</span>') + "</td><td>" + gps + "</td>" +
           (isStaff() ? '<td><button class="btn ghost sm" data-act="editTime" data-id="' + t.id + NV.t("time.fix", '">Corrigir</button></td>') : "") + "</tr>";
@@ -1280,8 +1369,9 @@
   function openNotices() { return (S.notices || []).filter(function (n) { return !n.resolved; }); }
   function noticeCard(n, withProject) {
     var p = projectById(n.projectId), admin = isStaff();
-    return '<div class="notice' + (n.resolved ? " done" : "") + '"><div class="spread"><div><b>' + esc(n.authorName || userName(n.userId)) + "</b>" + (withProject ? ' · <a href="#" data-act="openProject" data-id="' + esc(n.projectId || "") + '">' + esc(p ? p.name : t("notices.noJob", "Sem obra")) + "</a>" : "") +
-      '<div class="muted small">' + fmtDate(n.createdAt) + " " + fmtTime(n.createdAt) + (n.resolved ? t("notices.resolved", " · resolvido") : "") + "</div></div>" +
+    var au = n.authorName || userName(n.userId);
+    return '<div class="notice' + (n.resolved ? " done" : "") + '"><div class="spread"><div class="notice-who"><span class="avatar xs soft" aria-hidden="true">' + esc(initials(au)) + '</span><div><b>' + esc(au) + "</b>" + (withProject ? ' · <a href="#" data-act="openProject" data-id="' + esc(n.projectId || "") + '">' + esc(p ? p.name : t("notices.noJob", "Sem obra")) + "</a>" : "") +
+      '<div class="muted small">' + esc(whenShort(n.createdAt)) + (n.resolved && !n.resolvedByName ? t("notices.resolved", " · resolvido") : "") + "</div>" + (n.resolved && n.resolvedByName ? '<div class="by">' + byLine(t("who.resolvedBy", "Resolvido por {n}"), n.resolvedByName, n.resolvedAt) + "</div>" : "") + "</div></div>" +
       (admin ? '<div class="row">' + (n.photo ? '<button class="btn ghost sm" data-act="noticePhoto" data-id="' + n.id + t("notices.photo", '">Foto</button>') : "") + '<button class="btn ' + (n.resolved ? "ghost" : "") + ' sm" data-act="noticeResolve" data-id="' + n.id + '">' + (n.resolved ? t("notices.reopen", "Reabrir") : t("notices.resolved2", "Resolvido ✓")) + '</button><button class="btn ghost sm" data-act="noticeDel" data-id="' + n.id + t("notices.html", '" aria-label="Apagar">✕</button></div>')
         : (n.photo ? '<button class="btn ghost sm" data-act="noticePhoto" data-id="' + n.id + t("notices.photo", '">Foto</button>') : "")) +
       '</div><div class="notice-text">' + esc(n.text) + "</div></div>";
@@ -1303,7 +1393,7 @@
   }
 
   // ═══════════ notas (foto da nota → obra + categoria) ═══════════
-  var NOTA_CATS = [["material", "Material"], ["permit", "Permit"], ["outros", t("receipts.other", "Outros")], ["equipamento", t("receipts.equipmentRental", "Equipamento / aluguel")]];
+  var NOTA_CATS = [["material", "Material"], ["permit", t("catalog.permit", "Permit")], ["outros", t("receipts.other", "Outros")], ["equipamento", t("receipts.equipmentRental", "Equipamento / aluguel")]];
   function notasView() {
     var n = S.nota, admin = isStaff(), fin = !admin || can("finance"); // gerente vê as notas da equipe sem os valores
     var jobs = S.projects.filter(function (p) { return p.status !== "Cancelled" && p.status !== "Completed" && (admin ? p.companyId === S.company : true); });
@@ -1326,7 +1416,7 @@
     var mine = S.expenses.filter(function (x) { return x.receipt && x.kind !== "revenue" && (admin || x.createdBy === S.user.id); }).slice(0, 40), cols = 5 + (admin ? 1 : 0) + (fin ? 1 : 0);
     return t("receipts.receiptsSnapThePurchase", '<div class="page-head"><div><h1>Notas</h1><p>Foto da nota de compra → entra na obra certa e no gasto da categoria</p></div></div>') + top +
       '<div class="section-title"><h3>' + (admin ? t("receipts.latestReceipts", "Últimas notas") : t("receipts.myReceipts", "Minhas notas")) + t("receipts.dateJobTypeStore", '</h3></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Obra</th><th>Tipo</th><th>Loja</th>') + (admin ? t("receipts.enteredBy", "<th>Lançado por</th>") : "") + (fin ? t("receipts.amount", '<th class="n">Valor</th>') : "") + "<th></th></tr></thead><tbody>" +
-      (mine.length ? mine.map(function (x) { var p = projectById(x.projectId); return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(catLabel(x.category)) + "</td><td>" + esc(x.vendor || "") + "</td>" + (admin ? "<td>" + esc(userName(x.createdBy)) + "</td>" : "") + (fin ? '<td class="n"><b>' + money(x.amount, 2) + "</b></td>" : "") + '<td class="n"><button class="btn ghost sm" data-act="viewReceipt" data-id="' + x.id + t("receipts.view", '">Ver</button></td></tr>'); }).join("")
+      (mine.length ? mine.map(function (x) { var p = projectById(x.projectId); return "<tr><td>" + fmtDate(x.date) + "</td><td>" + esc(p ? p.name : "—") + "</td><td>" + esc(catLabel(x.category)) + "</td><td>" + esc(x.vendor || "") + "</td>" + (admin ? "<td>" + byCell(x.createdByName || (x.createdBy ? userName(x.createdBy) : ""), x.createdAt || x.date) + "</td>" : "") + (fin ? '<td class="n"><b>' + money(x.amount, 2) + "</b></td>" : "") + '<td class="n"><button class="btn ghost sm" data-act="viewReceipt" data-id="' + x.id + t("receipts.view", '">Ver</button></td></tr>'); }).join("")
         : emptyRow(cols, t("receipts.noReceiptsYet", "Nenhuma nota ainda."))) + "</tbody></table></div>";
   }
   function startNota(file) {
@@ -1419,7 +1509,8 @@
     return '<div class="ev' + (e.done ? " done" : "") + '"><label class="ev-check"><input type="checkbox" data-act="evDone" data-id="' + e.id + '"' + (e.done ? " checked" : "") + ' aria-label="' + esc(t("agenda.doneAria", "Feito")) + '"></label><div style="min-width:0;flex:1">' +
       '<div class="ev-title">' + (withDate ? '<span class="muted">' + fmtDate(e.date) + "</span> " : "") + (e.start ? "<b>" + e.start + (e.end ? "–" + e.end : "") + "</b> " : "") + esc(e.title) + "</div>" +
       '<div class="chips" style="margin-top:4px"><span class="pill accent">' + esc(whoLabel(e.who)) + "</span>" + (e.companyId ? '<span class="pill neutral">' + esc(evCoShort(e.companyId)) + "</span>" : "") + (p ? '<span class="pill neutral">' + esc(p.name) + "</span>" : "") + "</div>" +
-      (e.notes ? '<div class="small" style="margin-top:4px;white-space:pre-wrap">' + esc(e.notes) + "</div>" : "") + t("agenda.by", '<div class="small muted" style="margin-top:2px">por ') + esc(e.createdByName || "") + "</div></div>" +
+      (e.notes ? '<div class="small" style="margin-top:4px;white-space:pre-wrap">' + esc(e.notes) + "</div>" : "") +
+      '<div class="bylines">' + byLine(t("who.addedBy", "Marcado por {n}"), e.createdByName, e.createdAt) + byLine(t("who.editedBy", "Editado por {n}"), e.updatedByName, e.updatedAt) + (e.done ? byLine(t("who.doneBy", "Feito por {n}"), e.doneByName, e.doneAt) : "") + "</div></div>" +
       '<div class="row" style="gap:4px"><button class="btn ghost sm" data-act="evEdit" data-id="' + e.id + t("agenda.editButtonClassBtn", '">Editar</button><button class="btn ghost sm" data-act="evDel" data-id="') + e.id + t("agenda.html3", '" aria-label="Apagar">✕</button></div></div>');
   }
   function evModal(m) {
@@ -1447,7 +1538,7 @@
     var rows = emps.map(function (u) {
       return "<tr><td><b>" + esc(u.name) + "</b></td>" + days.map(function (d) {
         var mine = sh.filter(function (x) { return x.userId === u.id && x.date === d; });
-        return '<td class="sched-cell' + (d === t ? " today" : "") + '">' + mine.map(function (x) { return '<button type="button" class="sched-chip" data-act="shiftEdit" data-id="' + x.id + '">' + esc(shiftLabel(x)) + "</button>"; }).join("") +
+        return '<td class="sched-cell' + (d === t ? " today" : "") + '">' + mine.map(function (x) { var wt = x.createdByName ? NV.t("who.scheduledBy", "Escalado por {n}").replace("{n}", x.updatedByName || x.createdByName) + " · " + whenShort(x.updatedAt || x.createdAt) : ""; return '<button type="button" class="sched-chip" data-act="shiftEdit" data-id="' + x.id + '"' + (wt ? ' title="' + esc(wt) + '"' : "") + ">" + esc(shiftLabel(x)) + "</button>"; }).join("") +
           '<button type="button" class="sched-add" data-act="shiftNew" data-id="' + u.id + '" data-date="' + d + '" aria-label="' + esc(NV.t("schedule.scheduleOn", "Escalar {n} em {d}", { n: u.name, d: fmtDate(d) })) + '">+</button></td>';
       }).join("") + "</tr>";
     }).join("");
@@ -1459,6 +1550,7 @@
     var x = m.shift || { userId: m.userId, date: m.date, projectId: "", start: "07:00", note: "" };
     var jobs = companyProjects().filter(function (p) { return p.status !== "Cancelled" && p.status !== "Completed"; });
     return '<form id="shiftForm" class="stack"><div class="muted">' + esc(userName(x.userId)) + " · " + WD[new Date(x.date + "T12:00:00").getDay()] + " " + fmtDate(x.date) + "</div>" +
+      (x.createdByName ? '<div class="bylines">' + byLine(t("who.scheduledBy", "Escalado por {n}"), x.createdByName, x.createdAt) + byLine(t("who.editedBy", "Editado por {n}"), x.updatedByName, x.updatedAt) + "</div>" : "") +
       t("schedule.jobChooseTheJob", '<label class="field"><span>Obra</span><select id="shProj" required><option value="">Escolha a obra</option>') + jobs.map(function (p) { return '<option value="' + p.id + '"' + (x.projectId === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>"; }).join("") + "</select></label>" +
       t("schedule.arriveAtInputType", '<div class="grid2"><label class="field"><span>Chegar às</span><input type="time" id="shStart" value="') + esc(x.start || "") + t("schedule.noteForThemInput", '"></label><label class="field"><span>Observação para ele</span><input type="text" id="shNote" value="') + esc(x.note || "") + t("schedule.html", '" placeholder="Ex.: levar escada de 10 ft"></label></div>') +
       '<div class="row">' + (x.id ? '<button type="button" class="btn danger" data-act="shiftDel" data-id="' + x.id + t("schedule.removeFromSchedule", '">Tirar da escala</button>') : "") + t("schedule.save", '<button class="btn" type="submit" style="margin-left:auto">Salvar</button></div></form>');
@@ -1709,10 +1801,11 @@
       var done = el.checked;
       API.setTaskDone(el.dataset.pid, el.dataset.id, done, S.user.name).then(function () {
         var p = projectById(el.dataset.pid), t = p.tasks.find(function (x) { return x.id === el.dataset.id; });
-        if (t) { t.done = done; t.doneBy = done ? S.user.name : null; t.doneAt = done ? new Date().toISOString() : null; }
-        render();
+        if (t) { t.done = done; t.doneBy = done ? S.user.name : null; t.doneById = done ? S.user.id : null; t.doneAt = done ? new Date().toISOString() : null; }
+        dropActs(); render();
       }).catch(function (e) { el.checked = !done; toast(e.message); });
     },
+    actFilter: function (el) { S.actFilter = el.dataset.id; render(); },
     openFile: function (el) {
       var p = projectById(el.dataset.pid), f = (p.files || []).find(function (x) { return x.id === el.dataset.id; });
       API.fileUrl(f).then(function (u) {
@@ -1968,13 +2061,13 @@
       return Promise.reject(new Error(t("login.userOtherCompany", "Este usuário é da {co}. Use o app da {co}.", { co: other })));
     }
     // idioma de cada pessoa: quem escolheu na tela de entrar grava no perfil; senão vale o idioma salvo no perfil
-    var explicit = null; try { explicit = sessionStorage.getItem("nivela_lang_explicit"); sessionStorage.removeItem("nivela_lang_explicit"); } catch (e) {}
-    var want = /^en/i.test(user.locale || "") ? "en" : /^pt/i.test(user.locale || "") ? "pt" : null;
+    var explicit = null; try { explicit = sessionStorage.getItem("bisey_lang_explicit"); sessionStorage.removeItem("bisey_lang_explicit"); } catch (e) {}
+    var want = /^en/i.test(user.locale || "") ? "en" : /^es/i.test(user.locale || "") ? "es" : /^pt/i.test(user.locale || "") ? "pt" : null;
     if (explicit || (!want && API.setLocale)) { if (API.setLocale && (explicit || API.mode === "demo")) API.setLocale(LOCALE).catch(function () {}); }
     else if (want && want !== LANG) { NV.setLang(want); return new Promise(function () {}); } // recarrega no idioma da pessoa
     S.user = user; S.signup = null;
     if (!isStaff(user)) { S.company = user.companyId; S.view = "punch"; } else { if (!hasCo(S.company)) S.company = hasCo(user.companyId) ? user.companyId : APPCO.id; S.view = "dashboard"; }
-    var resume = null; try { resume = JSON.parse(sessionStorage.getItem("nivela_resume") || "null"); sessionStorage.removeItem("nivela_resume"); } catch (e) {}
+    var resume = null; try { resume = JSON.parse(sessionStorage.getItem("bisey_resume") || "null"); sessionStorage.removeItem("bisey_resume"); } catch (e) {}
     if (resume && resume.view && canView(resume.view)) { S.view = resume.view; S.params = resume.params || {}; }
     applyPreset();
     S.loading = true; render(); // casca + skeleton enquanto os dados chegam
@@ -1990,18 +2083,20 @@
   window.EE = { S: S, EXT: EXT, API: API, render: render, go: go, guardLeave: guardLeave, statusLabel: statusLabel, toast: toast, esc: esc, money: money, fmtDate: fmtDate, fmtPct: fmtPct, pct: pct, todayISO: todayISO,
     companyName: companyName, tradeOf: tradeOf, coFlags: coFlags, companyProjects: companyProjects, projectById: projectById, statusPill: statusPill, ICON: ICON, refresh: refresh,
     blankProject: blankProject, TRADE: TRADE, storeGet: storeGet, storeSet: storeSet, ring: ring,
-    // interface Nivela (ganchos para onboarding/configurações/idioma)
+    // interface Bisey (ganchos para onboarding/configurações/idioma)
     ic: ic, emptyState: emptyState, emptyRow: emptyRow, level: level, skeletonView: skeletonView, crumb: crumb, applyBrand: applyBrand, setTheme: setTheme, currentTheme: currentTheme,
     openSearch: openSearch, companyBrand: companyBrand, PRODUCT: PRODUCT, NAV: { admin: ADMIN_GROUPS, employee: EMP_GROUPS }, CREATE: CREATE,
     // fase 3: textos, papéis, conta nova, configurações e ajuda
     t: t, tn: tn, tv: tv, I18N: I18N, LANG: LANG, LOCALE: LOCALE, setLang: setLang, langSwitch: langSwitch, speechLang: speechLang, APP_VERSION: APP_VERSION, can: can, isStaff: isStaff, roleOf: roleOf, roleLabel: roleLabel, canView: canView, tradeLabel: tradeLabel, tradeDef: tradeDef,
     luminance: luminance, resizeImage: resizeImage, copyText: copyText, brandOverride: brandOverride, paintAccent: paintAccent, afterLogin: afterLogin, runAct: runAct,
-    notifPrefs: notifPrefs, setNotifPref: setNotifPref, hrs: hrs, fmtTime: fmtTime, initials: initials, coLogo: coLogo, modalView: modalView, csvDownload: csvDownload, staffGroups: staffGroups };
+    notifPrefs: notifPrefs, setNotifPref: setNotifPref, hrs: hrs, fmtTime: fmtTime, initials: initials, coLogo: coLogo, modalView: modalView, csvDownload: csvDownload, staffGroups: staffGroups,
+    // "quem fez" (autoria) e permissões por tela — usados por propostas, impostos, indicação e o assistente
+    SITE_URL: SITE_URL, byLine: byLine, byCell: byCell, whenShort: whenShort, firstName: firstName, isoLocal: isoLocal, VIEW_PERM: VIEW_PERM, allNav: allNav, navActive: navActive, catLabel: catLabel, hoursOf: hoursOf };
   window.EE.NAV.manager = groupsFor("manager");
 
   // boot (o link da proposta para o cliente é tratado em proposals.js)
   if (/[?&]proposta=/.test(location.search)) return;
-  $("#app").innerHTML = '<div class="boot" aria-busy="true"><img src="brand/logo-escuro.svg" alt="' + PRODUCT + '" width="132" height="43"><span class="spin" aria-hidden="true"></span></div>';
+  $("#app").innerHTML = '<div class="boot" aria-busy="true"><img src="brand/bisey-loading.svg" class="boot-mark" alt="' + PRODUCT + '" width="72" height="95"></div>';
   // marca da empresa vinda do config (opcional): APP_CONFIG.BRAND = { name, logo, accent }
   if (window.APP_CONFIG && window.APP_CONFIG.BRAND) applyBrand(window.APP_CONFIG.BRAND);
   // espera os módulos (proposals.js, settings.js, onboarding.js, help.js) registrarem as telas antes da 1ª tela
@@ -2012,9 +2107,9 @@
     return API.session();
   }).then(function (u) {
     if (u) return afterLogin(u);
-    var rs = null; try { rs = JSON.parse(sessionStorage.getItem("nivela_resume") || "null"); if (rs && rs.signup) sessionStorage.removeItem("nivela_resume"); } catch (e) {}
+    var rs = null; try { rs = JSON.parse(sessionStorage.getItem("bisey_resume") || "null"); if (rs && rs.signup) sessionStorage.removeItem("bisey_resume"); } catch (e) {}
     if ((/[?&](signup|onboarding)=1/.test(location.search) || (rs && rs.signup)) && EXT.actions.signupStart) { EXT.actions.signupStart(); return; } // link "teste grátis" do site / troca de idioma no cadastro
     return (API.needsSetup ? API.needsSetup() : Promise.resolve(false)).then(function (n) { S.setup = n; render(); });
   })
-    .catch(function (e) { $("#app").innerHTML = '<div class="boot"><img src="brand/logo-escuro.svg" alt="' + PRODUCT + '" width="132" height="43"><div class="err">' + esc(e.message || t("common.errorStartingUp", "Erro ao iniciar.")) + t("common.tryAgain", '</div><button class="btn" onclick="location.reload()">Tentar de novo</button></div>'); });
+    .catch(function (e) { $("#app").innerHTML = '<div class="boot"><img src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + PRODUCT + '" width="128" height="53"><div class="err">' + esc(e.message || t("common.errorStartingUp", "Erro ao iniciar.")) + t("common.tryAgain", '</div><button class="btn" onclick="location.reload()">Tentar de novo</button></div>'); });
 })();

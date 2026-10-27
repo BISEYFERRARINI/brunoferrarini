@@ -71,12 +71,48 @@
   function DemoStore() {
     var KEY = "ee_demo_v2", SESSION = "ee_demo_session";
     // contas criadas no aparelho (onboarding): cada uma tem o próprio banco; a de exemplo continua em KEY
-    var ACTIVE = "nivela_demo_active", REG = "nivela_demo_orgs";
+    var ACTIVE = "bisey_demo_active", REG = "bisey_demo_orgs";
     var activeKey = KEY, pendingOwner = null;
     var mem = {};         // big blobs that may not fit in localStorage
     var db = null;
 
     function rng(seed) { return function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+
+    // ── "Quem fez": histórico de atividade (quem fez o quê, quando) ──
+    // Cada item: { id, at, by, byName, type, projectId, companyId, ref, label, extra, money }
+    // money = só o dono vê (receita, valores da obra, impostos). O valor em dinheiro nunca vai no histórico:
+    // a tela busca o valor no próprio lançamento (S.expenses) só para quem pode ver.
+    function act(type, o) { return Object.assign({ id: uid(), at: new Date().toISOString(), by: null, byName: "", type: type, projectId: null, companyId: null, ref: null, label: "", extra: null, money: false }, o); }
+    // monta o histórico a partir do que já está gravado (conta de exemplo e contas antigas, de antes do histórico existir)
+    function deriveActivity(d) {
+      var out = [], users = d.users || [], name = function (id) { var u = users.find(function (x) { return x.id === id; }); return u ? u.name : ""; };
+      var proj = {}; (d.projects || []).forEach(function (p) { proj[p.id] = p; });
+      var coOf = function (pid) { return proj[pid] ? proj[pid].companyId : null; };
+      (d.projects || []).forEach(function (p) {
+        if (p.createdAt) out.push(act("project.create", { at: p.createdAt, by: p.createdBy || null, byName: p.createdByName || name(p.createdBy), projectId: p.id, companyId: p.companyId, ref: p.id, label: p.name }));
+        if (p.updatedAt) out.push(act("project.update", { at: p.updatedAt, by: p.updatedBy || null, byName: p.updatedByName || name(p.updatedBy), projectId: p.id, companyId: p.companyId, ref: p.id, label: p.name }));
+        (p.tasks || []).forEach(function (tk) { if (tk.done && tk.doneAt) out.push(act("task.done", { at: String(tk.doneAt).length === 10 ? tk.doneAt + "T12:00:00.000Z" : tk.doneAt, by: tk.doneById || null, byName: tk.doneBy || "", projectId: p.id, companyId: p.companyId, ref: tk.id, label: tk.label })); });
+        (p.files || []).forEach(function (f) { if (f.createdAt) out.push(act("file.upload", { at: f.createdAt, by: f.createdBy || null, byName: f.createdByName || "", projectId: p.id, companyId: p.companyId, ref: f.id, label: f.name })); });
+      });
+      (d.expenses || []).forEach(function (x) {
+        out.push(act(x.kind === "revenue" ? "revenue.create" : "expense.create", { at: x.createdAt || (x.date + "T12:00:00.000Z"), by: x.createdBy || null, byName: x.createdByName || name(x.createdBy), projectId: x.projectId, companyId: x.companyId, ref: x.id, label: x.vendor || "", extra: { category: x.category, receipt: !!x.receipt }, money: x.kind === "revenue" }));
+      });
+      (d.notices || []).forEach(function (n) {
+        out.push(act("notice.create", { at: n.createdAt, by: n.userId || null, byName: n.authorName || name(n.userId), projectId: n.projectId, companyId: n.companyId, ref: n.id, label: String(n.text || "").slice(0, 90), extra: { photo: !!n.photo } }));
+        if (n.resolved && n.resolvedAt) out.push(act("notice.resolve", { at: n.resolvedAt, by: n.resolvedBy || null, byName: n.resolvedByName || name(n.resolvedBy), projectId: n.projectId, companyId: n.companyId, ref: n.id, label: String(n.text || "").slice(0, 90) }));
+      });
+      (d.events || []).forEach(function (e) {
+        if (e.createdAt) out.push(act("event.create", { at: e.createdAt, by: e.createdBy || null, byName: e.createdByName || name(e.createdBy), projectId: e.projectId || null, companyId: e.companyId || null, ref: e.id, label: e.title, extra: { date: e.date } }));
+        if (e.updatedAt) out.push(act("event.update", { at: e.updatedAt, by: e.updatedBy || null, byName: e.updatedByName || name(e.updatedBy), projectId: e.projectId || null, companyId: e.companyId || null, ref: e.id, label: e.title, extra: { date: e.date } }));
+      });
+      (d.schedule || []).forEach(function (x) { if (x.createdAt) out.push(act("shift.create", { at: x.createdAt, by: x.createdBy || null, byName: x.createdByName || name(x.createdBy), projectId: x.projectId, companyId: x.companyId, ref: x.id, label: name(x.userId), extra: { date: x.date, userId: x.userId } })); });
+      (d.time || []).forEach(function (x) { if (x.updatedAt && x.updatedByName) out.push(act("time.fix", { at: x.updatedAt, by: x.updatedBy || null, byName: x.updatedByName, projectId: x.projectId, companyId: x.companyId || coOf(x.projectId), ref: x.id, label: name(x.userId), extra: { userId: x.userId } })); });
+      (d.proposals || []).forEach(function (p) {
+        if (p.createdAt) out.push(act("proposal.create", { at: p.createdAt, by: p.createdBy || null, byName: p.createdByName || "", companyId: p.companyId, ref: p.id, label: p.number || "", extra: { docType: p.docType || "estimate" } }));
+        if (p.statusAt && p.statusByName) out.push(act("proposal.status", { at: p.statusAt, by: p.statusBy || null, byName: p.statusByName, companyId: p.companyId, ref: p.id, label: p.number || "", extra: { status: p.status, docType: p.docType || "estimate" } }));
+      });
+      return out.filter(function (a) { return a.at; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 800);
+    }
 
     function seed() {
       var r = rng(42);
@@ -94,8 +130,13 @@
         { id: "u-carla", username: "carla", password: "1234", name: "Carla Mendes", role: "manager", companyId: "eternity", rate: 0, active: true }
       ];
 
-      function tasksFrom(list, doneCount) {
-        return list.map(function (t, i) { return { id: uid(), group: t[0], label: tv(t[1]), done: i < doneCount, doneBy: i < doneCount ? "João Silva" : null, doneAt: i < doneCount ? dateAgo(10 - Math.min(i, 9)) : null }; });
+      // tarefas feitas: quem marcou (nome + id) e quando (dia e hora) — "Feito por João · ontem 16:05"
+      function tasksFrom(list, doneCount, crew) {
+        crew = crew || [users[1]];
+        return list.map(function (t, i) {
+          var w = crew[i % crew.length], d = i < doneCount;
+          return { id: uid(), group: t[0], label: tv(t[1]), done: d, doneBy: d ? w.name : null, doneById: d ? w.id : null, doneAt: d ? daysAgo(Math.max(1, 10 - Math.min(i, 9)), 14 + (i % 3), (5 + i * 7) % 50) : null };
+        });
       }
 
       var projects = [
@@ -108,8 +149,8 @@
             wiring: ["Romex (NM-B)"], serviceAmps: "200A", serviceType: "Novo serviço", serviceFeed: "Subterrâneo", utility: "National Grid", panel: "Square D Homeline", fireAlarm: "Sim", lowVoltage: "Sim", extras: ["Carregador EV"] },
           scope: t("sample.scopePerContractComplete", "Escopo conforme contrato:\n• Elétrica completa para dois apartamentos (2 x 200A), com medidores separados.\n• Rough-in e acabamento em todos os cômodos conforme planta E-1 e E-2.\n• Detectores de fumaça/CO interligados conforme código.\n• Circuito dedicado para condensadoras (2) e carregador EV na garagem.\n• Não incluso: luminárias decorativas (fornecidas pelo cliente)."),
           teamNotes: t("sample.keyInTheLockbox", "Chave na caixa de segredo da porta dos fundos. Usar Romex 12/2 na cozinha. Inspeção rough marcada para quinta."),
-          tasks: tasksFrom([["Serviço", "Upgrade / instalação de serviço"], ["Serviço", "Meter socket"], ["Serviço", "Aterramento (ground rods / bonding)"], ["Rough-in", "Rough-in elétrico"], ["Rough-in", "Circuitos dedicados da cozinha"], ["Rough-in", "Circuitos AFCI dos quartos"], ["Rough-in", "Detectores de fumaça / CO"], ["Rough-in", "Circuito da condensadora (HVAC)"], ["Rough-in", "Carregador EV"], ["Inspeções", "Inspeção rough"], ["Acabamento", "Instalar tomadas e interruptores"], ["Acabamento", "Instalar luminárias"], ["Inspeções", "Inspeção final"]], 6),
-          files: []
+          tasks: tasksFrom([["Serviço", "Upgrade / instalação de serviço"], ["Serviço", "Meter socket"], ["Serviço", "Aterramento (ground rods / bonding)"], ["Rough-in", "Rough-in elétrico"], ["Rough-in", "Circuitos dedicados da cozinha"], ["Rough-in", "Circuitos AFCI dos quartos"], ["Rough-in", "Detectores de fumaça / CO"], ["Rough-in", "Circuito da condensadora (HVAC)"], ["Rough-in", "Carregador EV"], ["Inspeções", "Inspeção rough"], ["Acabamento", "Instalar tomadas e interruptores"], ["Acabamento", "Instalar luminárias"], ["Inspeções", "Inspeção final"]], 6, [users[1], users[2]]),
+          files: [], createdBy: "u-admin", createdByName: "Bruno", createdAt: daysAgo(28, 9, 12)
         },
         {
           id: "p-maple", companyId: "eternity", name: t("sample.sample88MapleAve", "EXEMPLO · 88 Maple Ave"), client: t("sample.sampleCustomerHomeowner", "Cliente Exemplo (proprietário)"),
@@ -120,8 +161,8 @@
             wiring: ["Romex (NM-B)", "MC Cable"], serviceAmps: "200A", serviceType: "Upgrade (100A → 200A)", serviceFeed: "Aéreo", utility: "Eversource", panel: "Eaton BR", fireAlarm: "Não", lowVoltage: "Não", extras: [] },
           scope: t("sample.kitchenAndTwoBathroom", "Reforma da cozinha e dois banheiros + upgrade do serviço de 100A para 200A.\n• Trocar todas as tomadas e interruptores da casa (decorator branco).\n• 8 recessed na cozinha, 2 pendentes na ilha.\n• GFCI em todos os balcões."),
           teamNotes: t("sample.occupiedHouseProtectThe", "Casa ocupada — proteger o piso, desligar energia só com aviso de 1h. Cachorro no quintal."),
-          tasks: tasksFrom([["Serviço", "Upgrade / instalação de serviço"], ["Serviço", "Troca de painel"], ["Rough-in", "Circuitos dedicados da cozinha"], ["Rough-in", "Circuito do banheiro (GFCI)"], ["Rough-in", "Iluminação recessed"], ["Acabamento", "Trocar tomadas"], ["Acabamento", "Trocar interruptores"], ["Inspeções", "Inspeção final"]], 2),
-          files: []
+          tasks: tasksFrom([["Serviço", "Upgrade / instalação de serviço"], ["Serviço", "Troca de painel"], ["Rough-in", "Circuitos dedicados da cozinha"], ["Rough-in", "Circuito do banheiro (GFCI)"], ["Rough-in", "Iluminação recessed"], ["Acabamento", "Trocar tomadas"], ["Acabamento", "Trocar interruptores"], ["Inspeções", "Inspeção final"]], 2, [users[2]]),
+          files: [], createdBy: "u-admin", createdByName: "Bruno", createdAt: daysAgo(14, 18, 40), updatedBy: "u-carla", updatedByName: "Carla Mendes", updatedAt: daysAgo(1, 16, 40)
         },
         {
           id: "p-oak", companyId: "bluestar", name: t("sample.sample8OakAve", "EXEMPLO · 8 Oak Ave"), client: t("sample.sampleCustomerHomeowner", "Cliente Exemplo (proprietário)"),
@@ -132,8 +173,8 @@
             equipment: ["Heat pump ducted", "Air handler"], capacity: "36,000 BTU (3 ton)", zones: "2", brand: "Mitsubishi", fuel: "Elétrico (heat pump)", ducts: "Aproveitar dutos existentes", lineSet: "Novo line set (35 ft)", thermostat: "2 termostatos Wi-Fi", manualJ: "Sim", rebate: "Sim, Mass Save", electricalBy: "Eternity Electric" },
           scope: t("sample.replaceOilFurnaceWith", "Substituir fornalha a óleo por heat pump ducted 3 ton com air handler no porão.\n• 2 zonas com dampers.\n• Selar e isolar dutos acessíveis no porão.\n• Remoção do tanque de óleo por terceiros (não incluso)."),
           teamNotes: t("sample.enterThroughTheBasement", "Entrada pelo porão (porta lateral). Elétrica do circuito feita pela Eternity."),
-          tasks: tasksFrom([["Remoção", "Remover equipamento antigo"], ["Equipamento", "Instalar condensadora / heat pump"], ["Equipamento", "Instalar air handler"], ["Distribuição", "Line set"], ["Distribuição", "Isolamento e vedação de dutos"], ["Controles", "Zoneamento"], ["Controles", "Termostatos"], ["Comissionamento", "Teste de pressão (nitrogênio)"], ["Comissionamento", "Vácuo"], ["Comissionamento", "Start-up e teste"], ["Comissionamento", "Documentação Mass Save"]], 3),
-          files: []
+          tasks: tasksFrom([["Remoção", "Remover equipamento antigo"], ["Equipamento", "Instalar condensadora / heat pump"], ["Equipamento", "Instalar air handler"], ["Distribuição", "Line set"], ["Distribuição", "Isolamento e vedação de dutos"], ["Controles", "Zoneamento"], ["Controles", "Termostatos"], ["Comissionamento", "Teste de pressão (nitrogênio)"], ["Comissionamento", "Vácuo"], ["Comissionamento", "Start-up e teste"], ["Comissionamento", "Documentação Mass Save"]], 3, [users[3], users[4]]),
+          files: [], createdBy: "u-admin", createdByName: "Bruno", createdAt: daysAgo(11, 8, 30)
         }
       ];
 
@@ -167,7 +208,8 @@
       time.push({ id: uid(), userId: "u-joao", companyId: "eternity", projectId: "p-elm", checkIn: daysAgo(0, 7, 10), checkOut: null, rate: 34, inLoc: { ok: true }, inPhoto: null });
 
       var exp = [];
-      function e(co, p, cat, amt, vendor, n, by) { exp.push({ id: uid(), companyId: co, projectId: p, kind: "expense", category: cat, amount: amt, vendor: vendor, date: dateAgo(n), note: "", receipt: null, createdBy: by || "u-admin" }); }
+      function nameOf(id) { var u = users.find(function (x) { return x.id === id; }); return u ? u.name : ""; }
+      function e(co, p, cat, amt, vendor, n, by) { by = by || "u-admin"; exp.push({ id: uid(), companyId: co, projectId: p, kind: "expense", category: cat, amount: amt, vendor: vendor, date: dateAgo(n), note: "", receipt: null, createdBy: by, createdByName: nameOf(by), createdAt: daysAgo(n, by === "u-admin" ? 19 : 12, (n * 13) % 60) }); }
       e("eternity", "p-elm", "material", 3840.55, "Graybar", 24); e("eternity", "p-elm", "material", 1265.10, "Home Depot", 18, "u-joao");
       e("eternity", "p-elm", "material", 2210.00, "City Electric Supply", 9); e("eternity", "p-elm", "permit", 640.00, t("sample.cityOfWorcester", "Cidade de Worcester"), 25);
       e("eternity", "p-elm", "gasolina", 68.40, "Shell", 20, "u-joao"); e("eternity", "p-elm", "gasolina", 72.15, "Mobil", 13, "u-joao"); e("eternity", "p-elm", "gasolina", 59.80, "Gulf", 5, "u-marcos");
@@ -175,11 +217,36 @@
       e("eternity", "p-maple", "material", 1490.30, "Graybar", 11); e("eternity", "p-maple", "permit", 285.00, t("sample.cityOfShrewsbury", "Cidade de Shrewsbury"), 12); e("eternity", "p-maple", "gasolina", 44.90, "Shell", 4, "u-marcos");
       e("bluestar", "p-oak", "material", 7420.00, t("sample.fWWebbMitsubishi", "F.W. Webb (equipamento Mitsubishi)"), 8); e("bluestar", "p-oak", "material", 612.45, "Johnstone Supply", 6, "u-pedro");
       e("bluestar", "p-oak", "permit", 310.00, t("sample.cityOfWatertown", "Cidade de Watertown"), 9); e("bluestar", "p-oak", "gasolina", 61.20, "Sunoco", 5, "u-pedro"); e("bluestar", "p-oak", "outros", 95.00, t("sample.equipmentDisposal", "Descarte de equipamento"), 7);
-      function rev(co, p, amt, n, note) { exp.push({ id: uid(), companyId: co, projectId: p, kind: "revenue", category: "receita", amount: amt, vendor: t("sample.customer", "Cliente"), date: dateAgo(n), note: note, receipt: null, createdBy: "u-admin" }); }
+      function rev(co, p, amt, n, note) { exp.push({ id: uid(), companyId: co, projectId: p, kind: "revenue", category: "receita", amount: amt, vendor: t("sample.customer", "Cliente"), date: dateAgo(n), note: note, receipt: null, createdBy: "u-admin", createdByName: "Bruno", createdAt: daysAgo(n, 20, 15) }); }
       rev("eternity", "p-elm", 18600, 25, t("sample.30Deposit", "Depósito 30%")); rev("eternity", "p-elm", 12400, 6, t("sample.roughInProgressBilling", "Medição rough-in"));
       rev("eternity", "p-maple", 5550, 12, t("sample.30Deposit", "Depósito 30%")); rev("bluestar", "p-oak", 12400, 9, t("sample.50Deposit", "Depósito 50%"));
 
-      return { v: 2, createdAt: new Date().toISOString(), users: users, projects: projects, financials: financials, time: time, expenses: exp };
+      // ponto corrigido pela gerente (aparece "corrigido por Carla" no registro)
+      var fix = time.filter(function (x) { return x.userId === "u-marcos" && x.projectId === "p-maple" && x.checkOut; })[0];
+      if (fix) { var fo = new Date(fix.checkOut); fo.setMinutes(fo.getMinutes() + 30); fix.checkOut = fo.toISOString(); fix.updatedBy = "u-carla"; fix.updatedByName = "Carla Mendes"; fix.updatedAt = daysAgo(1, 8, 5); }
+
+      // avisos da equipe (com autor) — um resolvido pela gerente
+      var notices = [
+        { id: uid(), companyId: "eternity", projectId: "p-elm", userId: "u-joao", authorName: "João Silva", text: t("seed.notice1", "Faltam 2 caixas de 4 polegadas no 2º andar. Dá para mandar junto com o material de amanhã?"), photo: null, resolved: false, createdAt: daysAgo(1, 15, 20) },
+        { id: uid(), companyId: "eternity", projectId: "p-maple", userId: "u-marcos", authorName: "Marcos Lima", text: t("seed.notice2", "A cliente pediu mais uma tomada na ilha da cozinha."), photo: null, resolved: true, resolvedAt: daysAgo(2, 9, 12), resolvedBy: "u-carla", resolvedByName: "Carla Mendes", createdAt: daysAgo(3, 11, 5) },
+        { id: uid(), companyId: "bluestar", projectId: "p-oak", userId: "u-pedro", authorName: "Pedro Souza", text: t("seed.notice3", "O line set antigo tem vazamento no porão. Trocar inteiro?"), photo: null, resolved: false, createdAt: daysAgo(1, 10, 40) }
+      ];
+      // agenda dos sócios e escala da semana que vem (quem criou cada item)
+      var events = [
+        { id: uid(), title: t("seed.event1", "Visita técnica: troca de painel em Shrewsbury"), date: dateAgo(-2), start: "08:00", end: "09:00", who: "todos", companyId: "eternity", projectId: "", notes: "", done: false, createdBy: "u-admin", createdByName: "Bruno", createdAt: daysAgo(2, 19, 30) },
+        { id: uid(), title: t("seed.event2", "Inspeção rough com a cidade"), date: dateAgo(-4), start: "10:00", end: "", who: "u-carla", companyId: "eternity", projectId: "p-elm", notes: "", done: false, createdBy: "u-carla", createdByName: "Carla Mendes", createdAt: daysAgo(1, 11, 15), updatedBy: "u-admin", updatedByName: "Bruno", updatedAt: daysAgo(0, 7, 45) }
+      ];
+      var schedule = [];
+      [1, 2, 3].forEach(function (n) {
+        schedule.push({ id: uid(), companyId: "eternity", userId: "u-joao", date: dateAgo(-n), projectId: "p-elm", start: "07:00", note: "", createdBy: "u-carla", createdByName: "Carla Mendes", createdAt: daysAgo(1, 17, 2) });
+        schedule.push({ id: uid(), companyId: "eternity", userId: "u-marcos", date: dateAgo(-n), projectId: "p-maple", start: "07:30", note: n === 1 ? t("seed.shiftNote", "Levar a escada de 10 ft") : "", createdBy: "u-carla", createdByName: "Carla Mendes", createdAt: daysAgo(1, 17, 4) });
+      });
+      // os avisos de exemplo já contam como vistos (não sai o alerta de "aviso novo" ao entrar na conta de exemplo)
+      safeSet("ee_notice_seen", notices.reduce(function (a, n) { return n.createdAt > a ? n.createdAt : a; }, ""));
+
+      var d = { v: 2, createdAt: new Date().toISOString(), users: users, projects: projects, financials: financials, time: time, expenses: exp, notices: notices, events: events, schedule: schedule };
+      d.activity = deriveActivity(d);
+      return d;
     }
 
     function registry() { try { var r = JSON.parse(safeGet(REG) || "[]"); return Array.isArray(r) ? r : []; } catch (e) { return []; } }
@@ -192,6 +259,7 @@
       if (raw) { try { db = JSON.parse(raw); } catch (e) { db = null; } }
       if (!db && activeKey !== KEY) { activeKey = KEY; safeSet(ACTIVE, KEY); return load(); } // conta criada que sumiu → volta para a de exemplo
       if (!db) { db = seed(); persist(); }
+      if (!db.activity) { db.activity = deriveActivity(db); persist(); } // contas de antes do histórico: monta com o que já está gravado
       applyCompanies();
     }
     // empresas da conta ativa: as pré-configuradas (exemplo) + ajustes de Configurações, ou as criadas no onboarding
@@ -210,6 +278,12 @@
       }
     }
     function me() { var id = safeGet(SESSION); return db.users.find(function (u) { return u.id === id; }) || null; }
+    // quem está fazendo a mudança agora (o usuário que entrou neste aparelho)
+    function who() { var u = me(); return u ? { id: u.id, name: u.name } : { id: null, name: "" }; }
+    function stampNew(rec) { var w = who(); if (!rec.createdBy) rec.createdBy = w.id; if (!rec.createdByName) rec.createdByName = w.name; if (!rec.createdAt) rec.createdAt = new Date().toISOString(); return rec; }
+    function stampEdit(rec) { var w = who(); rec.updatedBy = w.id; rec.updatedByName = w.name; rec.updatedAt = new Date().toISOString(); return rec; }
+    function logAct(type, o) { var w = who(); db.activity = db.activity || []; db.activity.unshift(act(type, Object.assign({ by: w.id, byName: w.name }, o))); if (db.activity.length > 800) db.activity.length = 800; }
+    function projCo(pid) { var p = db.projects.find(function (x) { return x.id === pid; }); return p ? p.companyId : null; }
     function pub(u) { return u ? { id: u.id, username: u.username, name: u.name, role: u.role, companyId: u.companyId, rate: u.rate, active: u.active, email: u.email || "", locale: u.locale || "" } : null; }
     function clone(x) { return JSON.parse(JSON.stringify(x)); }
     function P(v) { return Promise.resolve(v); }
@@ -219,6 +293,27 @@
     function emailTaken(e) { e = String(e || "").trim().toLowerCase(); return allKeys().some(function (k) { var d = readDb(k); return d && (d.users || []).some(function (u) { return (u.email || "").toLowerCase() === e || u.username === e; }); }); }
     function uniqueLogin(base) { var b = slugify(base).replace(/-/g, "") || "user", u = b, n = 2; while (loginTaken(u)) u = b + n++; return u; }
     function trialEnd(from) { var d = new Date(from || Date.now()); d.setDate(d.getDate() + 14); return d.toISOString(); }
+    // ── programa de indicação (docs/09-indicacao.md): código por conta, convites e créditos ──
+    function refCodeFor(d, key) {
+      if (d.referralCode) return d.referralCode;
+      var base = slugify((d.org && d.org.name) || ((d.companies || [])[0] || {}).name || (COMPANIES[0] || {}).short || "bisey").split("-")[0].toUpperCase().slice(0, 10) || "AMIGO", h = 0;
+      String(key).split("").forEach(function (c) { h = (h * 31 + c.charCodeAt(0)) % 9000; });
+      return base + (key === KEY ? "26" : String(1000 + h).slice(-3));
+    }
+    function sampleReferrals() {
+      var dAgo = function (n) { var x = new Date(); x.setDate(x.getDate() - n); return x.toISOString(); };
+      return [
+        { id: uid(), name: "Silva Plumbing", contact: "(508) 555-0142", status: "paid", invitedAt: dAgo(70), signedUpAt: dAgo(66), paidAt: dAgo(22), creditMonths: 1, createdByName: "Bruno" },
+        { id: uid(), name: "Costa HVAC", contact: "costa.hvac@example.com", status: "trial", invitedAt: dAgo(8), signedUpAt: dAgo(5), trialEndsAt: dAgo(-9), createdByName: "Bruno" },
+        { id: uid(), name: "RM Drywall", contact: "(774) 555-0187", status: "invited", invitedAt: dAgo(2), createdByName: "Bruno" }
+      ];
+    }
+    function findRef(code) {
+      code = String(code || "").trim().toUpperCase(); if (!code) return null;
+      var keys = allKeys();
+      for (var i = 0; i < keys.length; i++) { var d = readDb(keys[i]); if (d && refCodeFor(d, keys[i]) === code) return { key: keys[i], db: d }; }
+      return null;
+    }
 
     return {
       mode: "demo",
@@ -264,11 +359,16 @@
         if (!rec.id) rec.id = uid();
         (rec.tasks || []).forEach(function (t) { if (!t.id) t.id = uid(); });
         var i = db.projects.findIndex(function (x) { return x.id === rec.id; });
-        if (i >= 0) { rec.files = db.projects[i].files; db.projects[i] = rec; } else { rec.files = []; db.projects.unshift(rec); }
+        if (i >= 0) {
+          var old = db.projects[i]; rec.files = old.files;
+          ["createdBy", "createdByName", "createdAt"].forEach(function (k) { if (old[k] && !rec[k]) rec[k] = old[k]; });
+          stampEdit(rec); db.projects[i] = rec; logAct("project.update", { projectId: rec.id, companyId: rec.companyId, ref: rec.id, label: rec.name });
+        } else { rec.files = []; stampNew(rec); db.projects.unshift(rec); logAct("project.create", { projectId: rec.id, companyId: rec.companyId, ref: rec.id, label: rec.name }); }
         persist(); return P(clone(rec));
       },
       deleteProject: function (id, opts) {
-        var all = opts && opts.all;
+        var all = opts && opts.all, gone = db.projects.find(function (p) { return p.id === id; });
+        if (gone) logAct("project.delete", { companyId: gone.companyId, ref: id, label: gone.name, extra: { all: !!all } });
         db.projects = db.projects.filter(function (p) { return p.id !== id; });
         delete db.financials[id];
         db.notices = (db.notices || []).filter(function (x) { return x.projectId !== id; });
@@ -290,23 +390,32 @@
         return P({ time: f(db.time), expenses: f(db.expenses), events: f(db.events), notices: f(db.notices), schedule: f(db.schedule), files: (p.files || []).length, tasks: (p.tasks || []).length });
       },
       getFinancials: function () { return P(clone(db.financials)); },
-      saveFinancials: function (projectId, f) { db.financials[projectId] = finOut(f); persist(); return P(); },
+      saveFinancials: function (projectId, f) {
+        var nf = finOut(f), of = db.financials[projectId], was = of ? JSON.stringify(finOut(of)) : null;
+        if (was !== JSON.stringify(nf)) { stampEdit(nf); logAct("financials.update", { projectId: projectId, companyId: projCo(projectId), ref: projectId, label: (db.projects.find(function (x) { return x.id === projectId; }) || {}).name || "", money: true }); }
+        else if (of) ["updatedBy", "updatedByName", "updatedAt"].forEach(function (k) { if (of[k]) nf[k] = of[k]; });
+        db.financials[projectId] = nf; persist(); return P();
+      },
       setTaskDone: function (projectId, taskId, done, byName) {
         var p = db.projects.find(function (x) { return x.id === projectId; });
         var t = p && p.tasks.find(function (x) { return x.id === taskId; });
-        if (t) { t.done = done; t.doneBy = done ? byName : null; t.doneAt = done ? new Date().toISOString() : null; persist(); }
-        return P();
+        if (t) {
+          var w = who(); t.done = done; t.doneBy = done ? (byName || w.name) : null; t.doneById = done ? w.id : null; t.doneAt = done ? new Date().toISOString() : null;
+          logAct(done ? "task.done" : "task.undone", { projectId: projectId, companyId: p.companyId, ref: taskId, label: t.label }); persist();
+        }
+        return P(t ? clone(t) : null);
       },
       uploadFile: function (projectId, file) {
         return blobToDataURL(file).then(function (d) {
           var p = db.projects.find(function (x) { return x.id === projectId; });
-          var rec = { id: uid(), name: file.name, mime: file.type, size: file.size, createdAt: new Date().toISOString(), data: d };
-          p.files = p.files || []; p.files.push(rec); persist();
+          var rec = stampNew({ id: uid(), name: file.name, mime: file.type, size: file.size, createdAt: new Date().toISOString(), data: d });
+          p.files = p.files || []; p.files.push(rec); logAct("file.upload", { projectId: projectId, companyId: p.companyId, ref: rec.id, label: rec.name }); persist();
           var out = clone(rec); return out;
         });
       },
       deleteFile: function (projectId, fileId) {
         var p = db.projects.find(function (x) { return x.id === projectId; });
+        var f0 = (p.files || []).find(function (f) { return f.id === fileId; }); if (f0) logAct("file.delete", { projectId: projectId, companyId: p.companyId, ref: fileId, label: f0.name });
         p.files = (p.files || []).filter(function (f) { return f.id !== fileId; }); delete mem[fileId]; persist(); return P();
       },
       fileUrl: function (f) {
@@ -344,8 +453,12 @@
       },
       updateTime: function (id, patch) {
         var t = db.time.find(function (x) { return x.id === id; });
-        if (t) { Object.assign(t, patch); persist(); }
-        return P();
+        if (t) {
+          Object.assign(t, patch); stampEdit(t);
+          var emp = db.users.find(function (u) { return u.id === t.userId; });
+          logAct("time.fix", { projectId: t.projectId, companyId: t.companyId, ref: t.id, label: emp ? emp.name : "", extra: { userId: t.userId } }); persist();
+        }
+        return P(t ? clone(t) : null);
       },
       photoUrl: function (ref) { return P(ref || null); },
       listExpenses: function (q) {
@@ -362,22 +475,41 @@
       addExpense: function (x) {
         var u = me();
         return (x.receipt ? blobToDataURL(x.receipt) : P(x.receiptPath || null)).then(function (d) {
-          var rec = { id: uid(), companyId: x.companyId || u.companyId, projectId: x.projectId || null, kind: x.kind || "expense", category: x.category, amount: Number(x.amount) || 0, vendor: x.vendor || "", date: x.date, note: x.note || "", receipt: d, createdBy: u.id, ai: x.ai || null };
-          db.expenses.push(rec); persist(); return clone(rec);
+          var rec = { id: uid(), companyId: x.companyId || u.companyId, projectId: x.projectId || null, kind: x.kind || "expense", category: x.category, amount: Number(x.amount) || 0, vendor: x.vendor || "", date: x.date, note: x.note || "", receipt: d, createdBy: u.id, createdByName: u.name, createdAt: new Date().toISOString(), ai: x.ai || null };
+          db.expenses.push(rec);
+          logAct(rec.kind === "revenue" ? "revenue.create" : "expense.create", { projectId: rec.projectId, companyId: rec.companyId, ref: rec.id, label: rec.vendor, extra: { category: rec.category, receipt: !!rec.receipt }, money: rec.kind === "revenue" });
+          persist(); return clone(rec);
         });
       },
-      deleteExpense: function (id) { db.expenses = db.expenses.filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      deleteExpense: function (id) {
+        var x = db.expenses.find(function (y) { return y.id === id; });
+        if (x) logAct(x.kind === "revenue" ? "revenue.delete" : "expense.delete", { projectId: x.projectId, companyId: x.companyId, ref: id, label: x.vendor || "", extra: { category: x.category }, money: x.kind === "revenue" });
+        db.expenses = db.expenses.filter(function (x) { return x.id !== id; }); persist(); return P();
+      },
       // propostas
       listProposals: function (companyId) { db.proposals = db.proposals || []; return P(clone(db.proposals.filter(function (x) { return !companyId || x.companyId === companyId; }))); },
       saveProposal: function (p) {
         db.proposals = db.proposals || [];
-        var rec = clone(p); if (!rec.id) { rec.id = uid(); rec.createdAt = new Date().toISOString(); }
+        var rec = clone(p), isNew = !rec.id; if (isNew) { rec.id = uid(); rec.createdAt = new Date().toISOString(); }
+        var i = db.proposals.findIndex(function (x) { return x.id === rec.id; }), old = i >= 0 ? db.proposals[i] : null, w = who();
+        if (old) ["createdBy", "createdByName", "createdAt"].forEach(function (k) { if (old[k] && !rec[k]) rec[k] = old[k]; });
+        if (!old) stampNew(rec); else stampEdit(rec);
         rec.updatedAt = new Date().toISOString();
-        var i = db.proposals.findIndex(function (x) { return x.id === rec.id; });
+        // mudança de status (Rascunho → Enviada → Aceita / Paga…): quem mudou e quando
+        var st = rec.status || "Rascunho";
+        if (old ? old.status !== st : st !== "Rascunho") { rec.statusBy = w.id; rec.statusByName = w.name; rec.statusAt = rec.updatedAt; }
+        else if (old) ["statusBy", "statusByName", "statusAt"].forEach(function (k) { if (old[k] && !rec[k]) rec[k] = old[k]; });
         if (i >= 0) db.proposals[i] = rec; else db.proposals.unshift(rec);
+        var base = { companyId: rec.companyId, ref: rec.id, label: rec.number || "", extra: { docType: rec.docType || "estimate", status: st } };
+        if (!old) logAct("proposal.create", base);
+        if (rec.statusAt === rec.updatedAt) logAct("proposal.status", base);
         persist(); return P(clone(rec));
       },
-      deleteProposal: function (id) { db.proposals = (db.proposals || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      deleteProposal: function (id) {
+        var x = (db.proposals || []).find(function (y) { return y.id === id; });
+        if (x) logAct("proposal.delete", { companyId: x.companyId, ref: id, label: x.number || "", extra: { docType: x.docType || "estimate" } });
+        db.proposals = (db.proposals || []).filter(function (x) { return x.id !== id; }); persist(); return P();
+      },
       aiProposal: function () { return P({ error: "DEMO" }); },
       services: function (action) { return P({ error: "DEMO", action: action }); },
       uploadReceipt: function (blob) { return blobToDataURL(blob); },
@@ -387,17 +519,98 @@
         var u = me(); db.notices = db.notices || [];
         return (n.photo ? blobToDataURL(n.photo) : P(null)).then(function (ph) {
           var rec = { id: uid(), companyId: u.companyId, projectId: n.projectId || null, userId: u.id, authorName: u.name, text: n.text, photo: ph, resolved: false, createdAt: new Date().toISOString() };
-          db.notices.unshift(rec); persist(); return clone(rec);
+          db.notices.unshift(rec); logAct("notice.create", { projectId: rec.projectId, companyId: rec.companyId, ref: rec.id, label: String(rec.text || "").slice(0, 90), extra: { photo: !!ph } }); persist(); return clone(rec);
         });
       },
-      resolveNotice: function (id, v) { var n = (db.notices || []).find(function (x) { return x.id === id; }); if (n) { n.resolved = v; n.resolvedAt = v ? new Date().toISOString() : null; persist(); } return P(); },
-      deleteNotice: function (id) { db.notices = (db.notices || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      resolveNotice: function (id, v) {
+        var n = (db.notices || []).find(function (x) { return x.id === id; });
+        if (n) {
+          var w = who(); n.resolved = v; n.resolvedAt = v ? new Date().toISOString() : null; n.resolvedBy = v ? w.id : null; n.resolvedByName = v ? w.name : null;
+          logAct(v ? "notice.resolve" : "notice.reopen", { projectId: n.projectId, companyId: n.companyId, ref: n.id, label: String(n.text || "").slice(0, 90) }); persist();
+        }
+        return P();
+      },
+      deleteNotice: function (id) {
+        var n = (db.notices || []).find(function (x) { return x.id === id; });
+        if (n) logAct("notice.delete", { projectId: n.projectId, companyId: n.companyId, ref: id, label: String(n.text || "").slice(0, 90) });
+        db.notices = (db.notices || []).filter(function (x) { return x.id !== id; }); persist(); return P();
+      },
       listEvents: function (from, to) { db.events = db.events || []; return P(clone(db.events.filter(function (e) { return e.date >= from && e.date <= to; }).sort(function (a, b) { return (a.date + (a.start || "")) < (b.date + (b.start || "")) ? -1 : 1; }))); },
-      saveEvent: function (e) { db.events = db.events || []; var u = me(), rec = clone(e); if (!rec.id) { rec.id = uid(); rec.createdBy = u.id; rec.createdByName = u.name; } var i = db.events.findIndex(function (x) { return x.id === rec.id; }); if (i >= 0) db.events[i] = rec; else db.events.push(rec); persist(); return P(clone(rec)); },
-      deleteEvent: function (id) { db.events = (db.events || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      saveEvent: function (e) {
+        db.events = db.events || []; var u = me(), rec = clone(e); delete rec.notify;
+        var i = rec.id ? db.events.findIndex(function (x) { return x.id === rec.id; }) : -1, old = i >= 0 ? db.events[i] : null, w = who();
+        var base = function () { return { projectId: rec.projectId || null, companyId: rec.companyId || null, ref: rec.id, label: rec.title, extra: { date: rec.date } }; };
+        if (!rec.id) { rec.id = uid(); rec.createdBy = u.id; rec.createdByName = u.name; rec.createdAt = new Date().toISOString(); logAct("event.create", base()); }
+        else if (old && !!old.done !== !!rec.done) { rec.doneBy = rec.done ? w.id : null; rec.doneByName = rec.done ? w.name : null; rec.doneAt = rec.done ? new Date().toISOString() : null; logAct(rec.done ? "event.done" : "event.undone", base()); }
+        else { stampEdit(rec); logAct("event.update", base()); }
+        if (i >= 0) db.events[i] = rec; else db.events.push(rec); persist(); return P(clone(rec));
+      },
+      deleteEvent: function (id) {
+        var e = (db.events || []).find(function (x) { return x.id === id; });
+        if (e) logAct("event.delete", { projectId: e.projectId || null, companyId: e.companyId || null, ref: id, label: e.title, extra: { date: e.date } });
+        db.events = (db.events || []).filter(function (x) { return x.id !== id; }); persist(); return P();
+      },
       listSchedule: function (from, to) { db.schedule = db.schedule || []; var u = me(); return P(clone(db.schedule.filter(function (x) { return x.date >= from && x.date <= to && (staff(u) || x.userId === u.id); }))); },
-      saveShift: function (x) { db.schedule = db.schedule || []; var rec = clone(x); if (!rec.id) rec.id = uid(); var i = db.schedule.findIndex(function (y) { return y.id === rec.id; }); if (i >= 0) db.schedule[i] = rec; else db.schedule.push(rec); persist(); return P(clone(rec)); },
-      deleteShift: function (id) { db.schedule = (db.schedule || []).filter(function (x) { return x.id !== id; }); persist(); return P(); },
+      saveShift: function (x) {
+        db.schedule = db.schedule || []; var rec = clone(x), isNew = !rec.id; if (isNew) rec.id = uid();
+        var i = db.schedule.findIndex(function (y) { return y.id === rec.id; }), old = i >= 0 ? db.schedule[i] : null;
+        if (old) { ["createdBy", "createdByName", "createdAt"].forEach(function (k) { if (old[k] && !rec[k]) rec[k] = old[k]; }); stampEdit(rec); } else stampNew(rec);
+        var emp = db.users.find(function (u) { return u.id === rec.userId; });
+        logAct(old ? "shift.update" : "shift.create", { projectId: rec.projectId, companyId: rec.companyId, ref: rec.id, label: emp ? emp.name : "", extra: { date: rec.date, userId: rec.userId } });
+        if (i >= 0) db.schedule[i] = rec; else db.schedule.push(rec); persist(); return P(clone(rec));
+      },
+      deleteShift: function (id) {
+        var x = (db.schedule || []).find(function (y) { return y.id === id; }), emp = x && db.users.find(function (u) { return u.id === x.userId; });
+        if (x) logAct("shift.delete", { projectId: x.projectId, companyId: x.companyId, ref: id, label: emp ? emp.name : "", extra: { date: x.date, userId: x.userId } });
+        db.schedule = (db.schedule || []).filter(function (x) { return x.id !== id; }); persist(); return P();
+      },
+      // ── indicação: código desta conta, convites/amigos e créditos ganhos ──
+      referralInfo: function () {
+        var u = me(); if (!u || u.role !== "admin") return Promise.reject(new Error(t("errors.ownerOnly", "Só o dono da conta vê isso.")));
+        if (!db.referralCode) { db.referralCode = refCodeFor(db, activeKey); persist(); }
+        if (!db.referrals) { db.referrals = activeKey === KEY ? sampleReferrals() : []; persist(); }
+        return P({ code: db.referralCode, referredBy: (db.org && db.org.referredBy) || null, referredByName: (db.org && db.org.referredByName) || null, plan: (db.org && db.org.plan) || "trial" });
+      },
+      listReferrals: function () { var u = me(); if (!u || u.role !== "admin") return P([]); return P(clone(db.referrals || [])); },
+      addReferral: function (r) {
+        var u = me(); if (!u || u.role !== "admin") return Promise.reject(new Error(t("errors.ownerOnly", "Só o dono da conta vê isso.")));
+        var name = String((r && r.name) || "").trim(); if (!name) return Promise.reject(new Error(t("errors.enterFriendName", "Informe o nome do amigo ou da empresa.")));
+        db.referrals = db.referrals || [];
+        var rec = stampNew({ id: uid(), name: name, contact: String(r.contact || "").trim(), status: "invited", invitedAt: new Date().toISOString() });
+        db.referrals.unshift(rec); persist(); return P(clone(rec));
+      },
+      // código da indicação (link ?ref=): de quem é — só o nome da empresa, nada mais
+      peekReferral: function (code) { var f = findRef(code); if (!f) return P(null); var d = f.db; return P({ code: refCodeFor(d, f.key), name: (d.org && d.org.name) || ((d.companies || [])[0] || {}).name || (BASE_COMPANIES[0] || {}).name }); },
+      // ── imposto estimado do ano (só o dono): taxas escolhidas, outras deduções e trimestres marcados como pagos (quem marcou e quando) ──
+      getTaxData: function (companyId, year) {
+        var u = me(); if (!u || u.role !== "admin") return Promise.reject(new Error(t("errors.ownerOnly", "Só o dono da conta vê isso.")));
+        db.tax = db.tax || {}; var r = db.tax[companyId + "-" + year] || {};
+        return P(clone({ settings: r.settings || null, otherDeductions: r.otherDeductions || 0, payments: r.payments || {}, updatedByName: r.updatedByName || "", updatedAt: r.updatedAt || null }));
+      },
+      saveTaxSettings: function (companyId, year, o) {
+        var u = me(); if (!u || u.role !== "admin") return Promise.reject(new Error(t("errors.ownerOnly", "Só o dono da conta vê isso.")));
+        db.tax = db.tax || {}; var k = companyId + "-" + year, r = db.tax[k] = db.tax[k] || {};
+        if (o.settings) r.settings = clone(o.settings); if (o.otherDeductions !== undefined) r.otherDeductions = Math.max(0, Number(o.otherDeductions) || 0);
+        stampEdit(r); logAct("tax.settings", { companyId: companyId, ref: k, label: String(year), money: true }); persist(); return P();
+      },
+      setTaxPayment: function (companyId, year, q, o) {
+        var u = me(); if (!u || u.role !== "admin") return Promise.reject(new Error(t("errors.ownerOnly", "Só o dono da conta vê isso.")));
+        db.tax = db.tax || {}; var k = companyId + "-" + year, r = db.tax[k] = db.tax[k] || {}; r.payments = r.payments || {};
+        if (o && o.paid) { var w = who(); r.payments[q] = { q: Number(q), paid: true, amount: Math.max(0, Number(o.amount) || 0), paidOn: o.paidOn || new Date().toISOString().slice(0, 10), by: w.id, byName: w.name, at: new Date().toISOString() }; }
+        else delete r.payments[q];
+        logAct(o && o.paid ? "tax.paid" : "tax.unpaid", { companyId: companyId, ref: k + "-q" + q, label: "Q" + q + " " + year, money: true }); persist(); return P();
+      },
+      // histórico "quem fez o quê": dono vê tudo; gerente vê sem o que é só financeiro; funcionário não vê
+      listActivity: function (q) {
+        q = q || {}; var u = me(); if (!u || !staff(u)) return P([]);
+        var owner = u.role === "admin";
+        return P(clone((db.activity || []).filter(function (a) {
+          if (a.money && !owner) return false;
+          if (q.projectId && a.projectId !== q.projectId) return false;
+          if (q.companyId && a.companyId && a.companyId !== q.companyId) return false;
+          return true;
+        }).slice(0, q.limit || 200)));
+      },
       // materiais e preços
       listMaterials: function () { db.materials = db.materials || []; return P(clone(db.materials)); },
       saveMaterial: function (m) {
@@ -444,14 +657,20 @@
         if (!own) return Promise.reject(new Error(t("errors.createTheOwnerLogin", "Crie o login do dono primeiro.")));
         var name = String(o.name || "").trim(); if (!name) return Promise.reject(new Error(t("errors.enterTheCompanyName", "Informe o nome da empresa.")));
         var trades = (o.trades || []).filter(function (t) { return TRADES.indexOf(t) >= 0; }); if (!trades.length) return Promise.reject(new Error(t("errors.pickAtLeastOne", "Escolha pelo menos um ramo.")));
-        var orgId = "o-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), key = "nivela_demo_org_" + orgId, base = slugify(name), used = {};
+        var orgId = "o-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), key = "bisey_demo_org_" + orgId, base = slugify(name), used = {};
         var companies = trades.map(function (t) {
           var id = trades.length === 1 ? base : base + "-" + t; while (used[id] || id === "eternity" || id === "bluestar") id += "-2"; used[id] = 1;
           return { id: id, name: trades.length === 1 ? name : name + " " + TRADE_NAME[t], short: name.split(/\s+/)[0], trade: t, logo: o.logo || "", accent: o.accent || "", state: o.state || "", email: own.email, phone: o.phone || "", address: "", license: "" };
         });
         var owner = { id: uid(), username: own.email, email: own.email, password: own.password, name: own.name, role: "admin", companyId: companies[0].id, rate: 0, active: true };
         var now = new Date().toISOString();
-        var nd = { v: 2, createdAt: now, org: { id: orgId, name: name, trades: trades, state: o.state || "", plan: "trial", status: "trialing", createdAt: now, trialEndsAt: trialEnd(now), ownerEmail: own.email },
+        var ref = o.referral ? findRef(o.referral) : null;
+        if (ref) { // a conta que indicou vê o amigo "em teste" na lista dela
+          var rd = ref.db; rd.referrals = rd.referrals || (ref.key === KEY ? sampleReferrals() : []);
+          rd.referrals.unshift({ id: uid(), name: name, contact: own.email, status: "trial", invitedAt: now, signedUpAt: now, trialEndsAt: trialEnd(now), createdByName: "" });
+          if (ref.key === activeKey) db = rd; safeSet(ref.key, JSON.stringify(rd));
+        }
+        var nd = { v: 2, createdAt: now, org: { id: orgId, name: name, trades: trades, state: o.state || "", plan: "trial", status: "trialing", createdAt: now, trialEndsAt: trialEnd(now), ownerEmail: own.email, referredBy: ref ? refCodeFor(ref.db, ref.key) : null, referredByName: ref ? ((ref.db.org && ref.db.org.name) || ((ref.db.companies || [])[0] || {}).name || (BASE_COMPANIES[0] || {}).name) : null },
           companies: companies, users: [owner], projects: [], financials: {}, time: [], expenses: [], proposals: [], notices: [], events: [], schedule: [], materials: [], deals: [] };
         if (!safeSet(key, JSON.stringify(nd))) return Promise.reject(new Error(t("errors.notEnoughSpaceOn", "Sem espaço neste aparelho para criar a conta. Tente um logo menor.")));
         var r = registry(); r.push({ id: orgId, key: key, name: name, createdAt: now }); setRegistry(r);
@@ -473,7 +692,7 @@
       // atalho do onboarding: dono + organização + convites, nesta ordem (mesma sequência da versão Supabase)
       createAccount: function (a) {
         var self = this;
-        return self.signUpOwner(a.owner).then(function () { return self.createOrganization(Object.assign({}, a.org, { logo: a.logo, accent: a.accent })); })
+        return self.signUpOwner(a.owner).then(function () { return self.createOrganization(Object.assign({}, a.org, { logo: a.logo, accent: a.accent, referral: a.referral || null })); })
           .then(function (user) { return self.inviteMembers(a.team || []).then(function (inv) { return { user: user, invites: inv }; }); });
       },
       uploadLogo: function (dataUrl) { return P(dataUrl || ""); }, // demo: o logo já vem como dataURL (redimensionado no canvas)
@@ -549,19 +768,31 @@
     }
 
     function mapUser(r) { return r ? { id: r.id, username: r.username, name: r.full_name || r.display_name, role: ROLE_UI[r.role] || "employee", orgRole: r.role, companyId: coSlug(r.company_id), rate: Number(r.hourly_rate) || 0, active: r.active, email: r.email || r.contact_email || "", locale: r.locale || "" } : null; }
-    function mapEvent(r) { return { id: r.id, title: r.title, date: r.date, start: r.start_time ? r.start_time.slice(0, 5) : "", end: r.end_time ? r.end_time.slice(0, 5) : "", companyId: r.company_id, projectId: r.project_id, who: r.who, notes: r.notes, done: r.done, createdBy: r.created_by, createdByName: r.created_by_name, createdAt: r.created_at }; }
-    function mapShift(r) { return { id: r.id, companyId: r.company_id, userId: r.user_id, date: r.date, projectId: r.project_id, start: r.start_time ? r.start_time.slice(0, 5) : "", note: r.note }; }
-    function mapProject(r) {
-      return { id: r.id, companyId: r.company_id, name: r.name, client: r.client, address: r.address, lat: r.lat, lng: r.lng, radius: r.radius_m || 150,
-        status: r.status, startDate: r.start_date, estCompletion: r.est_completion, details: r.details || {}, scope: r.scope || "", teamNotes: r.team_notes || "",
-        tasks: (r.project_tasks || []).sort(function (a, b) { return a.sort - b.sort; }).map(function (t) { return { id: t.id, group: t.grp, label: t.label, done: t.done, doneBy: t.done_by_name, doneAt: t.done_at }; }),
-        files: (r.project_files || []).map(function (f) { return { id: f.id, name: f.name, mime: f.mime, size: f.size, path: f.path, createdAt: f.created_at }; }) };
+    // autoria (supabase-saas/003): o banco grava quem criou/editou (auth.uid() + nome) em gatilhos; aqui só lemos.
+    // Em bancos sem a 003 as colunas não existem e os campos ficam vazios (a tela só mostra o que tiver).
+    function au(o, r) {
+      if (r.created_by_name) o.createdByName = r.created_by_name; if (r.created_by && !o.createdBy) o.createdBy = r.created_by;
+      if (r.updated_by_name) { o.updatedBy = r.updated_by; o.updatedByName = r.updated_by_name; o.updatedAt = r.updated_at || o.updatedAt; }
+      return o;
     }
-    function mapTime(r) { return { id: r.id, userId: r.user_id, companyId: r.company_id, projectId: r.project_id, checkIn: r.check_in, checkOut: r.check_out, rate: Number(r.rate) || 0,
-      inLoc: r.in_lat != null ? { lat: r.in_lat, lng: r.in_lng, ok: true } : { ok: false }, outLoc: r.out_lat != null ? { lat: r.out_lat, lng: r.out_lng, ok: true } : { ok: false }, inPhoto: r.in_photo, outPhoto: r.out_photo }; }
-    function mapProposal(r) { return Object.assign({}, r.data || {}, { id: r.id, companyId: r.company_id, number: r.number, status: r.status, total: Number(r.total) || 0, createdAt: r.created_at, updatedAt: r.updated_at, token: r.public_token, sentAt: r.sent_at, acceptedAt: r.accepted_at }); }
-    function mapExp(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, kind: r.kind, category: r.category, amount: Number(r.amount) || 0, vendor: r.vendor, date: r.date, note: r.note, receipt: r.receipt_path, createdBy: r.created_by, ai: r.ai }; }
-    function mapNotice(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, userId: r.user_id, authorName: r.author_name, text: r.text, photo: r.photo_path, resolved: r.resolved, resolvedAt: r.resolved_at, createdAt: r.created_at }; }
+    function mapEvent(r) { return au({ id: r.id, title: r.title, date: r.date, start: r.start_time ? r.start_time.slice(0, 5) : "", end: r.end_time ? r.end_time.slice(0, 5) : "", companyId: r.company_id, projectId: r.project_id, who: r.who, notes: r.notes, done: r.done, createdBy: r.created_by, createdByName: r.created_by_name, createdAt: r.created_at, doneByName: r.done_by_name || null, doneAt: r.done_at || null }, r); }
+    function mapShift(r) { return au({ id: r.id, companyId: r.company_id, userId: r.user_id, date: r.date, projectId: r.project_id, start: r.start_time ? r.start_time.slice(0, 5) : "", note: r.note, createdAt: r.created_at }, r); }
+    function mapProject(r) {
+      return au({ id: r.id, companyId: r.company_id, name: r.name, client: r.client, address: r.address, lat: r.lat, lng: r.lng, radius: r.radius_m || 150,
+        status: r.status, startDate: r.start_date, estCompletion: r.est_completion, details: r.details || {}, scope: r.scope || "", teamNotes: r.team_notes || "", createdAt: r.created_at,
+        tasks: (r.project_tasks || []).sort(function (a, b) { return a.sort - b.sort; }).map(function (t) { return { id: t.id, group: t.grp, label: t.label, done: t.done, doneBy: t.done_by_name, doneById: t.done_by || null, doneAt: t.done_at }; }),
+        files: (r.project_files || []).map(function (f) { return { id: f.id, name: f.name, mime: f.mime, size: f.size, path: f.path, createdAt: f.created_at, createdBy: f.created_by || null, createdByName: f.created_by_name || "" }; }) }, r);
+    }
+    function mapTime(r) { return au({ id: r.id, userId: r.user_id, companyId: r.company_id, projectId: r.project_id, checkIn: r.check_in, checkOut: r.check_out, rate: Number(r.rate) || 0,
+      inLoc: r.in_lat != null ? { lat: r.in_lat, lng: r.in_lng, ok: true } : { ok: false }, outLoc: r.out_lat != null ? { lat: r.out_lat, lng: r.out_lng, ok: true } : { ok: false }, inPhoto: r.in_photo, outPhoto: r.out_photo }, r); }
+    function mapProposal(r) {
+      var o = Object.assign({}, r.data || {}, { id: r.id, companyId: r.company_id, number: r.number, status: r.status, total: Number(r.total) || 0, createdAt: r.created_at, updatedAt: r.updated_at, token: r.public_token, sentAt: r.sent_at, acceptedAt: r.accepted_at });
+      if (r.status_by_name) { o.statusBy = r.status_by; o.statusByName = r.status_by_name; o.statusAt = r.status_at; }
+      return au(o, r);
+    }
+    function mapExp(r) { return au({ id: r.id, companyId: r.company_id, projectId: r.project_id, kind: r.kind, category: r.category, amount: Number(r.amount) || 0, vendor: r.vendor, date: r.date, note: r.note, receipt: r.receipt_path, createdBy: r.created_by, createdAt: r.created_at, ai: r.ai }, r); }
+    function mapNotice(r) { return { id: r.id, companyId: r.company_id, projectId: r.project_id, userId: r.user_id, authorName: r.author_name, text: r.text, photo: r.photo_path, resolved: r.resolved, resolvedAt: r.resolved_at, resolvedBy: r.resolved_by || null, resolvedByName: r.resolved_by_name || null, createdAt: r.created_at }; }
+    function mapActivity(r) { return { id: String(r.id), at: r.at, by: r.actor_id, byName: r.actor_name || "", type: r.type, projectId: r.project_id, companyId: coSlug(r.company_id), ref: r.ref_id, label: r.label || "", extra: r.extra || null, money: !!r.money }; }
     function svc(action, body) {
       return sb.functions.invoke("servicos", { body: Object.assign({ action: action, locale: window.NV.locale() }, body || {}) }).then(function (r) {
         if (r.error) { var st = r.error.context && r.error.context.status; return { error: st === 404 ? "NOT_DEPLOYED" : "OFFLINE", detail: r.error.message || "" }; }
@@ -664,7 +895,7 @@
         });
       },
       signOut: function () { profile = null; safeDel(PCACHE); return sb.auth.signOut(); },
-      // idioma de cada pessoa (profiles.locale: pt-BR / en-US); sem a coluna (banco antigo) fica só no aparelho
+      // idioma de cada pessoa (profiles.locale: pt-BR / en-US / es-US); sem a coluna (banco antigo) fica só no aparelho
       setLocale: function (loc) {
         if (!profile || !profile.id) return Promise.resolve();
         profile.locale = loc; safeSet(PCACHE, JSON.stringify(profile));
@@ -764,11 +995,50 @@
       },
       getFinancials: function () {
         return sb.from("project_financials").select("*").then(function (r) {
-          var out = {}; chk(r).forEach(function (f) { out[f.project_id] = { contractValue: Number(f.contract_value) || 0, budget: Number(f.budget) || 0, estHours: Number(f.est_hours) || 0, materialBudget: Number(f.material_budget) || 0, laborBudget: Number(f.labor_budget) || 0, clientEmail: f.client_email || "", clientPhone: f.client_phone || "", dailyReport: f.daily_report !== false, lastReportAt: f.last_report_at }; }); return out;
+          var out = {}; chk(r).forEach(function (f) { out[f.project_id] = au({ contractValue: Number(f.contract_value) || 0, budget: Number(f.budget) || 0, estHours: Number(f.est_hours) || 0, materialBudget: Number(f.material_budget) || 0, laborBudget: Number(f.labor_budget) || 0, clientEmail: f.client_email || "", clientPhone: f.client_phone || "", dailyReport: f.daily_report !== false, lastReportAt: f.last_report_at }, f); }); return out;
         });
       },
       saveFinancials: function (projectId, f) { var o = finOut(f); return sb.from("project_financials").upsert({ project_id: projectId, contract_value: o.contractValue, budget: o.budget, est_hours: o.estHours, material_budget: o.materialBudget, labor_budget: o.laborBudget, client_email: o.clientEmail || null, client_phone: o.clientPhone || null, daily_report: o.dailyReport }).then(chk); },
-      setTaskDone: function (projectId, taskId, done) { return sb.rpc("set_task_done", { p_task_id: taskId, p_done: done }).then(chk); },
+      setTaskDone: function (projectId, taskId, done) { return sb.rpc("set_task_done", { p_task_id: taskId, p_done: done }).then(chk); }, // o banco grava quem marcou (done_by + done_by_name) e quando
+      // indicação (tabela referrals + organizations.referral_code da 003; créditos entram na fatura quando o Stripe estiver ligado — docs/09)
+      referralInfo: function () {
+        if (!SAAS) return needSaas();
+        return sb.rpc("my_referral").then(function (r) { var x = chk(r) || {}; if (Array.isArray(x)) x = x[0] || {}; return { code: x.code, referredBy: x.referred_by || null, referredByName: x.referred_by_name || null, plan: (org && org.plan) || "trial" }; });
+      },
+      listReferrals: function () {
+        if (!SAAS) return Promise.resolve([]);
+        return sb.from("referrals").select("*").order("created_at", { ascending: false }).then(function (r) { return (chk(r) || []).map(function (x) { return { id: x.id, name: x.friend_name || "", contact: x.friend_contact || "", status: x.status, invitedAt: x.created_at, signedUpAt: x.signed_up_at, trialEndsAt: x.trial_ends_at, paidAt: x.converted_at, creditMonths: x.credit_months || 0, createdByName: x.created_by_name || "" }; }); });
+      },
+      addReferral: function (r) { if (!SAAS) return needSaas(); return sb.from("referrals").insert({ friend_name: String(r.name || "").trim(), friend_contact: String(r.contact || "").trim() || null }).select().single().then(chk); },
+      peekReferral: function (code) { if (!sb || !SAAS) return Promise.resolve(null); return sb.rpc("peek_referral", { p_code: String(code || "").trim().toUpperCase() }).then(function (r) { var x = r.error ? null : r.data; if (Array.isArray(x)) x = x[0]; return x && x.name ? { code: x.code, name: x.name } : null; }).catch(function () { return null; }); },
+      // imposto estimado (tabelas tax_settings / tax_payments da 003, só o dono pelo RLS). Sem o backend multiempresa: fica neste aparelho.
+      getTaxData: function (companyId, year) {
+        if (!SAAS) { var l = null; try { l = JSON.parse(safeGet("bisey_tax_" + companyId + "_" + year) || "null"); } catch (e) {} return Promise.resolve(l || { settings: null, otherDeductions: 0, payments: {} }); }
+        var cid = coId(companyId);
+        return Promise.all([sb.from("tax_settings").select("*").eq("company_id", cid).eq("year", year).maybeSingle(), sb.from("tax_payments").select("*").eq("company_id", cid).eq("year", year)]).then(function (r) {
+          var st = chk(r[0]) || {}, pay = {}; (chk(r[1]) || []).forEach(function (x) { pay[x.quarter] = { q: x.quarter, paid: true, amount: Number(x.amount) || 0, paidOn: x.paid_on, by: x.paid_by, byName: x.paid_by_name, at: x.created_at }; });
+          return { settings: st.settings || null, otherDeductions: Number(st.other_deductions) || 0, payments: pay, updatedByName: st.updated_by_name || "", updatedAt: st.updated_at || null };
+        });
+      },
+      saveTaxSettings: function (companyId, year, o) {
+        if (!SAAS) return API.getTaxData(companyId, year).then(function (d) { if (o.settings) d.settings = o.settings; if (o.otherDeductions !== undefined) d.otherDeductions = Number(o.otherDeductions) || 0; safeSet("bisey_tax_" + companyId + "_" + year, JSON.stringify(d)); });
+        var row = { company_id: coId(companyId), year: year }; if (o.settings) row.settings = o.settings; if (o.otherDeductions !== undefined) row.other_deductions = Number(o.otherDeductions) || 0;
+        return sb.from("tax_settings").upsert(row, { onConflict: "org_id,company_id,year" }).then(chk);
+      },
+      setTaxPayment: function (companyId, year, q, o) {
+        if (!SAAS) return API.getTaxData(companyId, year).then(function (d) { d.payments = d.payments || {}; if (o && o.paid) d.payments[q] = { q: q, paid: true, amount: Number(o.amount) || 0, paidOn: o.paidOn, byName: (profile || {}).name, at: new Date().toISOString() }; else delete d.payments[q]; safeSet("bisey_tax_" + companyId + "_" + year, JSON.stringify(d)); });
+        var cid = coId(companyId);
+        if (!(o && o.paid)) return sb.from("tax_payments").delete().eq("company_id", cid).eq("year", year).eq("quarter", q).then(chk);
+        return sb.from("tax_payments").upsert({ company_id: cid, year: year, quarter: q, amount: Number(o.amount) || 0, paid_on: o.paidOn || null }, { onConflict: "org_id,company_id,year,quarter" }).then(chk);
+      },
+      // histórico "quem fez o quê" (tabela activity_log da 003, preenchida por gatilhos no banco; o RLS esconde o financeiro de quem não é dono)
+      listActivity: function (q) {
+        if (!SAAS) return Promise.resolve([]);
+        q = q || {}; var s = sb.from("activity_log").select("*").order("at", { ascending: false }).limit(q.limit || 200);
+        if (q.projectId) s = s.eq("project_id", q.projectId);
+        if (q.companyId) s = s.or("company_id.is.null,company_id.eq." + coId(q.companyId));
+        return s.then(function (r) { return r.error ? [] : (r.data || []).map(mapActivity); });
+      },
       uploadFile: function (projectId, file) {
         var fid = uid();
         var path = projectId + "/" + fid + "-" + file.name.replace(/[^\w.\-]+/g, "_");
@@ -959,6 +1229,9 @@
         return self.signUpOwner(a.owner).then(function (r) {
           if (r.needsEmailConfirm) throw new Error(t("errors.weSentAConfirmation", "Enviamos um link de confirmação para ") + a.owner.email + t("errors.openTheEmailConfirm", ". Abra o e-mail, confirme e entre de novo para terminar a configuração da empresa."));
           return self.createOrganization(Object.assign({}, a.org, { logo: a.logo, accent: a.accent, owner: a.owner }));
+        }).then(function (user) {
+          if (a.referral) return sb.rpc("apply_referral", { p_code: String(a.referral).trim().toUpperCase() }).then(function () { return user; }, function () { return user; }); // código inválido não impede a conta
+          return user;
         }).then(function (user) { return self.inviteMembers(a.team || []).then(function (inv) { return { user: user, invites: inv }; }); });
       },
       uploadLogo: function (img, companySlug) {

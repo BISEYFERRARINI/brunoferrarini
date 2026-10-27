@@ -21,6 +21,8 @@ async function metrics(days) {
     resolvedWithoutHumanPct: conv ? Math.round(Math.max(0, conv - ho) / conv * 1000) / 10 : null,
     thumbsUp: tot.up || 0, thumbsDown: tot.down || 0,
     costUsd: Math.round((tot.costUsd || 0) * 10000) / 10000, todaySpendUsd: Math.round((((await s.get("spend/" + day())) || {}).usd || 0) * 10000) / 10000, dailyBudgetUsd: budgetUsd(),
+    // IA de reserva: quantas respostas vieram de cada provedor e quantas vezes a OpenAI salvou (Anthropic fora/lenta/sem saldo)
+    byProvider: { anthropic: tot.ai_anthropic || 0, openai: tot.ai_openai || 0 }, fallbacks: tot.fallbacks || 0,
     openTickets: open, perDay: per
   };
 }

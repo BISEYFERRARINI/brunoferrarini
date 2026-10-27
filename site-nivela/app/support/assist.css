@@ -1,16 +1,16 @@
-/* Nivela Assist — widget. Usa os tokens do Nivela (brand/tokens.css) quando existem, com valores de reserva.
+/* Bisey Assist — widget. Usa os tokens do Bisey (brand/tokens.css) quando existem, com valores de reserva.
    Claro/escuro: segue data-theme do site/app e prefers-color-scheme. */
 .nva-launch, .nva-panel {
-  --nva-bg: var(--surface, #fff); --nva-bg2: var(--surface-2, #F7F9F8); --nva-ink: var(--ink, #102421); --nva-muted: var(--muted, #566663);
-  --nva-line: var(--line, #DCE3E1); --nva-brand: var(--brand, #0B7B6A); --nva-brand-ink: var(--brand-ink, #fff); --nva-strong: var(--brand-strong, #0D2B27);
-  --nva-soft: color-mix(in srgb, var(--nva-brand) 10%, var(--nva-bg)); --nva-good: var(--good, #2E7D4F); --nva-bad: var(--bad, #B3261E);
+  --nva-bg: var(--surface, #fff); --nva-bg2: var(--surface-2, #F8F9FC); --nva-ink: var(--ink, #0A1433); --nva-muted: var(--muted, #5F6472);
+  --nva-line: var(--line, #D8DCE6); --nva-brand: var(--brand, #2A5BFF); --nva-brand-ink: var(--brand-ink, #fff); --nva-strong: var(--brand-strong, #0A1433);
+  --nva-soft: color-mix(in srgb, var(--nva-brand) 10%, var(--nva-bg)); --nva-good: var(--good, #006F36); --nva-bad: var(--bad, #D1212C);
   font-family: var(--f-body, "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif); font-size: 15px; line-height: 1.45; color: var(--nva-ink);
   -webkit-font-smoothing: antialiased; box-sizing: border-box;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .nva-launch, :root:not([data-theme="light"]) .nva-panel { --nva-bg: var(--surface, #0F1E1B); --nva-bg2: var(--surface-2, #132622); --nva-ink: var(--ink, #E6EFEC); --nva-muted: var(--muted, #9DB3AE); --nva-line: var(--line, #24403A); --nva-brand: var(--brand-bright, #2CC4A7); --nva-brand-ink: #06110F; }
+  :root:not([data-theme="light"]) .nva-launch, :root:not([data-theme="light"]) .nva-panel { --nva-bg: var(--surface, #0E1530); --nva-bg2: var(--surface-2, #0B1127); --nva-ink: var(--ink, #E7EAF4); --nva-muted: var(--muted, #9AA4C3); --nva-line: var(--line, #1F2948); --nva-brand: var(--brand-bright, #6390FE); --nva-brand-ink: #04091E; }
 }
-:root[data-theme="dark"] .nva-launch, :root[data-theme="dark"] .nva-panel { --nva-bg: var(--surface, #0F1E1B); --nva-bg2: var(--surface-2, #132622); --nva-ink: var(--ink, #E6EFEC); --nva-muted: var(--muted, #9DB3AE); --nva-line: var(--line, #24403A); --nva-brand: var(--brand-bright, #2CC4A7); --nva-brand-ink: #06110F; }
+:root[data-theme="dark"] .nva-launch, :root[data-theme="dark"] .nva-panel { --nva-bg: var(--surface, #0E1530); --nva-bg2: var(--surface-2, #0B1127); --nva-ink: var(--ink, #E7EAF4); --nva-muted: var(--muted, #9AA4C3); --nva-line: var(--line, #1F2948); --nva-brand: var(--brand-bright, #6390FE); --nva-brand-ink: #04091E; }
 .nva-panel *, .nva-panel *::before, .nva-panel *::after { box-sizing: border-box; }
 
 /* botão flutuante */
@@ -18,9 +18,9 @@
   position: fixed; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 9000;
   display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 18px 0 14px; border: 0; border-radius: 999px;
   background: var(--nva-brand); color: var(--nva-brand-ink); font: inherit; font-weight: 600; cursor: pointer;
-  box-shadow: 0 6px 20px rgba(6, 17, 15, .22), 0 1px 3px rgba(6, 17, 15, .2); transition: transform .15s ease, box-shadow .15s ease;
+  box-shadow: 0 6px 20px rgba(5, 10, 25, .22), 0 1px 3px rgba(5, 10, 25, .2); transition: transform .15s ease, box-shadow .15s ease;
 }
-.nva-launch:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(6, 17, 15, .26); }
+.nva-launch:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(5, 10, 25, .26); }
 .nva-launch:focus-visible, .nva-panel :focus-visible { outline: 3px solid color-mix(in srgb, var(--nva-brand) 55%, transparent); outline-offset: 2px; }
 .nva-is-open .nva-launch { display: none; }
 
@@ -28,7 +28,7 @@
 .nva-panel {
   position: fixed; right: 16px; bottom: 16px; z-index: 9001; width: min(400px, calc(100vw - 32px)); height: min(640px, calc(100vh - 32px)); height: min(640px, calc(100dvh - 32px));
   display: flex; flex-direction: column; background: var(--nva-bg); border: 1px solid var(--nva-line); border-radius: 18px; overflow: hidden;
-  box-shadow: 0 24px 60px rgba(6, 17, 15, .28), 0 2px 8px rgba(6, 17, 15, .12); animation: nva-in .18s ease;
+  box-shadow: 0 24px 60px rgba(5, 10, 25, .28), 0 2px 8px rgba(5, 10, 25, .12); animation: nva-in .18s ease;
 }
 .nva-panel[hidden] { display: none; }
 @keyframes nva-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
@@ -39,11 +39,11 @@
 
 .nva-head { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 14px 14px 12px 16px; background: var(--nva-strong); color: #fff; }
 .nva-id { display: flex; gap: 10px; align-items: center; min-width: 0; }
-.nva-dot { width: 10px; height: 10px; border-radius: 50%; background: #2CC4A7; box-shadow: 0 0 0 4px rgba(44, 196, 167, .22); flex: none; }
+.nva-dot { width: 10px; height: 10px; border-radius: 50%; background: #FFD84D; box-shadow: 0 0 0 4px rgba(255, 216, 77, .22); flex: none; }
 .nva-head h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -.01em; color: #fff; font-family: var(--f-display, inherit); }
-.nva-sub { margin: 0; font-size: 12.5px; color: #B4C9C4; }
+.nva-sub { margin: 0; font-size: 12.5px; color: #C9D8FB; }
 .nva-tools { display: flex; gap: 4px; }
-.nva-ic { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: #DDE9E6; cursor: pointer; }
+.nva-ic { display: grid; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 10px; background: transparent; color: #E4ECFE; cursor: pointer; }
 .nva-ic:hover { background: rgba(255, 255, 255, .1); color: #fff; }
 .nva-human { grid-column: 1 / -1; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border: 1px solid rgba(255, 255, 255, .28); border-radius: 10px; background: rgba(255, 255, 255, .08); color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .nva-human:hover { background: rgba(255, 255, 255, .16); }
@@ -85,7 +85,7 @@
 .nva-f { display: grid; gap: 4px; font-size: 13.5px; font-weight: 600; }
 .nva-f em { font-style: normal; font-weight: 400; color: var(--nva-muted); }
 .nva-f input, .nva-f select, .nva-f textarea, .nva-form textarea {
-  width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line-strong, #8E9E9A); border-radius: 10px; background: var(--nva-bg); color: var(--nva-ink); font: inherit; font-size: 16px; font-weight: 400;
+  width: 100%; min-height: 40px; padding: 8px 10px; border: 1px solid var(--line-strong, #878D9B); border-radius: 10px; background: var(--nva-bg); color: var(--nva-ink); font: inherit; font-size: 16px; font-weight: 400;
 }
 .nva-err { margin: 0; color: var(--nva-bad); font-size: 13.5px; font-weight: 600; }
 .nva-hp { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; opacity: 0; }

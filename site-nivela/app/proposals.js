@@ -63,13 +63,13 @@
     if (!c) return p && p._public ? NEUTRAL : CO.eternity; // página do cliente sem dados da empresa: texto neutro (nunca a marca de outra empresa)
     var td = NV.tradeDef(c.trade).proposal, name = c.name || "Company";
     var contact = [c.address, c.email, c.phone].filter(Boolean).join(" · ") || (STATE_NAMES[c.state] || c.state || "");
-    var accent = /^#[0-9a-f]{6}$/i.test(c.accent || "") ? c.accent : "#0B7B6A";
+    var accent = /^#[0-9a-f]{6}$/i.test(c.accent || "") ? c.accent : "#2A5BFF";
     return { brand: name, title: td.title, tagline: td.tagline + (c.license ? " · LIC. " + String(c.license).toUpperCase() : ""), contact: contact,
       footer: [name, c.email, c.phone, c.license ? "License " + c.license : ""].filter(Boolean).join(" · "), role: td.role, logo: c.logo || "", logoSm: c.logo || "", logoW: "1.3in",
-      accent: accent, dark: "#1F2A28", bg: "#FAFAF8", payTo: name, email: c.email || "", custom: true };
+      accent: accent, dark: "#1C2230", bg: "#FAFAF8", payTo: name, email: c.email || "", custom: true };
   }
   // cabeçalho neutro (página pública sem dados da empresa em Configurações → Empresa)
-  var NEUTRAL = { brand: "", title: "PROPOSAL", tagline: "", contact: "", footer: "", role: "Contractor", logo: "", logoSm: "", logoW: "1.3in", accent: "#0B7B6A", dark: "#1F2A28", bg: "#FAFAF8", payTo: "", email: "", custom: true, neutral: true };
+  var NEUTRAL = { brand: "", title: "PROPOSAL", tagline: "", contact: "", footer: "", role: "Contractor", logo: "", logoSm: "", logoW: "1.3in", accent: "#2A5BFF", dark: "#1C2230", bg: "#FAFAF8", payTo: "", email: "", custom: true, neutral: true };
   // instantâneo da marca na proposta (a página pública do cliente não carrega as empresas da conta)
   function brandSnap(id) { var c = coRec(id); if (!c || CO[id]) return null; return { name: c.name, trade: c.trade, accent: c.accent || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license || "", state: c.state || "", hicReg: c.hicReg || "" }; }
 
@@ -158,7 +158,7 @@
       '<div class="chips" style="margin-bottom:10px">' + [["all", t("proposals.all", "Todas")], ["estimate", t("proposals.chipEstimates", "Propostas")], ["invoice", "Invoices"]].map(function (x) { return '<button type="button" class="chip' + (tf === x[0] ? " on" : "") + '" data-act="pTypeFilter" data-id="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
       (shown.length ? t("proposals.noCustomerJobDate", '<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Cliente</th><th>Obra</th><th>Data</th><th>Status</th><th class="n">Valor</th></tr></thead><tbody>') +
         shown.map(function (p) {
-          return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + '</b><div class="small muted">' + (isInv(p) ? "Invoice" : esc(t("proposals.rowEstimate", "Proposta"))) + "</div></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
+          return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + '</b><div class="small muted">' + (isInv(p) ? "Invoice" : esc(t("proposals.rowEstimate", "Proposta"))) + "</div></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + (p.statusByName || p.createdByName ? '<div class="by">' + E.byLine("{n}", p.statusByName || p.createdByName, p.statusAt || p.createdAt) + "</div>" : "") + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
         }).join("") + "</tbody></table></div>"
         : E.emptyState({ icon: "doc", title: t("proposals.noEstimatesYet", "Nenhuma proposta ainda"), text: t("proposals.tapNewEstimateDescribe", "Toque em “Nova proposta”, fale o serviço e a proposta sai pronta."), cta: { act: "pNew", id: "estimate", label: t("proposals.newEstimate2", "Nova proposta"), icon: "mic", primary: true } }));
   };
@@ -332,7 +332,7 @@
   function snap(p) { var c = clone(p); delete c.total; return JSON.stringify(c); }
   function hasContent(p) { var c = p.client || {}; return !!(c.name || c.address || c.email || c.phone || built(p) || p.speech); }
   function isDirty() { var p = S.pdraft; if (!p) return false; return S.pBase == null ? hasContent(p) : snap(p) !== S.pBase; }
-  function draftKey() { return "nivela_pdraft_" + ((S.user && S.user.id) || ""); }
+  function draftKey() { return "bisey_pdraft_" + ((S.user && S.user.id) || ""); }
   function storedDraft() { try { var d = JSON.parse(localStorage.getItem(draftKey()) || "null"); return d && d.draft ? d : null; } catch (e) { return null; } }
   function clearStored() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
   function markClean() { S.pBase = S.pdraft ? snap(S.pdraft) : null; clearStored(); }
@@ -434,7 +434,8 @@
     p.total = totalOf(p);
     var inv = isInv(p), ok = built(p), busy = S.pBusy;
     var head = '<div class="page-head"><div>' + E.crumb("proposals", t("proposals.estimates2", "Propostas"), p.id ? p.number || "" : inv ? t("proposals.newInvoice", "Novo invoice") : t("proposals.newEstimate2", "Nova proposta")) + "<h1>" +
-      (p.id ? (inv ? "Invoice " : t("proposals.estimate", "Proposta ")) + esc(p.number) : inv ? t("proposals.newInvoice2", "Novo invoice") : t("proposals.newEstimate2", "Nova proposta")) + "</h1><p>" + esc(E.companyName(p.companyId)) + t("proposals.comesOutInEnglish", " · sai em inglês, no padrão das suas propostas</p></div>") +
+      (p.id ? (inv ? "Invoice " : t("proposals.estimate", "Proposta ")) + esc(p.number) : inv ? t("proposals.newInvoice2", "Novo invoice") : t("proposals.newEstimate2", "Nova proposta")) + "</h1><p>" + esc(E.companyName(p.companyId)) + t("proposals.comesOutInEnglish", " · sai em inglês, no padrão das suas propostas</p></div>").replace(/<\/div>$/, "") +
+      (p.id && (p.createdByName || p.updatedByName || p.statusByName) ? '<div class="bylines">' + E.byLine(inv ? t("who.createdBy", "Criado por {n}") : t("who.createdByF", "Criada por {n}"), p.createdByName, p.createdAt) + (p.statusByName ? E.byLine(t("who.statusBy", "“{s}” por {n}").replace("{s}", E.tv(p.status)), p.statusByName, p.statusAt) : "") + E.byLine(inv ? t("who.editedBy", "Editado por {n}") : t("who.editedByF", "Editada por {n}"), p.updatedByName !== p.statusByName || p.updatedAt !== p.statusAt ? p.updatedByName : "", p.updatedAt) + "</div>" : "") + "</div>" +
       '<div class="row"><select data-pbind="status" style="width:auto" aria-label="Status">' + Object.keys(STATUS_P).map(function (s) { return '<option value="' + s + '"' + (p.status === s ? " selected" : "") + ">" + esc(tv(s)) + "</option>"; }).join("") + "</select></div></div>";
 
     var type = t("proposals.html5", '<div class="seg" role="group" aria-label="Tipo de documento">') +
@@ -456,7 +457,7 @@
       '<div class="row">' + (busy ? t("proposals.buildingTakesAbout30", '<button class="btn" disabled><span class="spin" aria-hidden="true"></span> Montando… leva uns 30 segundos</button>')
         : ok ? t("proposals.adjust", '<button class="btn" data-act="pAI" data-id="adjust">✨ Ajustar ') + (inv ? t("proposals.theInvoice", "o invoice") : t("proposals.theEstimate", "a proposta")) + t("proposals.buildFromScratchWith", '</button><button class="btn ghost" data-act="pAI" data-id="new">Montar do zero com esse texto</button>')
           : t("proposals.build", '<button class="btn" data-act="pAI" data-id="new">✨ Montar ') + (inv ? "invoice" : t("proposals.estimateWord", "proposta")) + "</button>") +
-      t("proposals.speechLanguageOptionValue", '<label class="small muted" style="margin-left:auto">Idioma da fala <select id="pLang" style="width:auto;padding:4px 8px"><option value="pt-BR"') + ((S.pLang || E.speechLang()) !== "en-US" ? " selected" : "") + '>Português</option><option value="en-US"' + ((S.pLang || E.speechLang()) === "en-US" ? " selected" : "") + ">English</option></select></label></div></div>";
+      t("proposals.speechLanguageOptionValue", '<label class="small muted" style="margin-left:auto">Idioma da fala <select id="pLang" style="width:auto;padding:4px 8px"><option value="pt-BR"') + ((S.pLang || E.speechLang()) === "pt-BR" ? " selected" : "") + '>Português</option><option value="en-US"' + ((S.pLang || E.speechLang()) === "en-US" ? " selected" : "") + '>English</option><option value="es-US"' + ((S.pLang || E.speechLang()) === "es-US" ? " selected" : "") + ">Español</option></select></label></div></div>";
 
     var notes = (p.notes || []).length ? t("proposals.checkBeforeSending", '<div class="panel ed-sec note-box"><h3>Confira antes de mandar</h3>') + p.notes.map(function (n) { return '<div class="small">• ' + esc(n) + "</div>"; }).join("") + "</div>" : "";
     var paid = inv ? num(p.amountPaid) : 0;
@@ -898,7 +899,7 @@
         '<div class="small" style="color:#7a6a55">Total: <b style="color:#2B241D">' + money2(p.total) + "</b> · " + esc(p.totalLabel || "") + "</div>" +
         '<label class="field"><span>Your full name</span><input type="text" id="pubName" autocomplete="name" required value="' + esc(p.client.name || "") + '"></label>' +
         '<label class="row" style="align-items:flex-start;gap:8px"><input type="checkbox" id="pubOk" required style="width:auto;margin-top:3px"> <span>I have read and accept the scope of work, pricing and payment terms of this proposal.</span></label>' +
-        '<div class="err" id="pubErr" hidden></div><button class="btn" type="submit" style="background:' + (c.accent || "#0B7B6A") + ';color:#fff">Accept proposal</button>' +
+        '<div class="err" id="pubErr" hidden></div><button class="btn" type="submit" style="background:' + (c.accent || "#2A5BFF") + ';color:#fff">Accept proposal</button>' +
         '<div class="small" style="color:#7a6a55">Questions? Reply to the email you received' + (c.email ? " or write to " + esc(c.email) : "") + ".</div></form>";
       document.getElementById("pubForm").onsubmit = function (ev) {
         ev.preventDefault();

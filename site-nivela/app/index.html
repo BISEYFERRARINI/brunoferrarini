@@ -3,26 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nivela</title>
-<meta name="description" content="Nivela — gestão de obras para empreiteiros: ponto com foto e GPS, projetos, propostas, despesas e equipe.">
-<meta name="theme-color" content="#0D2B27" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#06110F" media="(prefers-color-scheme: dark)">
+<title>Bisey</title>
+<meta name="description" content="Bisey — gestão de obras para empreiteiros: ponto com foto e GPS, projetos, propostas, despesas e equipe.">
+<meta name="theme-color" content="#0A1433" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#050A19" media="(prefers-color-scheme: dark)">
 <meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Nivela">
+<meta name="apple-mobile-web-app-title" content="Bisey">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="32x32" href="brand/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="brand/favicon-16.png">
+<link rel="icon" href="brand/favicon.ico" sizes="48x48">
+<link rel="icon" href="brand/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" sizes="180x180" href="brand/apple-touch-icon-180.png">
 <link rel="preload" href="brand/fonts/inter-400.woff" as="font" type="font/woff" crossorigin>
 <link rel="preload" href="brand/fonts/inter-600.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="brand/tokens.css">
 <link rel="stylesheet" href="styles.css">
 <script>
+  /* migração única do nome antigo (antes chamado Nivela): copia chaves nivela_* / nivela-* do localStorage e do sessionStorage para bisey_* / bisey-* (sem sobrescrever) e apaga as antigas */
+  (function () { var O = "nivela", N = "bisey"; ["localStorage", "sessionStorage"].forEach(function (n) { try { var s = window[n], ks = [], i, k; for (i = 0; i < s.length; i++) { k = s.key(i); if (k && k.indexOf(O) === 0 && /[_-]/.test(k.charAt(O.length))) ks.push(k); } ks.forEach(function (k) { try { var nk = N + k.slice(O.length), v = s.getItem(k); if (v !== null && s.getItem(nk) === null) s.setItem(nk, v.split(O + "_demo_org_").join(N + "_demo_org_")); s.removeItem(k); } catch (e) {} }); } catch (e) {} }); })();
+
   /* tema salvo (claro/escuro/automático) aplicado antes de pintar, para não piscar */
-  (function () { try { var t = localStorage.getItem("nivela_theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
+  (function () { try { var t = localStorage.getItem("bisey_theme"); if (t === "dark" || t === "light") document.documentElement.setAttribute("data-theme", t); } catch (e) {} })();
 </script>
 </head>
 <body>
@@ -38,6 +41,9 @@
 <script src="proposals.js"></script>
 <script src="settings.js"></script>
 <script src="onboarding.js"></script>
+<script src="tax-calc.js"></script>
+<script src="taxes.js"></script>
+<script src="referral.js"></script>
 <script src="help.js"></script>
 </body>
 </html>

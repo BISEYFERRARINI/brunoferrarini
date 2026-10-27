@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="15.5 -1.5 75 99" width="160" height="211.2" role="img" aria-label="Loading Bisey"><title>Loading Bisey</title><style>
+.ln{fill:none;stroke:#FFFFFF;stroke-width:13.0;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:159.40;stroke-dashoffset:159.40;animation:draw 1.6s cubic-bezier(.65,0,.35,1) infinite}
+.dt{fill:#FFD84D;transform-box:fill-box;transform-origin:center;transform:scale(0);animation:pop 1.6s cubic-bezier(.2,.8,.2,1.2) infinite}
+@keyframes draw{0%{stroke-dashoffset:159.40;opacity:1}55%,85%{stroke-dashoffset:0;opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes pop{0%,50%{transform:scale(0);opacity:1}62%,85%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+@media (prefers-reduced-motion:reduce){.ln{animation:none;stroke-dashoffset:0}.dt{animation:none;transform:none}}
+</style><path class="ln" d="M30.0 13.0V60.0A23.0 23.0 0 1 1 49.006 82.651"/><circle class="dt" cx="35.381" cy="74.784" r="5.4"/></svg>

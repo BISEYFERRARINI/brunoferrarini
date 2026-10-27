@@ -1,4 +1,4 @@
-/* Nivela — Criar conta / onboarding de empresa nova (4 passos) + checklist de primeiros passos no Painel.
+/* Bisey — Criar conta / onboarding de empresa nova (4 passos) + checklist de primeiros passos no Painel.
    Funciona no modo demonstração (tudo neste aparelho) e chama API.createAccount no Supabase multiempresa
    (signUpOwner → createOrganization → uploadLogo/saveOrg → inviteMembers; ver data.js e docs/03b). */
 (function () {
@@ -10,12 +10,12 @@
   // ramos do cadastro: registro trades.js (ordem, ícone, nome e descrição curta de cada ramo)
   var TRADES = NV.tradeList().map(function (d) { return [d.id, d.icon, d.obLabel, d.obDesc]; });
   var STATES = ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"];
-  var PALETTE = [["#0B7B6A", "Verdigris"], ["#1F6FD1", NV.t("onboarding.blue", "Azul")], ["#C98200", NV.t("onboarding.amber", "Âmbar")], ["#B3202A", NV.t("onboarding.red", "Vermelho")], ["#6D28D9", NV.t("onboarding.purple", "Roxo")], ["#E2621B", NV.t("onboarding.orange", "Laranja")], ["#15803D", NV.t("onboarding.green", "Verde")], ["#334155", NV.t("onboarding.graphite", "Grafite")]];
+  var PALETTE = [["#2A5BFF", "Bisey"], ["#1F6FD1", NV.t("onboarding.blue", "Azul")], ["#C98200", NV.t("onboarding.amber", "Âmbar")], ["#B3202A", NV.t("onboarding.red", "Vermelho")], ["#6D28D9", NV.t("onboarding.purple", "Roxo")], ["#E2621B", NV.t("onboarding.orange", "Laranja")], ["#15803D", NV.t("onboarding.green", "Verde")], ["#334155", NV.t("onboarding.graphite", "Grafite")]];
   var STEPS = [t("ob.step1", "Sua conta"), t("ob.step2", "Sua empresa"), t("ob.step3", "Sua marca"), t("ob.step4", "Sua equipe")];
 
   function fresh() {
     return { step: 0, err: "", busy: false, done: null, brandBefore: E.brandOverride(),
-      d: { name: "", email: "", password: "", orgName: "", trades: [], state: "MA", logo: "", accent: "#0B7B6A", team: [{ name: "", contact: "", role: "employee" }, { name: "", contact: "", role: "employee" }] } };
+      d: { name: "", email: "", password: "", orgName: "", trades: [], state: "MA", logo: "", accent: "#2A5BFF", team: [{ name: "", contact: "", role: "employee" }, { name: "", contact: "", role: "employee" }] } };
   }
   function restoreBrand() { var b = (S.signup && S.signup.brandBefore) || {}; E.applyBrand(Object.assign({ reset: true }, b)); }
   function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || "").trim()); }
@@ -27,8 +27,8 @@
       ["star", t("ob.aside.2", "14 dias grátis"), t("ob.aside.2d", "Sem cartão. Escolha o plano só quando quiser continuar.")],
       ["team", t("ob.aside.3", "Sua equipe no celular"), t("ob.aside.3d", "Cada funcionário recebe usuário e senha e bate o ponto com selfie e GPS.")]
     ];
-    return '<aside class="login-aside"><img class="login-logo" src="brand/logo-escuro.svg" alt="' + esc(E.PRODUCT) + '" width="110" height="36">' +
-      '<div class="login-pitch"><h1>' + esc(t("ob.aside.title", "Sua empresa no Nivela em 4 passos.")) + "</h1><p>" + esc(t("ob.aside.sub", "Elétrica, HVAC, plumbing, sprinkler, GC, drywall, pintura, piso, siding, telhado ou fundação: o app já vem com as tarefas, campos técnicos e propostas de cada um dos 11 ramos.")) + "</p>" +
+    return '<aside class="login-aside"><img class="login-logo" src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + esc(E.PRODUCT) + '" width="97" height="40">' +
+      '<div class="login-pitch"><h1>' + esc(t("ob.aside.title", "Sua empresa no Bisey em 4 passos.")) + "</h1><p>" + esc(t("ob.aside.sub", "Elétrica, HVAC, plumbing, sprinkler, GC, drywall, pintura, piso, siding, telhado ou fundação: o app já vem com as tarefas, campos técnicos e propostas de cada um dos 11 ramos.")) + "</p>" +
       '<ul class="login-feats">' + tips.map(function (x) { return "<li>" + ic(x[0]) + "<div><b>" + esc(x[1]) + "</b><span>" + esc(x[2]) + "</span></div></li>"; }).join("") + "</ul></div>" +
       '<div class="login-foot">' + esc(t("ob.aside.foot", "Feito por empreiteiro, para empreiteiro.")) + "</div></aside>";
   }
@@ -109,8 +109,8 @@
       '<button type="button" class="btn" data-act="' + (last ? "obFinish" : "obNext") + '"' + (sg.busy ? " disabled" : "") + ">" + (sg.busy ? '<span class="spin" aria-hidden="true"></span>' + esc(t("ob.creating", "Criando a conta…")) : esc(last ? t("ob.finish", "Criar conta e convidar") : t("ob.next", "Continuar")) + ic("chevr", 18)) + "</button></div></div>";
     // idioma: dá para trocar no 1º passo (a troca recarrega a página)
     return '<div class="login ob">' + aside() + '<main class="login-main" id="conteudo">' + (st === 0 && !sg.done ? E.langSwitch("login-lang") : "") + '<form class="login-card ob-card" id="obForm" novalidate>' +
-      '<img class="login-logo-m only-light" src="brand/logo-claro.svg" alt="' + esc(E.PRODUCT) + '" width="100" height="33"><img class="login-logo-m only-dark" src="brand/logo-escuro.svg" alt="' + esc(E.PRODUCT) + '" width="100" height="33">' +
-      (sg.done ? doneView() : stepper() + '<div class="stack ob-body">' + stepBody() + "</div>" + '<div class="err" id="obErr" role="alert"' + (sg.err ? "" : " hidden") + ">" + esc(sg.err) + "</div>" + foot) +
+      '<img class="login-logo-m only-light" src="brand/logo/bisey-lockup-horizontal-color.svg" alt="' + esc(E.PRODUCT) + '" width="82" height="34"><img class="login-logo-m only-dark" src="brand/logo/bisey-lockup-horizontal-reverse.svg" alt="' + esc(E.PRODUCT) + '" width="82" height="34">' +
+      (sg.done ? doneView() : stepper() + (st === 0 ? refBanner() : "") + '<div class="stack ob-body">' + stepBody() + "</div>" + '<div class="err" id="obErr" role="alert"' + (sg.err ? "" : " hidden") + ">" + esc(sg.err) + "</div>" + foot) +
       "</form></main></div>";
   };
 
@@ -130,8 +130,15 @@
     return null;
   }
   function go(step) { S.signup.step = step; S.signup.err = ""; E.render(); window.scrollTo(0, 0); var f = document.querySelector(".ob-body input, .ob-body button"); if (f) try { f.focus({ preventScroll: true }); } catch (e) {} }
+  // indicação: código que veio no link (?ref=, guardado por referral.js) → "Você foi indicado por …"
+  function refBanner() {
+    var r = S.signup && S.signup.ref; if (!r || !r.code) return "";
+    return '<div class="ob-note ob-ref" role="status">' + ic("gift", 18) + "<span>" + (r.name ? esc(t("ob.refBy", "Você foi indicado por {n} — ganhou 1 mês grátis.", { n: r.name })) : esc(t("ob.refCode", "Você chegou por uma indicação (código {c}) — ganhou 1 mês grátis.", { c: r.code }))) + "</span></div>";
+  }
   AC.signupStart = function () {
     S.signup = fresh(); S.modal = null;
+    var code = E.referralCode ? E.referralCode() : "";
+    if (code) { S.signup.ref = { code: code, name: "" }; E.peekReferral(code).then(function (x) { if (x && S.signup && S.signup.ref) { S.signup.ref.name = x.name; S.signup.ref.code = x.code || code; E.render(); } }); }
     try { if (/[?&](signup|onboarding)=1/.test(location.search)) history.replaceState(null, "", location.pathname); } catch (e) {}
     E.applyBrand({ accent: S.signup.d.accent }); E.render(); window.scrollTo(0, 0);
     var f = $("#ob-name"); if (f) f.focus();
@@ -157,9 +164,10 @@
       owner: { name: d.name.trim(), email: d.email.trim().toLowerCase(), password: d.password, locale: E.LOCALE },
       org: { name: d.orgName.trim(), trades: d.trades.slice(), state: d.state, locale: E.LOCALE },
       logo: d.logo || "", accent: d.accent,
-      team: skip ? [] : d.team.filter(function (m) { return m.name.trim(); })
+      team: skip ? [] : d.team.filter(function (m) { return m.name.trim(); }),
+      referral: sg.ref && sg.ref.code ? sg.ref.code : null
     }).then(function (r) {
-      sg.busy = false;
+      sg.busy = false; if (sg.ref && E.clearReferral) E.clearReferral();
       if (r.invites && r.invites.length) { sg.done = r; E.render(); window.scrollTo(0, 0); return; } // a tela de acessos mantém a cor escolhida
       restoreBrand(); // daqui em diante vale a cor salva na empresa criada (API.companies), não mais a prévia
       return E.afterLogin(r.user).then(function () { E.toast(t("ob.welcome", "Conta criada. Bem-vindo ao {p}!", { p: E.PRODUCT })); });
@@ -199,7 +207,7 @@
 
   // ═══════════ checklist de primeiros passos (Painel do dono, conta nova) ═══════════
   function orgNow() { try { return API.currentOrg ? API.currentOrg() : null; } catch (e) { return null; } }
-  function ckKey(org) { return "nivela_ob_checklist_" + (org && org.id) + "_" + (S.user && S.user.id); }
+  function ckKey(org) { return "bisey_ob_checklist_" + (org && org.id) + "_" + (S.user && S.user.id); }
   function items() {
     var co = S.company;
     return [

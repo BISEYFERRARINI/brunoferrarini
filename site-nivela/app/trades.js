@@ -1,4 +1,4 @@
-/* Nivela — registro de ramos (trades) dirigido por dados.
+/* Bisey — registro de ramos (trades) dirigido por dados.
    Carregado DEPOIS de i18n.js (e do dicionário do idioma ativo) e ANTES de config.js/data.js/app.js/proposals.js.
    Um ramo = um objeto de dados no formato de docs/ramos/ESQUEMA.md. Para ligar um ramo novo basta
    acrescentar o objeto em DEFS (ou chamar NV.defineTrade(json)) — nada de if (tr === "...") no resto do app.
@@ -21,7 +21,7 @@
   var NV = window.NV = window.NV || {}, I18N = window.I18N = window.I18N || {}, LANG = NV.lang || "pt", SENT = "\u0001";
 
   // ═══════════ textos ═══════════
-  // Txt: "texto" | { pt, en } | { key, pt[, en] } (chave do i18n.<lang>.js — usada pelos ramos antigos)
+  // Txt: "texto" | { pt, en, es } | { key, pt[, en] } (chave do i18n.<lang>.js — usada pelos ramos antigos). Idioma que falta → PT.
   function txt(x) {
     if (x == null) return "";
     if (typeof x === "string") return x;
@@ -31,7 +31,7 @@
     }
     return x[LANG] != null ? x[LANG] : (x.pt != null ? x.pt : "");
   }
-  // Val: valor gravado no banco (sempre PT). { pt, en } registra a tradução em I18N.<lang>.val (para tv()) sem sobrescrever.
+  // Val: valor gravado no banco (sempre PT). { pt, en, es } registra a tradução em I18N.<lang>.val (para tv()) sem sobrescrever.
   var VALS = LANG !== "pt" && I18N[LANG] ? (I18N[LANG].val = I18N[LANG].val || {}) : null;
   function val(x) {
     if (x == null) return "";
@@ -136,7 +136,7 @@
     });
     var tasks = {};
     Object.keys(spec.tasks || {}).forEach(function (g) { tasks[val(g)] = spec.tasks[g].map(val); });
-    // nome dos grupos de tarefa em outros idiomas: "groupsI18n": { "en": { "Demolição": "Demo" } } (chave de objeto não pode ser { pt, en })
+    // nome dos grupos de tarefa em outros idiomas: "groupsI18n": { "en": { "Demolição": "Demo" }, "es": { "Demolição": "Demolición" } } (chave de objeto não pode ser { pt, en })
     var gi = (spec.groupsI18n || {})[LANG];
     if (gi && VALS) Object.keys(gi).forEach(function (g) { if (VALS[g] == null) VALS[g] = gi[g]; });
     var icon = typeof spec.icon === "string" ? spec.icon : "trade-" + id;
@@ -168,7 +168,7 @@
       prices: {
         stores: (pr.stores && pr.stores.length ? pr.stores : ["homedepot", "lowes"]).map(mkStore),
         basic: (pr.basic || []).map(function (r) { return [txt(r[0]), txt(r[1]), txt(r[2])]; }),
-        basicOffer: (pr.basicOffer || [{ list: id, label: { pt: "Adicionar lista básica", en: "Add basic list" } }]).map(function (b) { return { list: b.list, label: txt(b.label) }; }),
+        basicOffer: (pr.basicOffer || [{ list: id, label: { pt: "Adicionar lista básica", en: "Add basic list", es: "Agregar lista básica" } }]).map(function (b) { return { list: b.list, label: txt(b.label) }; }),
         promos: !!pr.promos,
         searchExample: pr.searchExample ? txt(pr.searchExample) : ""          // placeholder da busca em Preços (ex.: "Romex, GFCI, line set")
       },
@@ -386,10 +386,10 @@
   // logo ANTES do número: modelo, norma, endereço, fração… nunca é preço
   var BEFORE_TECH = /(?:\br-?|seer2?|hspf2?|eer2?|afue|schedule|sch\.?|nfpa|\bul|astm|aci|#|n[ºo°]\.?|model[o]?|cmr|c\.|§|se[cç][aã]o|section|tabela|table|r\d{3}\.|\bx|\/|-|×|nível|level|class(?:e)?|type|tipo|zona|zone|\bgrau|r-value|\bv|cat|ip|nema|gauge)\s*$/i;
   // contexto de preço ANTES do número (até 4 palavras, na mesma frase)
-  var PRICE_STRONG = /(?:pre[cç]o|valor|total|price|pricing|cost|custo|cobr\w*|quote|or[cç]amento|budget|investimento|investment|lump\s?sum|contrato|contract|fechad[oa]|fechamos|amount|vale|sai\s+(?:a|por)|fica(?:r)?(?:\s+(?:em|por))?|tudo\s+por|for\s+a\s+total\s+of|charge|cobramos)\b/i;
+  var PRICE_STRONG = /(?:pre[cç]o|precio|cuesta|costo|valor|total|price|pricing|cost|custo|cobr\w*|quote|or[cç]amento|budget|investimento|investment|lump\s?sum|contrato|contract|fechad[oa]|fechamos|amount|vale|sai\s+(?:a|por)|fica(?:r)?(?:\s+(?:em|por))?|tudo\s+por|for\s+a\s+total\s+of|charge|cobramos)\b/i;
   var PRICE_WEAK = /(?:\bfor|\bpor|\bat|\bde|\bem|\bpara)\s*$/i;
   // valores que NÃO são o total do contrato (depósito, já pago, desconto, preço unitário, rebate…)
-  var NOT_TOTAL = /(?:dep[oó]sito|deposit|entrada|sinal|down\s?payment|\bdown|j[aá]\s+pag\w*|paid|pagou|pago|desconto|discount|rebate|incentiv\w*|reembolso|cr[eé]dito|credit|allowance|verba|unit[aá]ri\w*|unit\s+price|each|cada|por\s+unidade|adicional|additional|extra)\b[^.;:!?\n]{0,12}$/i;
+  var NOT_TOTAL = /(?:dep[oó]sito|deposit|entrada|sinal|anticipo|down\s?payment|\bdown|j[aá]\s+pag\w*|ya\s+pag\w*|paid|pagou|pago|desconto|discount|rebate|incentiv\w*|reembolso|cr[eé]dito|credit|allowance|verba|unit[aá]ri\w*|unit\s+price|each|cada|por\s+unidade|adicional|additional|extra)\b[^.;:!?\n]{0,12}$/i;
   var MONEY_AFTER = /^\s*(?:d[oó]lares|dollars|bucks|usd|reais)\b/i;
 
   // preço total falado (0 = não achou). Número só vale como preço com contexto de preço ($, "preço", "valor", "total", "price", "for", "mil/k"…);
@@ -436,11 +436,11 @@
     return cands[0].v;
   }
 
-  // divisão do pagamento falada: "30/40/30", "50/50", "metade na entrada", "half down" → [30, 40, 30] (null = não falou)
+  // divisão do pagamento falada: "30/40/30", "50/50", "metade na entrada", "half down", "la mitad de depósito" → [30, 40, 30] (null = não falou)
   function speechSplit(text) {
     var s = String(text || ""), m = /(?:^|[^\d/])(\d{1,2})\s?\/\s?(\d{1,2})(?:\s?\/\s?(\d{1,2}))?(?:\s?\/\s?(\d{1,2}))?(?![\d/])/.exec(s);
     if (m) { var a = [m[1], m[2], m[3], m[4]].filter(Boolean).map(Number); if (a.reduce(function (x, y) { return x + y; }, 0) === 100) return a; }
-    if (/metade (?:na|de) entrada|half (?:down|up ?front)|50\s?% (?:de |na )?entrada|50\s?% (?:down|deposit)/i.test(s)) return [50, 50];
+    if (/metade (?:na|de) entrada|half (?:down|up ?front)|50\s?% (?:de |na )?entrada|50\s?% (?:down|deposit)|(?:la )?mitad (?:de|como|al) (?:dep[oó]sito|anticipo|entrada|inicio)|50\s?% (?:de )?(?:dep[oó]sito|anticipo)/i.test(s)) return [50, 50];
     return null;
   }
 
@@ -637,23 +637,23 @@
       inspections: [
         {
           label: "Inspeção de serviço",
-          authority: {"pt":"Inspetor elétrico da cidade + concessionária","en":"Town wiring inspector + utility"},
-          when: {"pt":"Antes de a concessionária religar","en":"Before the utility reconnects"}
+          authority: {"pt":"Inspetor elétrico da cidade + concessionária","en":"Town wiring inspector + utility","es":"Inspector eléctrico del municipio + compañía eléctrica"},
+          when: {"pt":"Antes de a concessionária religar","en":"Before the utility reconnects","es":"Antes de que la compañía eléctrica reconecte"}
         },
         {
           label: "Inspeção rough",
-          authority: {"pt":"Inspetor elétrico (527 CMR 12.00)","en":"Wiring inspector (527 CMR 12.00)"},
-          when: {"pt":"Antes de fechar as paredes","en":"Before walls are closed"}
+          authority: {"pt":"Inspetor elétrico (527 CMR 12.00)","en":"Wiring inspector (527 CMR 12.00)","es":"Inspector eléctrico (527 CMR 12.00)"},
+          when: {"pt":"Antes de fechar as paredes","en":"Before walls are closed","es":"Antes de cerrar las paredes"}
         },
         {
           label: "Inspeção de fire alarm",
-          authority: {"pt":"Fire Department","en":"Fire Department"},
-          when: {"pt":"Teste de aceitação","en":"Acceptance test"}
+          authority: {"pt":"Fire Department","en":"Fire Department","es":"Departamento de Bomberos"},
+          when: {"pt":"Teste de aceitação","en":"Acceptance test","es":"Prueba de aceptación"}
         },
         {
           label: "Inspeção final",
-          authority: {"pt":"Inspetor elétrico","en":"Wiring inspector"},
-          when: {"pt":"Acabamento pronto","en":"Finish complete"}
+          authority: {"pt":"Inspetor elétrico","en":"Wiring inspector","es":"Inspector eléctrico"},
+          when: {"pt":"Acabamento pronto","en":"Finish complete","es":"Acabado completo"}
         }
       ],
       proposal: {
@@ -815,8 +815,8 @@
           ]
         ],
         basicOffer: [
-          {"list":"electrical","label":{"key":"prices.basicElectrical","pt":"Adicionar lista básica elétrica","en":"Add basic electrical list"}},
-          {"list":"hvac","label":{"key":"prices.basicHvac","pt":"Lista básica HVAC","en":"Basic HVAC list"}}
+          {"list":"electrical","label":{"key":"prices.basicElectrical","pt":"Adicionar lista básica elétrica","en":"Add basic electrical list","es":"Agregar lista básica eléctrica"}},
+          {"list":"hvac","label":{"key":"prices.basicHvac","pt":"Lista básica HVAC","en":"Basic HVAC list","es":"Lista básica de HVAC"}}
         ],
         promos: true
       }
@@ -826,13 +826,13 @@
       aliases: [],
       order: 30,
       category: "mep",
-      label: "Plumbing",
+      label: { "pt": "Plumbing", "en": "Plumbing", "es": "Plomería" },
       companySuffix: "Plumbing",
       onboarding: {"label":{"key":"ob.trade.plumbing","pt":"Plumbing"},"desc":{"key":"ob.trade.plumbing.d","pt":"Água, esgoto, aquecedor, gás"}},
       icon: "drop",
       kind: {"key":"proj.kind.plumbing","pt":"trabalho de plumbing"},
-      stepName: "Plumbing",
-      group: {"label":"Plumbing","icon":"drop"},
+      stepName: { "pt": "Plumbing", "en": "Plumbing", "es": "Plomería" },
+      group: {"label":{ "pt": "Plumbing", "en": "Plumbing", "es": "Plomería" },"icon":"drop"},
       workType: [
         "New Construction", "Remodel / Renovação", "Banheiro / cozinha", "Troca de aquecedor de água", "Reparo / service call", "Gás (gas fitting)", "Comercial"
       ],
@@ -858,7 +858,7 @@
             "Torneira externa (sillcock)", "Linha da geladeira", "Sump pump", "Bomba de esgoto (ejector)"
           ]
         },
-        gasPiping: {"label":{"key":"catalog.gasPiping","pt":"Tubulação de gás"},"opts":["Sim","Não",{"pt":"Por outros (gas fitter)","en":"By others (gas fitter)"}],"coHide":{"noGas":["Sim"]}},
+        gasPiping: {"label":{"key":"catalog.gasPiping","pt":"Tubulação de gás"},"opts":["Sim","Não",{"pt":"Por outros (gas fitter)","en":"By others (gas fitter)","es":"Por otros (gasista)"}],"coHide":{"noGas":["Sim"]}},
         waterMain: {
           label: {"key":"catalog.waterService","pt":"Entrada de água"},
           opts: ["Sem mudança","Trocar entrada (main)","Novo hidrômetro","Válvula redutora de pressão (PRV)"]
@@ -876,7 +876,7 @@
         "Rough-in": [
           "Rough-in de água (supply)", "Manifold PEX", "Caixa da lavadora / geladeira", "Válvulas de chuveiro / banheira",
           "Instalar banheira / base do chuveiro", "Tubulação de gás", "Teste de pressão da água", "Teste de pressão do gás",
-          {"pt":"Coordenar gás com o gas fitter","en":"Coordinate gas with the gas fitter"}
+          {"pt":"Coordenar gás com o gas fitter","en":"Coordinate gas with the gas fitter","es":"Coordinar el gas con el gasista"}
         ],
         Equipamentos: ["Instalar aquecedor de água","Expansion tank","Ventilação do aquecedor","Bomba de recirculação","Sump pump / ejector","Backflow preventer"],
         Acabamento: [
@@ -938,36 +938,37 @@
         ]
       },
       companyFlags: [{
-        key: "noGas", label: {"pt":"Não fazemos gás","en":"We don't do gas work"},
+        key: "noGas", label: {"pt":"Não fazemos gás","en":"We don't do gas work","es":"No hacemos trabajos de gas"},
         desc: {"pt":"A ficha não oferece “Tubulação de gás: Sim” (usa “Por outros (gas fitter)”) e “Sugerir pela ficha” não sugere tubulação, teste nem permit de gás: sugere coordenar com o gas fitter.",
-          "en":"The job sheet won't offer “Gas piping: Yes” (it uses “By others (gas fitter)”), and “Suggest from job sheet” won't suggest gas piping, tests or permits: it suggests coordinating with the gas fitter."},
+          "en":"The job sheet won't offer “Gas piping: Yes” (it uses “By others (gas fitter)”), and “Suggest from job sheet” won't suggest gas piping, tests or permits: it suggests coordinating with the gas fitter.",
+          "es":"La ficha no ofrece “Tubería de gas: Sí” (usa “Por otros (gasista)”), y “Sugerir según la ficha” no sugiere tubería, pruebas ni permisos de gas: sugiere coordinar con el gasista."},
         aiRule: "This company does NOT do gas work: gas piping, gas permits and gas connections are by others (licensed gas fitter) — say so in the scope and in Not Included; never price gas work."
       }],
       inspections: [
         {
           label: "Permit de plumbing",
-          authority: {"pt":"Inspetor de plumbing da cidade (248 CMR)","en":"Town plumbing inspector (248 CMR)"},
-          when: {"pt":"Antes de começar","en":"Before starting"}
+          authority: {"pt":"Inspetor de plumbing da cidade (248 CMR)","en":"Town plumbing inspector (248 CMR)","es":"Inspector de plomería del municipio (248 CMR)"},
+          when: {"pt":"Antes de começar","en":"Before starting","es":"Antes de empezar"}
         },
         {
           label: "Inspeção do underground",
-          authority: {"pt":"Inspetor de plumbing","en":"Plumbing inspector"},
-          when: {"pt":"Antes de cobrir o esgoto subterrâneo","en":"Before backfilling underground piping"}
+          authority: {"pt":"Inspetor de plumbing","en":"Plumbing inspector","es":"Inspector de plomería"},
+          when: {"pt":"Antes de cobrir o esgoto subterrâneo","en":"Before backfilling underground piping","es":"Antes de rellenar la tubería subterránea"}
         },
         {
           label: "Inspeção rough",
-          authority: {"pt":"Inspetor de plumbing","en":"Plumbing inspector"},
-          when: {"pt":"Antes de fechar as paredes","en":"Before walls are closed"}
+          authority: {"pt":"Inspetor de plumbing","en":"Plumbing inspector","es":"Inspector de plomería"},
+          when: {"pt":"Antes de fechar as paredes","en":"Before walls are closed","es":"Antes de cerrar las paredes"}
         },
         {
           label: "Inspeção de gás",
-          authority: {"pt":"Inspetor de gás (gas fitter)","en":"Gas inspector"},
-          when: {"pt":"Teste de pressão do gás","en":"Gas pressure test"}
+          authority: {"pt":"Inspetor de gás (gas fitter)","en":"Gas inspector","es":"Inspector de gas"},
+          when: {"pt":"Teste de pressão do gás","en":"Gas pressure test","es":"Prueba de presión del gas"}
         },
         {
           label: "Inspeção final",
-          authority: {"pt":"Inspetor de plumbing","en":"Plumbing inspector"},
-          when: {"pt":"Peças instaladas e testadas","en":"Fixtures set and tested"}
+          authority: {"pt":"Inspetor de plumbing","en":"Plumbing inspector","es":"Inspector de plomería"},
+          when: {"pt":"Peças instaladas e testadas","en":"Fixtures set and tested","es":"Aparatos instalados y probados"}
         }
       ],
       proposal: {
@@ -1194,23 +1195,23 @@
       inspections: [
         {
           label: "Permit de construção",
-          authority: {"pt":"Building department (780 CMR)","en":"Building department (780 CMR)"},
-          when: {"pt":"Antes de começar","en":"Before starting"}
+          authority: {"pt":"Building department (780 CMR)","en":"Building department (780 CMR)","es":"Departamento de construcción (780 CMR)"},
+          when: {"pt":"Antes de começar","en":"Before starting","es":"Antes de empezar"}
         },
         {
           label: "Inspeção de framing",
-          authority: {"pt":"Building inspector","en":"Building inspector"},
-          when: {"pt":"Depois dos rough-ins","en":"After rough-ins"}
+          authority: {"pt":"Building inspector","en":"Building inspector","es":"Inspector de construcción"},
+          when: {"pt":"Depois dos rough-ins","en":"After rough-ins","es":"Después de los rough-ins"}
         },
         {
           label: "Inspeção de isolamento",
-          authority: {"pt":"Building inspector","en":"Building inspector"},
-          when: {"pt":"Antes do drywall","en":"Before drywall"}
+          authority: {"pt":"Building inspector","en":"Building inspector","es":"Inspector de construcción"},
+          when: {"pt":"Antes do drywall","en":"Before drywall","es":"Antes del drywall"}
         },
         {
           label: "Inspeção final / CO (habite-se)",
-          authority: {"pt":"Building department","en":"Building department"},
-          when: {"pt":"Entrega","en":"Closeout"}
+          authority: {"pt":"Building department","en":"Building department","es":"Departamento de construcción"},
+          when: {"pt":"Entrega","en":"Closeout","es":"Cierre de obra"}
         }
       ],
       proposal: {
@@ -1337,9 +1338,19 @@
       stepName: "HVAC",
       group: { "label": { "key": "common.hvacSystem", "pt": "Sistema HVAC" }, "icon": "flake" },
       workType: [
-        "New Construction", "Substituição de equipamento", "Sistema novo (casa existente)", "Ampliação", "Manutenção / service call", "Comercial (RTU)",
-        { "pt": "Conversão para heat pump (sair de óleo / gás / propano)", "en": "Heat pump conversion (from oil / gas / propane)" },
-        { "pt": "Só dutos (sheet metal)", "en": "Ductwork only (sheet metal)" }, { "pt": "Ventilação (ERV / HRV)", "en": "Ventilation (ERV / HRV)" }
+        "New Construction",
+        "Substituição de equipamento",
+        "Sistema novo (casa existente)",
+        "Ampliação",
+        "Manutenção / service call",
+        "Comercial (RTU)",
+        {
+          "pt": "Conversão para heat pump (sair de óleo / gás / propano)",
+          "en": "Heat pump conversion (from oil / gas / propane)",
+          "es": "Conversión a heat pump (de aceite / gas / propano)"
+        },
+        { "pt": "Só dutos (sheet metal)", "en": "Ductwork only (sheet metal)", "es": "Solo ductos (sheet metal)" },
+        { "pt": "Ventilação (ERV / HRV)", "en": "Ventilation (ERV / HRV)", "es": "Ventilación (ERV / HRV)" }
       ],
       fields: {
         "equipment": {
@@ -1348,17 +1359,23 @@
           "opts": [
             "Heat pump ductless (mini-split)", "Mini-split multi-zona", "Heat pump ducted", "Air handler", "Fornalha a gás (furnace)", "Fornalha a óleo",
             "Caldeira (boiler)", "Central AC (condensadora)", "RTU (rooftop)", "ERV / HRV",
-            { "pt": "Cassete de teto / slim duct", "en": "Ceiling cassette / slim duct" },
-            { "pt": "Heat pump ar-água (air-to-water)", "en": "Air-to-water heat pump" }
+            { "pt": "Cassete de teto / slim duct", "en": "Ceiling cassette / slim duct", "es": "Cassette de techo / slim duct" },
+            { "pt": "Heat pump ar-água (air-to-water)", "en": "Air-to-water heat pump", "es": "Heat pump aire-agua" }
           ]
         },
         "fuel": {
           "label": { "key": "catalog.fuel", "pt": "Combustível" },
-          "opts": ["Elétrico (heat pump)", "Gás natural", "Propano", "Óleo", { "pt": "Dual fuel (heat pump + backup)", "en": "Dual fuel (heat pump + backup)" }]
+          "opts": [
+            "Elétrico (heat pump)", "Gás natural", "Propano", "Óleo",
+            { "pt": "Dual fuel (heat pump + backup)", "en": "Dual fuel (heat pump + backup)", "es": "Dual fuel (heat pump + respaldo)" }
+          ]
         },
         "brand": {
           "label": { "key": "catalog.brand", "pt": "Marca" },
-          "opts": ["Mitsubishi", "Fujitsu", "Daikin", "Viessmann", "Carrier", "Lennox", "Bosch", "Trane", "Outra", { "pt": "LG", "en": "LG" }, { "pt": "Gree", "en": "Gree" }]
+          "opts": [
+            "Mitsubishi", "Fujitsu", "Daikin", "Viessmann", "Carrier", "Lennox", "Bosch", "Trane", "Outra", { "pt": "LG", "en": "LG", "es": "LG" },
+            { "pt": "Gree", "en": "Gree", "es": "Gree" }
+          ]
         },
         "zones": { "label": { "key": "catalog.zones", "pt": "Zonas" }, "opts": ["1", "2", "3", "4", "5+"] },
         "ducts": { "label": { "key": "catalog.ductwork", "pt": "Dutos" }, "opts": ["Dutos novos (sheet metal)", "Aproveitar dutos existentes", "Sem dutos (ductless)", "Misto"] },
@@ -1368,70 +1385,83 @@
           "opts": ["R-410A", "R-454B", "R-32"],
           "hint": {
             "pt": "R-454B e R-32 são A2L (levemente inflamáveis): ferramentas, flare e detecção conforme o fabricante. R-410A só em equipamento fabricado/importado antes de 01/01/2025 (regra EPA 2026).",
-            "en": "R-454B and R-32 are A2L (mildly flammable): tools, flare fittings and leak detection per manufacturer. R-410A only for equipment made/imported before 01/01/2025 (EPA 2026 rule)."
+            "en": "R-454B and R-32 are A2L (mildly flammable): tools, flare fittings and leak detection per manufacturer. R-410A only for equipment made/imported before 01/01/2025 (EPA 2026 rule).",
+            "es": "R-454B y R-32 son A2L (levemente inflamables): herramientas, conexiones flare y detección de fugas según el fabricante. R-410A solo para equipos fabricados/importados antes del 01/01/2025 (regla de la EPA de 2026)."
           }
         },
         "gasPiping": {
           "label": { "key": "catalog.gasPiping", "pt": "Tubulação de gás" },
-          "opts": ["Sim", "Não", { "pt": "Por outros (plumber / gas fitter)", "en": "By others (plumber / gas fitter)" }],
+          "opts": ["Sim", "Não", { "pt": "Por outros (plumber / gas fitter)", "en": "By others (plumber / gas fitter)", "es": "Por otros (plomero / gasista)" }],
           "coHide": { "noGas": ["Sim"] }
         },
         "manualJ": { "label": { "key": "catalog.manualJLoadCalc", "pt": "Manual J (cálculo de carga)" }, "opts": ["Sim, feito", "A fazer", "Não precisa"] },
         "rebate": { "label": "Rebate", "opts": ["Sim, Mass Save", "Sim, outro", "Não", "Verificar"] },
         "electricalBy": {
           "label": { "key": "catalog.electricalBy", "pt": "Elétrica feita por" },
-          "opts": ["Eternity Electric", "Outro eletricista", "Cliente", { "pt": "Nossa equipe / empresa elétrica do grupo", "en": "Our electrical team / sister company" }],
+          "opts": [
+            "Eternity Electric", "Outro eletricista", "Cliente",
+            { "pt": "Nossa equipe / empresa elétrica do grupo", "en": "Our electrical team / sister company", "es": "Nuestro equipo eléctrico / empresa hermana" }
+          ],
           "legacy": ["Eternity Electric"]
         },
         "manualSD": {
-          "label": { "pt": "Manual S / D (seleção e dutos)", "en": "Manual S / D (selection & ducts)" },
+          "label": { "pt": "Manual S / D (seleção e dutos)", "en": "Manual S / D (selection & ducts)", "es": "Manual S / D (selección y ductos)" },
           "opts": [
-            { "pt": "Manual S feito", "en": "Manual S done" }, { "pt": "Manual S + D feitos", "en": "Manual S + D done" }, { "pt": "A fazer", "en": "To do" },
-            { "pt": "Não se aplica (ductless simples)", "en": "N/A (simple ductless)" }
+            { "pt": "Manual S feito", "en": "Manual S done", "es": "Manual S hecho" },
+            { "pt": "Manual S + D feitos", "en": "Manual S + D done", "es": "Manual S + D hechos" }, { "pt": "A fazer", "en": "To do", "es": "Por hacer" },
+            { "pt": "Não se aplica (ductless simples)", "en": "N/A (simple ductless)", "es": "N/A (ductless simple)" }
           ]
         },
         "coldClimate": {
-          "label": { "pt": "Na lista Mass Save (cold climate)", "en": "On Mass Save qualified list (cold climate)" },
-          "opts": [{ "pt": "Sim (AHRI conferido)", "en": "Yes (AHRI verified)" }, { "pt": "Não", "en": "No" }, { "pt": "Verificar", "en": "To be checked" }]
+          "label": { "pt": "Na lista Mass Save (cold climate)", "en": "On Mass Save qualified list (cold climate)", "es": "En la lista aprobada de Mass Save (clima frío)" },
+          "opts": [
+            { "pt": "Sim (AHRI conferido)", "en": "Yes (AHRI verified)", "es": "Sí (verificado en AHRI)" }, { "pt": "Não", "en": "No", "es": "No" },
+            { "pt": "Verificar", "en": "To be checked", "es": "Por verificar" }
+          ]
         },
         "massSaveTier": {
           "system": true,
-          "label": { "pt": "Rebate Mass Save (tipo)", "en": "Mass Save rebate tier" },
+          "label": { "pt": "Rebate Mass Save (tipo)", "en": "Mass Save rebate tier", "es": "Nivel de reembolso de Mass Save" },
           "opts": [
-            { "pt": "Whole-home (casa inteira)", "en": "Whole-home" }, "Partial-home", "Basic",
-            { "pt": "Income-eligible (enhanced)", "en": "Income-eligible (enhanced)" }, { "pt": "Não se aplica", "en": "N/A" }
+            { "pt": "Whole-home (casa inteira)", "en": "Whole-home", "es": "Whole-home (toda la casa)" }, "Partial-home", "Basic",
+            { "pt": "Income-eligible (enhanced)", "en": "Income-eligible (enhanced)", "es": "Por ingresos (mejorado)" },
+            { "pt": "Não se aplica", "en": "N/A", "es": "N/A" }
           ]
         },
         "decommission": {
           "system": true,
-          "label": { "pt": "Sistema antigo (óleo / gás / propano)", "en": "Existing fossil system" },
+          "label": { "pt": "Sistema antigo (óleo / gás / propano)", "en": "Existing fossil system", "es": "Sistema fósil existente" },
           "opts": [
-            { "pt": "Remover / desligar (documentar)", "en": "Remove / disconnect (documented)" },
-            { "pt": "Fica como backup (controle integrado)", "en": "Stays as backup (integrated controls)" }, { "pt": "Não tem", "en": "None" }
+            { "pt": "Remover / desligar (documentar)", "en": "Remove / disconnect (documented)", "es": "Retirar / desconectar (documentado)" },
+            { "pt": "Fica como backup (controle integrado)", "en": "Stays as backup (integrated controls)", "es": "Se queda de respaldo (controles integrados)" },
+            { "pt": "Não tem", "en": "None", "es": "Ninguno" }
           ]
         },
         "outdoorMount": {
-          "label": { "pt": "Unidade externa", "en": "Outdoor unit mounting" },
+          "label": { "pt": "Unidade externa", "en": "Outdoor unit mounting", "es": "Montaje de la unidad exterior" },
           "opts": [
-            { "pt": "Pad no chão", "en": "Ground pad" }, { "pt": "Stand elevado (neve)", "en": "Elevated stand (snow)" },
-            { "pt": "Suporte de parede", "en": "Wall bracket" }, { "pt": "No telhado", "en": "Roof" }
+            { "pt": "Pad no chão", "en": "Ground pad", "es": "Pad en el suelo" },
+            { "pt": "Stand elevado (neve)", "en": "Elevated stand (snow)", "es": "Base elevada (nieve)" },
+            { "pt": "Suporte de parede", "en": "Wall bracket", "es": "Soporte de pared" }, { "pt": "No telhado", "en": "Roof", "es": "Techo" }
           ]
         },
         "lineSetCover": {
-          "label": { "pt": "Line set (acabamento)", "en": "Line set finish" },
+          "label": { "pt": "Line set (acabamento)", "en": "Line set finish", "es": "Acabado del line set" },
           "opts": [
-            { "pt": "Line hide (canaleta)", "en": "Line hide cover" }, { "pt": "Dentro da parede / sótão", "en": "Concealed in wall / attic" },
-            { "pt": "Exposto", "en": "Exposed" }
+            { "pt": "Line hide (canaleta)", "en": "Line hide cover", "es": "Cubierta line hide" },
+            { "pt": "Dentro da parede / sótão", "en": "Concealed in wall / attic", "es": "Oculto en la pared / ático" },
+            { "pt": "Exposto", "en": "Exposed", "es": "Expuesto" }
           ]
         },
         "testing": {
           "system": true,
           "multi": true,
-          "label": { "pt": "Testes / comissionamento", "en": "Testing / commissioning" },
+          "label": { "pt": "Testes / comissionamento", "en": "Testing / commissioning", "es": "Pruebas / puesta en marcha" },
           "opts": [
-            { "pt": "Micron decay (vácuo segura)", "en": "Micron decay test" }, "Superheat / subcooling",
-            { "pt": "Pressão estática e CFM", "en": "Static pressure & airflow (CFM)" },
-            { "pt": "Teste de vazamento de dutos (duct blaster)", "en": "Duct leakage test (duct blaster)" }, "Blower door (HERS)"
+            { "pt": "Micron decay (vácuo segura)", "en": "Micron decay test", "es": "Prueba de caída de micrones" }, "Superheat / subcooling",
+            { "pt": "Pressão estática e CFM", "en": "Static pressure & airflow (CFM)", "es": "Presión estática y flujo de aire (CFM)" },
+            { "pt": "Teste de vazamento de dutos (duct blaster)", "en": "Duct leakage test (duct blaster)", "es": "Prueba de fugas de ductos (duct blaster)" },
+            "Blower door (HERS)"
           ]
         }
       },
@@ -1439,47 +1469,73 @@
         { "key": "capacity", "label": { "key": "catalog.capacityBtuTons", "pt": "Capacidade (BTU / ton)" } },
         { "key": "lineSet", "label": { "key": "catalog.lineSetLength", "pt": "Line set (comprimento)" } },
         { "key": "thermostat", "label": { "key": "catalog.thermostatS", "pt": "Termostato(s)" } },
-        { "key": "model", "label": { "pt": "Modelo / nº AHRI", "en": "Model / AHRI no." } },
-        { "key": "efficiency", "label": { "pt": "Eficiência (SEER2 / HSPF2)", "en": "Efficiency (SEER2 / HSPF2)" } },
-        { "key": "designLoad", "label": { "pt": "Carga de aquecimento de projeto", "en": "Design heating load" }, "unit": "btu", "type": "number" }
+        { "key": "model", "label": { "pt": "Modelo / nº AHRI", "en": "Model / AHRI no.", "es": "Modelo / n.º AHRI" } },
+        { "key": "efficiency", "label": { "pt": "Eficiência (SEER2 / HSPF2)", "en": "Efficiency (SEER2 / HSPF2)", "es": "Eficiencia (SEER2 / HSPF2)" } },
+        {
+          "key": "designLoad",
+          "label": { "pt": "Carga de aquecimento de projeto", "en": "Design heating load", "es": "Carga de calefacción de diseño" },
+          "unit": "btu",
+          "type": "number"
+        }
       ],
       units: [
         { "id": "ea", "label": { "key": "prices.unitEach", "pt": "un" } }, { "id": "btu", "label": "BTU" }, { "id": "ton", "label": "ton" },
-        { "id": "ft", "label": "ft" }, { "id": "lf", "label": "linear ft" }, { "id": "cfm", "label": "CFM" }, { "id": "inwc", "label": "in. w.c." },
-        { "id": "micron", "label": "micron" }
+        { "id": "ft", "label": "ft" }, { "id": "lf", "label": { "pt": "linear ft", "en": "linear ft", "es": "pie lineal" } }, { "id": "cfm", "label": "CFM" },
+        { "id": "inwc", "label": "in. w.c." }, { "id": "micron", "label": "micron" }
       ],
       tasks: {
         "Remoção": [
-          "Remover equipamento antigo", "Recuperar refrigerante", "Descarte de equipamento",
-          { "pt": "Desligar / remover sistema a óleo ou gás (documentar p/ Mass Save)", "en": "Decommission oil / gas system (document for Mass Save)" }
+          "Remover equipamento antigo",
+          "Recuperar refrigerante",
+          "Descarte de equipamento",
+          {
+            "pt": "Desligar / remover sistema a óleo ou gás (documentar p/ Mass Save)",
+            "en": "Decommission oil / gas system (document for Mass Save)",
+            "es": "Desactivar el sistema de aceite / gas (documentar para Mass Save)"
+          }
         ],
         "Equipamento": [
           "Instalar condensadora / heat pump", "Pad / suporte da condensadora", "Instalar air handler", "Instalar evaporadoras (mini-split)",
-          "Instalar fornalha (furnace)", "Instalar caldeira (boiler)", { "pt": "Stand elevado (acima da neve)", "en": "Elevated stand (above snow line)" },
-          { "pt": "Instalar ERV / HRV", "en": "Install ERV / HRV" }
+          "Instalar fornalha (furnace)", "Instalar caldeira (boiler)",
+          { "pt": "Stand elevado (acima da neve)", "en": "Elevated stand (above snow line)", "es": "Base elevada (sobre la línea de nieve)" },
+          { "pt": "Instalar ERV / HRV", "en": "Install ERV / HRV", "es": "Instalar ERV / HRV" }
         ],
         "Distribuição": [
           "Dutos novos (sheet metal)", "Isolamento e vedação de dutos", "Registros supply / return", "Line set", "Dreno / bomba de condensado",
-          "Tubulação de gás", "Ventilação / exaustão (flue)", { "pt": "Line hide / acabamento da linha", "en": "Line hide / line set cover" },
-          { "pt": "Selar furos na parede (air sealing)", "en": "Seal wall penetrations (air sealing)" },
-          { "pt": "Coordenar gás com o plumber / gas fitter", "en": "Coordinate gas with plumber / gas fitter" }
+          "Tubulação de gás", "Ventilação / exaustão (flue)",
+          { "pt": "Line hide / acabamento da linha", "en": "Line hide / line set cover", "es": "Line hide / cubierta del line set" },
+          { "pt": "Selar furos na parede (air sealing)", "en": "Seal wall penetrations (air sealing)", "es": "Sellar las perforaciones en la pared (air sealing)" },
+          { "pt": "Coordenar gás com o plumber / gas fitter", "en": "Coordinate gas with plumber / gas fitter", "es": "Coordinar el gas con el plomero / gasista" }
         ],
         "Controles": [
-          "Termostatos", "Zoneamento", "Controles Wi-Fi",
-          { "pt": "Controle integrado (switchover com o sistema antigo)", "en": "Integrated controls (switchover with existing system)" }
+          "Termostatos",
+          "Zoneamento",
+          "Controles Wi-Fi",
+          {
+            "pt": "Controle integrado (switchover com o sistema antigo)",
+            "en": "Integrated controls (switchover with existing system)",
+            "es": "Controles integrados (cambio con el sistema existente)"
+          }
         ],
         "Comissionamento": [
           "Teste de pressão (nitrogênio)", "Vácuo", "Carga de refrigerante", "Start-up e teste", "Manual J / cálculo de carga", "Documentação Mass Save",
-          { "pt": "Manual S / D (seleção e dutos)", "en": "Manual S / D (selection & ducts)" },
-          { "pt": "Micron decay (vácuo segura)", "en": "Micron decay test" }, { "pt": "Superheat / subcooling", "en": "Superheat / subcooling" },
-          { "pt": "Pressão estática e CFM", "en": "Static pressure & airflow (CFM)" }, { "pt": "Teste de vazamento de dutos", "en": "Duct leakage test" },
-          { "pt": "Fotos, nº de série e AHRI (Mass Save)", "en": "Photos, serial numbers and AHRI (Mass Save)" },
-          { "pt": "Registrar garantia do fabricante", "en": "Register manufacturer warranty" }
+          { "pt": "Manual S / D (seleção e dutos)", "en": "Manual S / D (selection & ducts)", "es": "Manual S / D (selección y ductos)" },
+          { "pt": "Micron decay (vácuo segura)", "en": "Micron decay test", "es": "Prueba de caída de micrones" },
+          { "pt": "Superheat / subcooling", "en": "Superheat / subcooling", "es": "Superheat / subcooling" },
+          { "pt": "Pressão estática e CFM", "en": "Static pressure & airflow (CFM)", "es": "Presión estática y flujo de aire (CFM)" },
+          { "pt": "Teste de vazamento de dutos", "en": "Duct leakage test", "es": "Prueba de fugas de ductos" },
+          { "pt": "Fotos, nº de série e AHRI (Mass Save)", "en": "Photos, serial numbers and AHRI (Mass Save)", "es": "Fotos, números de serie y AHRI (Mass Save)" },
+          { "pt": "Registrar garantia do fabricante", "en": "Register manufacturer warranty", "es": "Registrar la garantía del fabricante" }
         ],
-        "Inspeções": ["Permit mecânico", "Inspeção de gás", "Inspeção final", { "pt": "Inspeção elétrica (pelo eletricista)", "en": "Electrical inspection (by electrician)" }],
+        "Inspeções": [
+          "Permit mecânico", "Inspeção de gás", "Inspeção final",
+          { "pt": "Inspeção elétrica (pelo eletricista)", "en": "Electrical inspection (by electrician)", "es": "Inspección eléctrica (por el electricista)" }
+        ],
         "Proteção e entrega": [
-          { "pt": "Proteção do local (lonas / piso)", "en": "Site protection (drop cloths / floor)" }, { "pt": "Limpeza", "en": "Cleanup" },
-          { "pt": "Treinar o cliente (termostato / filtro)", "en": "Owner orientation (thermostat / filter)" }, { "pt": "Punch list", "en": "Punch list" }
+          { "pt": "Proteção do local (lonas / piso)", "en": "Site protection (drop cloths / floor)", "es": "Protección del lugar (lonas / piso)" },
+          { "pt": "Limpeza", "en": "Cleanup", "es": "Limpieza" },
+          { "pt": "Treinar o cliente (termostato / filtro)", "en": "Owner orientation (thermostat / filter)", "es": "Orientación al dueño (termostato / filtro)" },
+          { "pt": "Punch list", "en": "Punch list", "es": "Punch list" }
         ]
       },
       suggest: {
@@ -1550,26 +1606,35 @@
       inspections: [
         {
           "label": "Permit mecânico",
-          "authority": { "pt": "Building department (780 CMR)", "en": "Building department (780 CMR)" },
-          "when": { "pt": "Antes de começar", "en": "Before starting" }
+          "authority": { "pt": "Building department (780 CMR)", "en": "Building department (780 CMR)", "es": "Departamento de construcción (780 CMR)" },
+          "when": { "pt": "Antes de começar", "en": "Before starting", "es": "Antes de empezar" }
         },
         {
           "label": "Inspeção de gás",
-          "authority": { "pt": "Inspetor de gás (248 CMR)", "en": "Gas inspector (248 CMR)" },
-          "when": { "pt": "Aparelhos a gás", "en": "Gas appliances" }
-        },
-        { "label": "Inspeção final", "authority": { "pt": "Building department", "en": "Building department" }, "when": { "pt": "Sistema em operação", "en": "System running" } },
-        {
-          "label": { "pt": "Inspeção elétrica (pelo eletricista)", "en": "Electrical inspection (by electrician)" },
-          "authority": { "pt": "Inspetor elétrico (527 CMR 12.00) — permit do eletricista", "en": "Wire inspector (527 CMR 12.00) — electrician's permit" },
-          "when": { "pt": "Circuito / disconnect da condensadora", "en": "Condenser circuit / disconnect" }
+          "authority": { "pt": "Inspetor de gás (248 CMR)", "en": "Gas inspector (248 CMR)", "es": "Inspector de gas (248 CMR)" },
+          "when": { "pt": "Aparelhos a gás", "en": "Gas appliances", "es": "Aparatos de gas" }
         },
         {
-          "label": { "pt": "Documentação Mass Save", "en": "Mass Save paperwork" },
-          "authority": { "pt": "Mass Save (Heat Pump Installer Network)", "en": "Mass Save (Heat Pump Installer Network)" },
+          "label": "Inspeção final",
+          "authority": { "pt": "Building department", "en": "Building department", "es": "Departamento de construcción" },
+          "when": { "pt": "Sistema em operação", "en": "System running", "es": "Sistema funcionando" }
+        },
+        {
+          "label": { "pt": "Inspeção elétrica (pelo eletricista)", "en": "Electrical inspection (by electrician)", "es": "Inspección eléctrica (por el electricista)" },
+          "authority": {
+            "pt": "Inspetor elétrico (527 CMR 12.00) — permit do eletricista",
+            "en": "Wire inspector (527 CMR 12.00) — electrician's permit",
+            "es": "Inspector eléctrico (527 CMR 12.00) — permiso del electricista"
+          },
+          "when": { "pt": "Circuito / disconnect da condensadora", "en": "Condenser circuit / disconnect", "es": "Circuito / desconectador del condensador" }
+        },
+        {
+          "label": { "pt": "Documentação Mass Save", "en": "Mass Save paperwork", "es": "Papeleo de Mass Save" },
+          "authority": { "pt": "Mass Save (Heat Pump Installer Network)", "en": "Mass Save (Heat Pump Installer Network)", "es": "Mass Save (Heat Pump Installer Network)" },
           "when": {
             "pt": "Até 28/02/2027 para instalações de 2026; nº de série obrigatório desde 01/10/2026",
-            "en": "By 02/28/2027 for 2026 installs; serial numbers required since 10/01/2026"
+            "en": "By 02/28/2027 for 2026 installs; serial numbers required since 10/01/2026",
+            "es": "Hasta el 28/02/2027 para instalaciones de 2026; números de serie obligatorios desde el 01/10/2026"
           }
         }
       ],
@@ -1716,7 +1781,8 @@
         },
         "adjustExample": {
           "pt": "Ex.: “Tira o line hide, muda o preço para 13 mil e acrescenta mais uma zona com termostato.”",
-          "en": "e.g. “Remove the line hide, change the price to 13K and add one more zone with a thermostat.”"
+          "en": "e.g. “Remove the line hide, change the price to 13K and add one more zone with a thermostat.”",
+          "es": "ej.: “Quita el line hide, cambia el precio a 13 mil y agrega una zona más con termostato.”"
         }
       },
       prices: {
@@ -1747,38 +1813,63 @@
             { "key": "prices.6InsulatedFlexDuct", "pt": "Duto flexível 6\" isolado — 25 ft" }, { "key": "prices.ductwork", "pt": "Dutos" },
             { "key": "prices.unitEach", "pt": "un" }
           ],
-          [{ "pt": "Line set 3/8\" x 5/8\" — 50 ft", "en": "Line set 3/8\" x 5/8\" — 50 ft" }, { "pt": "Tubulação", "en": "Piping" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Stand elevado de condensadora (neve)", "en": "Elevated condenser stand (snow)" }, { "pt": "Equipamento", "en": "Equipment" }, { "pt": "un", "en": "ea" }],
           [
-            { "pt": "Refrigerante R-454B (cilindro)", "en": "R-454B refrigerant (cylinder)" }, { "pt": "Refrigerante", "en": "Refrigerant" },
-            { "pt": "cilindro", "en": "cylinder" }
+            { "pt": "Line set 3/8\" x 5/8\" — 50 ft", "en": "Line set 3/8\" x 5/8\" — 50 ft", "es": "Line set 3/8\" x 5/8\" — 50 ft" },
+            { "pt": "Tubulação", "en": "Piping", "es": "Tubería" }, { "pt": "un", "en": "ea", "es": "c/u" }
           ],
-          [{ "pt": "Nitrogênio (recarga do cilindro)", "en": "Nitrogen (cylinder refill)" }, { "pt": "Refrigerante", "en": "Refrigerant" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Porca flare / kit de conexão (A2L)", "en": "Flare nuts / connection kit (A2L-rated)" }, { "pt": "Tubulação", "en": "Piping" }, "kit"],
-          [{ "pt": "Mastic de duto (balde)", "en": "Duct mastic (bucket)" }, { "pt": "Dutos", "en": "Ductwork" }, { "pt": "balde", "en": "bucket" }],
           [
-            { "pt": "Chapa galvanizada / duto retangular", "en": "Galvanized sheet metal / rectangular duct" }, { "pt": "Dutos", "en": "Ductwork" },
-            { "pt": "peça", "en": "each" }
+            { "pt": "Stand elevado de condensadora (neve)", "en": "Elevated condenser stand (snow)", "es": "Base elevada para el condensador (nieve)" },
+            { "pt": "Equipamento", "en": "Equipment", "es": "Equipo" }, { "pt": "un", "en": "ea", "es": "c/u" }
           ],
-          [{ "pt": "Registro supply (teto / parede)", "en": "Supply register (ceiling / wall)" }, { "pt": "Dutos", "en": "Ductwork" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Filtro MERV 8 / 11", "en": "MERV 8 / 11 filter" }, { "pt": "Equipamento", "en": "Equipment" }, { "pt": "un", "en": "ea" }]
+          [
+            { "pt": "Refrigerante R-454B (cilindro)", "en": "R-454B refrigerant (cylinder)", "es": "Refrigerante R-454B (cilindro)" },
+            { "pt": "Refrigerante", "en": "Refrigerant", "es": "Refrigerante" }, { "pt": "cilindro", "en": "cylinder", "es": "cilindro" }
+          ],
+          [
+            { "pt": "Nitrogênio (recarga do cilindro)", "en": "Nitrogen (cylinder refill)", "es": "Nitrógeno (recarga de cilindro)" },
+            { "pt": "Refrigerante", "en": "Refrigerant", "es": "Refrigerante" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Porca flare / kit de conexão (A2L)", "en": "Flare nuts / connection kit (A2L-rated)", "es": "Tuercas flare / kit de conexión (para A2L)" },
+            { "pt": "Tubulação", "en": "Piping", "es": "Tubería" }, "kit"
+          ],
+          [
+            { "pt": "Mastic de duto (balde)", "en": "Duct mastic (bucket)", "es": "Mastic para ductos (cubeta)" },
+            { "pt": "Dutos", "en": "Ductwork", "es": "Ductos" }, { "pt": "balde", "en": "bucket", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Chapa galvanizada / duto retangular", "en": "Galvanized sheet metal / rectangular duct", "es": "Lámina galvanizada / ducto rectangular" },
+            { "pt": "Dutos", "en": "Ductwork", "es": "Ductos" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Registro supply (teto / parede)", "en": "Supply register (ceiling / wall)", "es": "Rejilla de suministro (techo / pared)" },
+            { "pt": "Dutos", "en": "Ductwork", "es": "Ductos" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Filtro MERV 8 / 11", "en": "MERV 8 / 11 filter", "es": "Filtro MERV 8 / 11" }, { "pt": "Equipamento", "en": "Equipment", "es": "Equipo" },
+            { "pt": "un", "en": "ea", "es": "c/u" }
+          ]
         ],
         "basicOffer": [
-          { "list": "hvac", "label": { "key": "prices.basicHvac", "pt": "Lista básica HVAC", "en": "Basic HVAC list" } },
-          { "list": "electrical", "label": { "key": "prices.basicElectrical", "pt": "Adicionar lista básica elétrica", "en": "Add basic electrical list" } }
+          { "list": "hvac", "label": { "key": "prices.basicHvac", "pt": "Lista básica HVAC", "en": "Basic HVAC list", "es": "Lista básica de HVAC" } },
+          {
+            "list": "electrical",
+            "label": { "key": "prices.basicElectrical", "pt": "Adicionar lista básica elétrica", "en": "Add basic electrical list", "es": "Agregar lista básica eléctrica" }
+          }
         ],
         "promos": false,
         "storesNota": "As 5 lojas atuais (as da elétrica) ficam. As 3 novas são distribuidores de HVAC; 8 colunas não cabem bem no celular — sugerir ao engenheiro deixar escolher as colunas visíveis.",
-        "searchExample": { "pt": "ex.: line set, disconnect, pad", "en": "e.g. line set, disconnect, condenser pad" }
+        "searchExample": { "pt": "ex.: line set, disconnect, pad", "en": "e.g. line set, disconnect, condenser pad", "es": "ej.: line set, desconectador, pad del condensador" }
       },
-      groupsI18n: { "en": { "Proteção e entrega": "Protection & closeout" } },
+      groupsI18n: { "en": { "Proteção e entrega": "Protection & closeout" }, "es": { "Proteção e entrega": "Protección y entrega" } },
       companyFlags: [
         {
           "key": "noGas",
-          "label": { "pt": "Não fazemos gás", "en": "We don't do gas work" },
+          "label": { "pt": "Não fazemos gás", "en": "We don't do gas work", "es": "No hacemos trabajos de gas" },
           "desc": {
             "pt": "A ficha não oferece “Tubulação de gás: Sim” (usa “Por outros (plumber / gas fitter)”) e “Sugerir pela ficha” nunca sugere “Tubulação de gás”: sugere coordenar com o plumber / gas fitter.",
-            "en": "The job sheet won't offer “Gas piping: Yes” (it uses “By others (plumber / gas fitter)”), and “Suggest from job sheet” never suggests gas piping: it suggests coordinating with the plumber / gas fitter."
+            "en": "The job sheet won't offer “Gas piping: Yes” (it uses “By others (plumber / gas fitter)”), and “Suggest from job sheet” never suggests gas piping: it suggests coordinating with the plumber / gas fitter.",
+            "es": "La ficha no ofrece “Tubería de gas: Sí” (usa “Por otros (plomero / gasista)”), y “Sugerir según la ficha” nunca sugiere tubería de gas: sugiere coordinar con el plomero / gasista."
           },
           "aiRule": "This company does NOT do gas work: gas piping and gas connections are always by others (licensed plumber / gas fitter) — say so in the scope and in Not Included; never price gas work."
         }
@@ -1789,171 +1880,253 @@
       aliases: [],
       order: 35,
       category: "mep",
-      label: { "pt": "Sprinkler (incêndio)", "en": "Fire sprinkler" },
+      label: { "pt": "Sprinkler (incêndio)", "en": "Fire sprinkler", "es": "Rociadores contra incendios" },
       companySuffix: "Fire Protection",
       onboarding: {
-        "label": { "pt": "Sprinkler (incêndio)", "en": "Fire sprinkler" },
-        "desc": { "pt": "NFPA 13/13R/13D, standpipe, fire pump", "en": "NFPA 13/13R/13D, standpipes, fire pumps" }
+        "label": { "pt": "Sprinkler (incêndio)", "en": "Fire sprinkler", "es": "Rociadores contra incendios" },
+        "desc": {
+          "pt": "NFPA 13/13R/13D, standpipe, fire pump",
+          "en": "NFPA 13/13R/13D, standpipes, fire pumps",
+          "es": "NFPA 13/13R/13D, standpipes, bombas contra incendios"
+        }
       },
       icon: { "svg": "<path d=\"M12 3v4M8 7h8\"/><path d=\"M10 7l-1 4h6l-1-4\"/><path d=\"M12 14v2M7.5 13.5 6 16M16.5 13.5 18 16M9.5 18l-.5 2.5M14.5 18l.5 2.5\"/>" },
-      kind: { "pt": "trabalho de sprinkler", "en": "sprinkler job" },
+      kind: { "pt": "trabalho de sprinkler", "en": "sprinkler job", "es": "trabajo de rociadores" },
       stepName: "Sprinkler",
-      group: { "label": { "pt": "Sistema de sprinkler", "en": "Sprinkler system" }, "icon": "trade-sprinkler" },
+      group: { "label": { "pt": "Sistema de sprinkler", "en": "Sprinkler system", "es": "Sistema de rociadores" }, "icon": "trade-sprinkler" },
       workType: [
-        { "pt": "Sistema novo residencial (NFPA 13D)", "en": "New residential system (NFPA 13D)" },
-        { "pt": "Sistema novo multifamily (NFPA 13R)", "en": "New multifamily system (NFPA 13R)" },
-        { "pt": "Sistema novo comercial (NFPA 13)", "en": "New commercial system (NFPA 13)" },
-        { "pt": "Reforma / tenant fit-out (mover cabeças)", "en": "Renovation / tenant fit-out (relocate heads)" },
-        { "pt": "Retrofit (prédio existente sem sprinkler)", "en": "Retrofit (existing unsprinklered building)" }, "Standpipe / fire pump",
-        { "pt": "Inspeção, teste e manutenção (NFPA 25)", "en": "Inspection, testing & maintenance (NFPA 25)" },
-        { "pt": "Reparo / service call", "en": "Repair / service call" }
+        { "pt": "Sistema novo residencial (NFPA 13D)", "en": "New residential system (NFPA 13D)", "es": "Sistema residencial nuevo (NFPA 13D)" },
+        { "pt": "Sistema novo multifamily (NFPA 13R)", "en": "New multifamily system (NFPA 13R)", "es": "Sistema multifamiliar nuevo (NFPA 13R)" },
+        { "pt": "Sistema novo comercial (NFPA 13)", "en": "New commercial system (NFPA 13)", "es": "Sistema comercial nuevo (NFPA 13)" },
+        {
+          "pt": "Reforma / tenant fit-out (mover cabeças)",
+          "en": "Renovation / tenant fit-out (relocate heads)",
+          "es": "Renovación / tenant fit-out (reubicar cabezas)"
+        },
+        { "pt": "Retrofit (prédio existente sem sprinkler)", "en": "Retrofit (existing unsprinklered building)", "es": "Retrofit (edificio existente sin rociadores)" },
+        "Standpipe / fire pump",
+        { "pt": "Inspeção, teste e manutenção (NFPA 25)", "en": "Inspection, testing & maintenance (NFPA 25)", "es": "Inspección, prueba y mantenimiento (NFPA 25)" },
+        { "pt": "Reparo / service call", "en": "Repair / service call", "es": "Reparación / service call" }
       ],
       fields: {
         "standard": {
-          "label": { "pt": "Norma", "en": "Standard" },
+          "label": { "pt": "Norma", "en": "Standard", "es": "Norma" },
           "opts": [
-            { "pt": "NFPA 13D (1–2 famílias)", "en": "NFPA 13D (one- and two-family)" },
-            { "pt": "NFPA 13R (residencial até 4 andares)", "en": "NFPA 13R (low-rise residential)" }, "NFPA 13", "NFPA 13 + NFPA 14 (standpipe)"
+            { "pt": "NFPA 13D (1–2 famílias)", "en": "NFPA 13D (one- and two-family)", "es": "NFPA 13D (una y dos familias)" },
+            { "pt": "NFPA 13R (residencial até 4 andares)", "en": "NFPA 13R (low-rise residential)", "es": "NFPA 13R (residencial de poca altura)" }, "NFPA 13",
+            "NFPA 13 + NFPA 14 (standpipe)"
           ]
         },
         "systemType": {
-          "label": { "pt": "Tipo de sistema", "en": "System type" },
+          "label": { "pt": "Tipo de sistema", "en": "System type", "es": "Tipo de sistema" },
           "multi": true,
           "opts": [
-            { "pt": "Wet (molhado)", "en": "Wet pipe" }, { "pt": "Dry (seco — área sem aquecimento)", "en": "Dry pipe (unheated areas)" }, "Pre-action",
-            { "pt": "Antifreeze (listado)", "en": "Antifreeze (listed)" },
-            { "pt": "Multipurpose (junto com a água da casa — 13D)", "en": "Multipurpose (combined with domestic — 13D)" }
+            { "pt": "Wet (molhado)", "en": "Wet pipe", "es": "Tubería húmeda (wet)" },
+            { "pt": "Dry (seco — área sem aquecimento)", "en": "Dry pipe (unheated areas)", "es": "Tubería seca (áreas sin calefacción)" },
+            "Pre-action",
+            { "pt": "Antifreeze (listado)", "en": "Antifreeze (listed)", "es": "Anticongelante (listado)" },
+            {
+              "pt": "Multipurpose (junto com a água da casa — 13D)",
+              "en": "Multipurpose (combined with domestic — 13D)",
+              "es": "Multiuso (combinado con el agua doméstica — 13D)"
+            }
           ]
         },
         "hazard": {
-          "label": { "pt": "Classe de risco", "en": "Hazard classification" },
+          "label": { "pt": "Classe de risco", "en": "Hazard classification", "es": "Clasificación de riesgo" },
           "opts": [
-            { "pt": "Light hazard (residencial / escritório)", "en": "Light hazard" },
-            { "pt": "Ordinary hazard grupo 1 (garagem, mecânica)", "en": "Ordinary hazard group 1" },
-            { "pt": "Ordinary hazard grupo 2", "en": "Ordinary hazard group 2" }, "Extra hazard", { "pt": "Armazenagem (storage)", "en": "Storage" }
+            { "pt": "Light hazard (residencial / escritório)", "en": "Light hazard", "es": "Riesgo ligero" },
+            { "pt": "Ordinary hazard grupo 1 (garagem, mecânica)", "en": "Ordinary hazard group 1", "es": "Riesgo ordinario grupo 1" },
+            { "pt": "Ordinary hazard grupo 2", "en": "Ordinary hazard group 2", "es": "Riesgo ordinario grupo 2" }, "Extra hazard",
+            { "pt": "Armazenagem (storage)", "en": "Storage", "es": "Almacenamiento" }
           ]
         },
         "headType": {
-          "label": { "pt": "Cabeças (heads)", "en": "Sprinkler heads" },
+          "label": { "pt": "Cabeças (heads)", "en": "Sprinkler heads", "es": "Cabezas de rociador" },
           "multi": true,
           "opts": [
-            { "pt": "Residencial listada (pendente / sidewall)", "en": "Listed residential (pendent / sidewall)" },
-            { "pt": "Pendente concealed (com tampa)", "en": "Concealed pendent" }, { "pt": "Pendente recessed", "en": "Recessed pendent" }, "Sidewall",
-            "Upright", "Dry pendent / dry sidewall", { "pt": "Quick response comercial", "en": "Commercial quick response" }, "ESFR / storage"
+            { "pt": "Residencial listada (pendente / sidewall)", "en": "Listed residential (pendent / sidewall)", "es": "Residencial listada (pendent / sidewall)" },
+            { "pt": "Pendente concealed (com tampa)", "en": "Concealed pendent", "es": "Pendent oculta (concealed)" },
+            { "pt": "Pendente recessed", "en": "Recessed pendent", "es": "Pendent empotrada (recessed)" }, "Sidewall", "Upright", "Dry pendent / dry sidewall",
+            { "pt": "Quick response comercial", "en": "Commercial quick response", "es": "Comercial de respuesta rápida" }, "ESFR / storage"
           ]
         },
         "pipe": {
-          "label": { "pt": "Tubulação", "en": "Piping" },
+          "label": { "pt": "Tubulação", "en": "Piping", "es": "Tubería" },
           "opts": [
-            "CPVC (BlazeMaster)", { "pt": "Aço Schedule 10 / 40 (black steel)", "en": "Schedule 10 / 40 black steel" },
-            { "pt": "Aço galvanizado (dry)", "en": "Galvanized steel (dry)" }, { "pt": "PEX listado (13D)", "en": "Listed PEX (13D)" },
-            { "pt": "Misto (aço nos mains, CPVC nos ramais)", "en": "Mixed (steel mains, CPVC branches)" }
+            "CPVC (BlazeMaster)", { "pt": "Aço Schedule 10 / 40 (black steel)", "en": "Schedule 10 / 40 black steel", "es": "Acero negro Schedule 10 / 40" },
+            { "pt": "Aço galvanizado (dry)", "en": "Galvanized steel (dry)", "es": "Acero galvanizado (seco)" },
+            { "pt": "PEX listado (13D)", "en": "Listed PEX (13D)", "es": "PEX listado (13D)" },
+            { "pt": "Misto (aço nos mains, CPVC nos ramais)", "en": "Mixed (steel mains, CPVC branches)", "es": "Mixto (mains de acero, ramales de CPVC)" }
           ]
         },
         "waterSupply": {
-          "label": { "pt": "Abastecimento", "en": "Water supply" },
-          "opts": [{ "pt": "Rede municipal", "en": "Municipal water" }, { "pt": "Poço + tanque", "en": "Well + tank" }, { "pt": "Tanque + bomba", "en": "Tank + pump" }]
+          "label": { "pt": "Abastecimento", "en": "Water supply", "es": "Suministro de agua" },
+          "opts": [
+            { "pt": "Rede municipal", "en": "Municipal water", "es": "Agua municipal" }, { "pt": "Poço + tanque", "en": "Well + tank", "es": "Pozo + tanque" },
+            { "pt": "Tanque + bomba", "en": "Tank + pump", "es": "Tanque + bomba" }
+          ]
         },
         "service": {
-          "label": { "pt": "Entrada de água (fire service)", "en": "Fire service entrance" },
+          "label": { "pt": "Entrada de água (fire service)", "en": "Fire service entrance", "es": "Acometida contra incendios" },
           "opts": [
-            { "pt": "Entrada existente", "en": "Existing service" },
-            { "pt": "Nova entrada — underground por outros", "en": "New service — underground by others" },
-            { "pt": "Nova entrada — underground incluído", "en": "New service — underground included" },
-            { "pt": "Combinada com a doméstica (13D)", "en": "Combined with domestic (13D)" }
+            { "pt": "Entrada existente", "en": "Existing service", "es": "Acometida existente" },
+            { "pt": "Nova entrada — underground por outros", "en": "New service — underground by others", "es": "Acometida nueva — subterráneo por otros" },
+            { "pt": "Nova entrada — underground incluído", "en": "New service — underground included", "es": "Acometida nueva — subterráneo incluido" },
+            { "pt": "Combinada com a doméstica (13D)", "en": "Combined with domestic (13D)", "es": "Combinada con el agua doméstica (13D)" }
           ]
         },
         "backflow": {
           "label": "Backflow",
           "opts": [
-            { "pt": "Não precisa", "en": "Not required" }, "Double check (DCVA)", "Double check detector (DCDA)",
-            { "pt": "Reduced pressure (RPZ)", "en": "Reduced pressure zone (RPZ)" }
+            { "pt": "Não precisa", "en": "Not required", "es": "No hace falta" }, "Double check (DCVA)", "Double check detector (DCDA)",
+            { "pt": "Reduced pressure (RPZ)", "en": "Reduced pressure zone (RPZ)", "es": "Zona de presión reducida (RPZ)" }
           ]
         },
         "flowTest": {
-          "label": { "pt": "Teste de fluxo (hidrante)", "en": "Flow test (hydrant)" },
+          "label": { "pt": "Teste de fluxo (hidrante)", "en": "Flow test (hydrant)", "es": "Prueba de flujo (hidrante)" },
           "opts": [
-            { "pt": "Já tem (até 12 meses)", "en": "Available (within 12 months)" }, { "pt": "A fazer", "en": "To do" },
-            { "pt": "Pedir dados ao water department", "en": "Request data from water department" }
+            { "pt": "Já tem (até 12 meses)", "en": "Available (within 12 months)", "es": "Disponible (de los últimos 12 meses)" },
+            { "pt": "A fazer", "en": "To do", "es": "Por hacer" },
+            { "pt": "Pedir dados ao water department", "en": "Request data from water department", "es": "Pedir datos al departamento de agua" }
           ]
         },
         "hydraulic": {
-          "label": { "pt": "Projeto / cálculo", "en": "Design / calculations" },
+          "label": { "pt": "Projeto / cálculo", "en": "Design / calculations", "es": "Diseño / cálculos" },
           "opts": [
-            { "pt": "Cálculo hidráulico por nós (projetista NICET)", "en": "Hydraulic calcs in-house (NICET designer)" },
-            { "pt": "Engenheiro FPE (carimbado)", "en": "Fire protection engineer (stamped)" },
-            { "pt": "Pipe schedule / pequena alteração", "en": "Pipe schedule / minor alteration" }
+            {
+              "pt": "Cálculo hidráulico por nós (projetista NICET)",
+              "en": "Hydraulic calcs in-house (NICET designer)",
+              "es": "Cálculo hidráulico propio (diseñador NICET)"
+            },
+            { "pt": "Engenheiro FPE (carimbado)", "en": "Fire protection engineer (stamped)", "es": "Ingeniero de protección contra incendios (sellado)" },
+            { "pt": "Pipe schedule / pequena alteração", "en": "Pipe schedule / minor alteration", "es": "Pipe schedule / alteración menor" }
           ]
         },
         "monitoring": {
-          "label": { "pt": "Alarmes e supervisão", "en": "Alarms & supervision" },
+          "label": { "pt": "Alarmes e supervisão", "en": "Alarms & supervision", "es": "Alarmas y supervisión" },
           "multi": true,
           "system": true,
           "opts": [
-            "Flow switch", "Tamper switches", { "pt": "Sino / horn-strobe externo", "en": "Exterior bell / horn-strobe" }, "Low air (dry)",
-            { "pt": "Monitoramento central (pelo fire alarm, outros)", "en": "Central station monitoring (by fire alarm, others)" }
+            "Flow switch",
+            "Tamper switches",
+            { "pt": "Sino / horn-strobe externo", "en": "Exterior bell / horn-strobe", "es": "Campana / horn-strobe exterior" },
+            "Low air (dry)",
+            {
+              "pt": "Monitoramento central (pelo fire alarm, outros)",
+              "en": "Central station monitoring (by fire alarm, others)",
+              "es": "Monitoreo central (por la alarma contra incendios, otros)"
+            }
           ]
         },
-        "standpipe": { "label": "Standpipe", "system": true, "opts": [{ "pt": "Não", "en": "No" }, { "pt": "Classe I", "en": "Class I" }, { "pt": "Classe III", "en": "Class III" }] },
+        "standpipe": {
+          "label": "Standpipe",
+          "system": true,
+          "opts": [{ "pt": "Não", "en": "No", "es": "No" }, { "pt": "Classe I", "en": "Class I", "es": "Clase I" }, { "pt": "Classe III", "en": "Class III", "es": "Clase III" }]
+        },
         "firePump": {
           "label": "Fire pump",
           "system": true,
-          "opts": [{ "pt": "Não", "en": "No" }, { "pt": "Elétrica (motor)", "en": "Electric" }, "Diesel", { "pt": "Booster residencial (13D)", "en": "Residential booster (13D)" }]
+          "opts": [
+            { "pt": "Não", "en": "No", "es": "No" }, { "pt": "Elétrica (motor)", "en": "Electric", "es": "Eléctrica" }, "Diesel",
+            { "pt": "Booster residencial (13D)", "en": "Residential booster (13D)", "es": "Booster residencial (13D)" }
+          ]
         },
         "fdc": {
-          "label": { "pt": "FDC (conexão do bombeiro)", "en": "Fire department connection" },
+          "label": { "pt": "FDC (conexão do bombeiro)", "en": "Fire department connection", "es": "Conexión del departamento de bomberos (FDC)" },
           "system": true,
-          "opts": [{ "pt": "Não", "en": "No" }, { "pt": "FDC 4\" Storz", "en": "4\" Storz FDC" }, { "pt": "FDC siamesa 2-1/2\"", "en": "2-1/2\" Siamese FDC" }]
+          "opts": [
+            { "pt": "Não", "en": "No", "es": "No" }, { "pt": "FDC 4\" Storz", "en": "4\" Storz FDC", "es": "FDC Storz de 4\"" },
+            { "pt": "FDC siamesa 2-1/2\"", "en": "2-1/2\" Siamese FDC", "es": "FDC siamesa de 2-1/2\"" }
+          ]
         }
       },
       text: [
-        { "key": "heads", "label": { "pt": "Nº de cabeças (heads)", "en": "Number of heads" }, "unit": "head", "type": "number" },
-        { "key": "area", "label": { "pt": "Área protegida (sq ft)", "en": "Protected area (sq ft)" }, "unit": "sqft", "type": "number" },
-        { "key": "flowData", "label": { "pt": "Teste de fluxo (static / residual psi @ gpm)", "en": "Flow test (static / residual psi @ gpm)" } },
-        { "key": "demand", "label": { "pt": "Demanda do sistema (gpm @ psi)", "en": "System demand (gpm @ psi)" } },
-        { "key": "engineer", "label": { "pt": "Engenheiro / projetista", "en": "Engineer / designer" } }
+        { "key": "heads", "label": { "pt": "Nº de cabeças (heads)", "en": "Number of heads", "es": "Número de cabezas" }, "unit": "head", "type": "number" },
+        { "key": "area", "label": { "pt": "Área protegida (sq ft)", "en": "Protected area (sq ft)", "es": "Área protegida (sq ft)" }, "unit": "sqft", "type": "number" },
+        {
+          "key": "flowData",
+          "label": {
+            "pt": "Teste de fluxo (static / residual psi @ gpm)",
+            "en": "Flow test (static / residual psi @ gpm)",
+            "es": "Prueba de flujo (psi estática / residual @ gpm)"
+          }
+        },
+        { "key": "demand", "label": { "pt": "Demanda do sistema (gpm @ psi)", "en": "System demand (gpm @ psi)", "es": "Demanda del sistema (gpm @ psi)" } },
+        { "key": "engineer", "label": { "pt": "Engenheiro / projetista", "en": "Engineer / designer", "es": "Ingeniero / diseñador" } }
       ],
       units: [
-        { "id": "head", "label": { "pt": "cabeças", "en": "heads" } }, { "id": "sqft", "label": "sq ft" }, { "id": "lf", "label": "linear ft" },
-        { "id": "gpm", "label": "gpm" }, { "id": "psi", "label": "psi" }, { "id": "ea", "label": { "pt": "un", "en": "ea" } }
+        { "id": "head", "label": { "pt": "cabeças", "en": "heads", "es": "cabezas" } }, { "id": "sqft", "label": "sq ft" },
+        { "id": "lf", "label": { "pt": "linear ft", "en": "linear ft", "es": "pie lineal" } }, { "id": "gpm", "label": "gpm" }, { "id": "psi", "label": "psi" },
+        { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } }
       ],
       tasks: {
         "Projeto e aprovação": [
-          { "pt": "Teste de fluxo (hidrante)", "en": "Hydrant flow test" }, "Layout / shop drawings",
-          { "pt": "Cálculo hidráulico", "en": "Hydraulic calculations" },
-          { "pt": "Enviar ao Fire Department (plan review)", "en": "Submit to Fire Department (plan review)" },
-          { "pt": "Permit de sprinkler", "en": "Sprinkler permit" }, { "pt": "Pedido de material (cabeças, válvulas)", "en": "Material order (heads, valves)" }
+          { "pt": "Teste de fluxo (hidrante)", "en": "Hydrant flow test", "es": "Prueba de flujo del hidrante" },
+          "Layout / shop drawings",
+          { "pt": "Cálculo hidráulico", "en": "Hydraulic calculations", "es": "Cálculos hidráulicos" },
+          {
+            "pt": "Enviar ao Fire Department (plan review)",
+            "en": "Submit to Fire Department (plan review)",
+            "es": "Enviar al Departamento de Bomberos (plan review)"
+          },
+          { "pt": "Permit de sprinkler", "en": "Sprinkler permit", "es": "Permiso de rociadores" },
+          { "pt": "Pedido de material (cabeças, válvulas)", "en": "Material order (heads, valves)", "es": "Pedido de material (cabezas, válvulas)" }
         ],
         "Entrada e riser": [
-          { "pt": "Coordenar com o water department", "en": "Coordinate with water department" },
-          { "pt": "Riser / válvula de controle e dreno", "en": "Riser / control valve and drain" }, "Backflow preventer",
-          { "pt": "Flush do underground (antes de ligar)", "en": "Underground flush (before connection)" }
+          { "pt": "Coordenar com o water department", "en": "Coordinate with water department", "es": "Coordinar con el departamento de agua" },
+          { "pt": "Riser / válvula de controle e dreno", "en": "Riser / control valve and drain", "es": "Riser / válvula de control y drenaje" },
+          "Backflow preventer",
+          { "pt": "Flush do underground (antes de ligar)", "en": "Underground flush (before connection)", "es": "Flush del subterráneo (antes de conectar)" }
         ],
         "Instalação": [
-          { "pt": "Mains e branch lines", "en": "Mains and branch lines" }, { "pt": "Hangers e suportes", "en": "Hangers and supports" },
-          { "pt": "Cabeças — rough (drops)", "en": "Heads — rough-in (drops)" }, { "pt": "Proteção contra congelamento", "en": "Freeze protection" },
-          { "pt": "Válvula dry / compressor", "en": "Dry valve / air compressor" },
-          { "pt": "Standpipe e válvulas de mangueira", "en": "Standpipe and hose valves" }, "Fire pump",
-          { "pt": "FDC (conexão do bombeiro)", "en": "Fire department connection" }
+          { "pt": "Mains e branch lines", "en": "Mains and branch lines", "es": "Mains y ramales" },
+          { "pt": "Hangers e suportes", "en": "Hangers and supports", "es": "Colgadores y soportes" },
+          { "pt": "Cabeças — rough (drops)", "en": "Heads — rough-in (drops)", "es": "Cabezas — rough-in (drops)" },
+          { "pt": "Proteção contra congelamento", "en": "Freeze protection", "es": "Protección contra congelamiento" },
+          { "pt": "Válvula dry / compressor", "en": "Dry valve / air compressor", "es": "Válvula seca / compresor de aire" },
+          { "pt": "Standpipe e válvulas de mangueira", "en": "Standpipe and hose valves", "es": "Standpipe y válvulas de manguera" }, "Fire pump",
+          { "pt": "FDC (conexão do bombeiro)", "en": "Fire department connection", "es": "Conexión del departamento de bomberos (FDC)" }
         ],
         "Testes": [
-          { "pt": "Teste hidrostático (200 psi / 2 h)", "en": "Hydrostatic test (200 psi / 2 hr)" },
-          { "pt": "Inspeção rough (acima do forro) com o Fire Department", "en": "Rough / above-ceiling inspection with Fire Department" },
-          { "pt": "Teste de flow e tamper com o fire alarm", "en": "Flow and tamper test with fire alarm" },
-          { "pt": "Trip test da válvula dry", "en": "Dry valve trip test" },
-          { "pt": "Teste hidrostático 13D (pressão normal de operação)", "en": "NFPA 13D hydrostatic test (normal operating pressure)" },
-          { "pt": "Teste de ar do sistema dry (40 psi / 24 h)", "en": "Dry system air test (40 psi / 24 hr)" }
+          { "pt": "Teste hidrostático (200 psi / 2 h)", "en": "Hydrostatic test (200 psi / 2 hr)", "es": "Prueba hidrostática (200 psi / 2 h)" },
+          {
+            "pt": "Inspeção rough (acima do forro) com o Fire Department",
+            "en": "Rough / above-ceiling inspection with Fire Department",
+            "es": "Inspección de rough / sobre el cielo falso con el Departamento de Bomberos"
+          },
+          {
+            "pt": "Teste de flow e tamper com o fire alarm",
+            "en": "Flow and tamper test with fire alarm",
+            "es": "Prueba de flow y tamper con la alarma contra incendios"
+          },
+          { "pt": "Trip test da válvula dry", "en": "Dry valve trip test", "es": "Prueba de disparo (trip test) de la válvula seca" },
+          {
+            "pt": "Teste hidrostático 13D (pressão normal de operação)",
+            "en": "NFPA 13D hydrostatic test (normal operating pressure)",
+            "es": "Prueba hidrostática NFPA 13D (presión normal de operación)"
+          },
+          { "pt": "Teste de ar do sistema dry (40 psi / 24 h)", "en": "Dry system air test (40 psi / 24 hr)", "es": "Prueba de aire del sistema seco (40 psi / 24 h)" }
         ],
         "Acabamento": [
-          { "pt": "Cabeças finais / escutcheons depois do forro", "en": "Final heads / escutcheons after ceiling" },
-          { "pt": "Caixa de cabeças sobressalentes + chave", "en": "Spare head cabinet + wrench" },
-          { "pt": "Placa hidráulica e sinalização das válvulas", "en": "Hydraulic placard and valve signage" }
+          {
+            "pt": "Cabeças finais / escutcheons depois do forro",
+            "en": "Final heads / escutcheons after ceiling",
+            "es": "Cabezas finales / escudos después del cielo falso"
+          },
+          { "pt": "Caixa de cabeças sobressalentes + chave", "en": "Spare head cabinet + wrench", "es": "Gabinete de cabezas de repuesto + llave" },
+          { "pt": "Placa hidráulica e sinalização das válvulas", "en": "Hydraulic placard and valve signage", "es": "Placa hidráulica y señalización de válvulas" }
         ],
         "Aceitação e entrega": [
-          { "pt": "Teste de aceitação com o Fire Department", "en": "Fire Department acceptance test" },
-          { "pt": "Certificados (Material & Test Certificate)", "en": "Contractor's Material & Test Certificates" },
-          { "pt": "As-built", "en": "As-built drawings" }, { "pt": "Orientar o dono (NFPA 25)", "en": "Owner orientation (NFPA 25)" },
-          { "pt": "Limpeza e punch list", "en": "Cleanup and punch list" }
+          { "pt": "Teste de aceitação com o Fire Department", "en": "Fire Department acceptance test", "es": "Prueba de aceptación con el Departamento de Bomberos" },
+          {
+            "pt": "Certificados (Material & Test Certificate)",
+            "en": "Contractor's Material & Test Certificates",
+            "es": "Certificados de material y prueba del contratista"
+          },
+          { "pt": "As-built", "en": "As-built drawings", "es": "Planos as-built" },
+          { "pt": "Orientar o dono (NFPA 25)", "en": "Owner orientation (NFPA 25)", "es": "Orientación al dueño (NFPA 25)" },
+          { "pt": "Limpeza e punch list", "en": "Cleanup and punch list", "es": "Limpieza y punch list" }
         ]
       },
       groupsI18n: {
@@ -1964,6 +2137,14 @@
           "Testes": "Testing",
           "Acabamento": "Finish",
           "Aceitação e entrega": "Acceptance & closeout"
+        },
+        "es": {
+          "Projeto e aprovação": "Diseño y aprobación",
+          "Entrada e riser": "Acometida y riser",
+          "Instalação": "Instalación",
+          "Testes": "Pruebas",
+          "Acabamento": "Acabado",
+          "Aceitação e entrega": "Aceptación y entrega"
         }
       },
       suggest: {
@@ -2025,47 +2206,76 @@
       },
       inspections: [
         {
-          "label": { "pt": "Enviar ao Fire Department (plan review)", "en": "Submit to Fire Department (plan review)" },
+          "label": {
+            "pt": "Enviar ao Fire Department (plan review)",
+            "en": "Submit to Fire Department (plan review)",
+            "es": "Enviar al Departamento de Bomberos (plan review)"
+          },
           "authority": {
             "pt": "Fire Department (527 CMR 1.00; licença MA de sprinkler fitter — c.146 §§81–88)",
-            "en": "Fire Department (527 CMR 1.00; MA sprinkler fitter license — c.146 §§81–88)"
+            "en": "Fire Department (527 CMR 1.00; MA sprinkler fitter license — c.146 §§81–88)",
+            "es": "Departamento de Bomberos (527 CMR 1.00; licencia de sprinkler fitter de MA — c.146 §§81–88)"
           },
-          "when": { "pt": "Antes de instalar", "en": "Before installation" }
+          "when": { "pt": "Antes de instalar", "en": "Before installation", "es": "Antes de la instalación" }
         },
         {
-          "label": { "pt": "Permit de sprinkler", "en": "Sprinkler permit" },
-          "authority": { "pt": "Fire Department / AHJ", "en": "Fire Department / AHJ" },
-          "when": { "pt": "Antes de começar", "en": "Before starting" }
+          "label": { "pt": "Permit de sprinkler", "en": "Sprinkler permit", "es": "Permiso de rociadores" },
+          "authority": { "pt": "Fire Department / AHJ", "en": "Fire Department / AHJ", "es": "Departamento de Bomberos / AHJ" },
+          "when": { "pt": "Antes de começar", "en": "Before starting", "es": "Antes de empezar" }
         },
         {
-          "label": { "pt": "Teste hidrostático (200 psi / 2 h)", "en": "Hydrostatic test (200 psi / 2 hr)" },
-          "authority": { "pt": "Fire Department (NFPA 13)", "en": "Fire Department (NFPA 13)" },
-          "when": { "pt": "Antes de fechar forro e paredes", "en": "Before ceilings and walls are closed" }
+          "label": { "pt": "Teste hidrostático (200 psi / 2 h)", "en": "Hydrostatic test (200 psi / 2 hr)", "es": "Prueba hidrostática (200 psi / 2 h)" },
+          "authority": { "pt": "Fire Department (NFPA 13)", "en": "Fire Department (NFPA 13)", "es": "Departamento de Bomberos (NFPA 13)" },
+          "when": { "pt": "Antes de fechar forro e paredes", "en": "Before ceilings and walls are closed", "es": "Antes de cerrar techos y paredes" }
         },
         {
-          "label": { "pt": "Inspeção rough (acima do forro) com o Fire Department", "en": "Rough / above-ceiling inspection with Fire Department" },
-          "authority": { "pt": "Fire Department (+ FPE quando o cálculo é carimbado)", "en": "Fire Department (+ FPE when calcs are stamped)" },
-          "when": { "pt": "Tubulação pronta, forro aberto", "en": "Piping complete, ceilings open" }
+          "label": {
+            "pt": "Inspeção rough (acima do forro) com o Fire Department",
+            "en": "Rough / above-ceiling inspection with Fire Department",
+            "es": "Inspección de rough / sobre el cielo falso con el Departamento de Bomberos"
+          },
+          "authority": {
+            "pt": "Fire Department (+ FPE quando o cálculo é carimbado)",
+            "en": "Fire Department (+ FPE when calcs are stamped)",
+            "es": "Departamento de Bomberos (+ FPE cuando los cálculos van sellados)"
+          },
+          "when": { "pt": "Tubulação pronta, forro aberto", "en": "Piping complete, ceilings open", "es": "Tubería completa, techos abiertos" }
         },
         {
-          "label": { "pt": "Teste de aceitação com o Fire Department", "en": "Fire Department acceptance test" },
-          "authority": { "pt": "Fire Department", "en": "Fire Department" },
-          "when": { "pt": "Sistema pronto: flow, tamper, alarmes, válvulas", "en": "System complete: flow, tamper, alarms, valves" }
+          "label": { "pt": "Teste de aceitação com o Fire Department", "en": "Fire Department acceptance test", "es": "Prueba de aceptación con el Departamento de Bomberos" },
+          "authority": { "pt": "Fire Department", "en": "Fire Department", "es": "Departamento de Bomberos" },
+          "when": {
+            "pt": "Sistema pronto: flow, tamper, alarmes, válvulas",
+            "en": "System complete: flow, tamper, alarms, valves",
+            "es": "Sistema completo: flow, tamper, alarmas, válvulas"
+          }
         },
         {
           "label": "Backflow preventer",
-          "authority": { "pt": "Water department / testador certificado", "en": "Water department / certified tester" },
-          "when": { "pt": "Na instalação e todo ano", "en": "At installation and annually" }
+          "authority": { "pt": "Water department / testador certificado", "en": "Water department / certified tester", "es": "Departamento de agua / probador certificado" },
+          "when": { "pt": "Na instalação e todo ano", "en": "At installation and annually", "es": "En la instalación y cada año" }
         },
         {
-          "label": { "pt": "Teste hidrostático 13D (pressão normal de operação)", "en": "NFPA 13D hydrostatic test (normal operating pressure)" },
-          "authority": { "pt": "Fire Department (NFPA 13D, cap. de testes de aceitação)", "en": "Fire Department (NFPA 13D, acceptance tests chapter)" },
-          "when": { "pt": "Antes de fechar paredes e forros", "en": "Before walls and ceilings are closed" }
+          "label": {
+            "pt": "Teste hidrostático 13D (pressão normal de operação)",
+            "en": "NFPA 13D hydrostatic test (normal operating pressure)",
+            "es": "Prueba hidrostática NFPA 13D (presión normal de operación)"
+          },
+          "authority": {
+            "pt": "Fire Department (NFPA 13D, cap. de testes de aceitação)",
+            "en": "Fire Department (NFPA 13D, acceptance tests chapter)",
+            "es": "Departamento de Bomberos (NFPA 13D, capítulo de pruebas de aceptación)"
+          },
+          "when": { "pt": "Antes de fechar paredes e forros", "en": "Before walls and ceilings are closed", "es": "Antes de cerrar paredes y techos" }
         },
         {
-          "label": { "pt": "Teste de ar do sistema dry (40 psi / 24 h)", "en": "Dry system air test (40 psi / 24 hr)" },
-          "authority": { "pt": "Fire Department (NFPA 13 — dry pipe / double interlock pre-action)", "en": "Fire Department (NFPA 13 — dry pipe / double interlock pre-action)" },
-          "when": { "pt": "Sistema dry montado, antes da aceitação", "en": "Dry system complete, before acceptance" }
+          "label": { "pt": "Teste de ar do sistema dry (40 psi / 24 h)", "en": "Dry system air test (40 psi / 24 hr)", "es": "Prueba de aire del sistema seco (40 psi / 24 h)" },
+          "authority": {
+            "pt": "Fire Department (NFPA 13 — dry pipe / double interlock pre-action)",
+            "en": "Fire Department (NFPA 13 — dry pipe / double interlock pre-action)",
+            "es": "Departamento de Bomberos (NFPA 13 — tubería seca / pre-action de doble interlock)"
+          },
+          "when": { "pt": "Sistema dry montado, antes da aceitação", "en": "Dry system complete, before acceptance", "es": "Sistema seco completo, antes de la aceptación" }
         }
       ],
       proposal: {
@@ -2136,7 +2346,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Prédio novo de 6 unidades, NFPA 13R, sistema wet com CPVC, umas 90 cabeças concealed, dry pendent no sótão, riser de 4 com DCDA, flow e tamper ligados pelo fire alarm, FDC Storz. Underground por outros. Preço 78 mil, 30/40/30.”",
-          "en": "e.g. “New 6-unit building, NFPA 13R, wet system in CPVC, about 90 concealed heads, dry pendents in the attic, 4-inch riser with DCDA, flow and tamper wired by fire alarm, Storz FDC. Underground by others. Price 78K, 30/40/30.”"
+          "en": "e.g. “New 6-unit building, NFPA 13R, wet system in CPVC, about 90 concealed heads, dry pendents in the attic, 4-inch riser with DCDA, flow and tamper wired by fire alarm, Storz FDC. Underground by others. Price 78K, 30/40/30.”",
+          "es": "ej.: “Edificio nuevo de 6 unidades, NFPA 13R, sistema húmedo en CPVC, unas 90 cabezas concealed, dry pendents en el ático, riser de 4 pulgadas con DCDA, flow y tamper conectados por la alarma contra incendios, FDC Storz. Subterráneo por otros. Precio 78 mil, 30/40/30.”"
         },
         "aiRules": "Trade: FIRE SPRINKLER / fire protection contractor (MA/NH). Speech terms: 'cabeça'/'bico' = sprinkler head, 'molhado' = wet pipe, 'seco' = dry pipe, 'riser' = system riser, 'bombeiro' = Fire Department, 'conexão do bombeiro' = FDC, 'teste de fluxo' = hydrant flow test.\nAlways name the governing standard (NFPA 13, 13R, or 13D) and the system type (wet, dry, pre-action, antifreeze); if not said, infer from the building (1–2 family = 13D, low-rise multifamily = 13R, commercial = 13) and flag it in notes_pt.\nQuantities: heads as a count, only when spoken ('approximately 90 heads'), area in sq ft, piping in linear ft, water supply as static / residual psi and gpm, design demand as gpm @ psi.\nState head types (concealed pendent, sidewall, upright, dry pendent, residential listed / quick response) and pipe material (CPVC BlazeMaster, Schedule 10/40 steel, listed PEX for 13D).\nAlways include design + hydraulic calculations, Fire Department plan review, hydrostatic test (200 psi for 2 hours for NFPA 13 / 13R; at normal system operating pressure for NFPA 13D), air test at 40 psi for 24 hours for dry-pipe / pre-action systems, and Fire Department acceptance test.\nMonitoring: the sprinkler contractor installs flow and tamper switches; wiring to the fire alarm panel and central station monitoring are by the fire alarm contractor unless the speaker says otherwise.\nUnderground fire service, water department fees, fire alarm wiring, electrical for pumps / compressors, building heat, ceiling patching, and painting are normally NOT included.\nIn MA say 'Massachusetts licensed sprinkler fitters' (licensed by the Bureau of Pipefitters, Refrigeration Technicians and Sprinkler Fitters); never say 'licensed plumbers' for NFPA 13 / 13R sprinkler work (13D multipurpose tied to the domestic water: installer licensing to be confirmed by the owner).\nAdd a per-head unit price line for added heads if the speaker gives one; otherwise mention in notes_pt that added heads should have a unit price.\nTypical sections: Design, Hydraulic Calculations & Approvals; Water Service, Riser & Backflow; Sprinkler Piping & Hangers; Sprinkler Heads; Standpipe & FDC; Fire Pump; Alarms & Supervision Devices; Testing & Acceptance; Closeout. Pitfalls: dry pendents / dry systems in unheated attics, garages, and balconies; antifreeze must be a listed solution; 13D multipurpose systems tie into domestic plumbing (coordinate with the plumber); never promise approval by the Fire Department.",
         "facts": {
@@ -2212,7 +2423,8 @@
         },
         "adjustExample": {
           "pt": "Ex.: “Tira o fire pump, muda o preço para 72 mil e acrescenta 6 cabeças sidewall no corredor.”",
-          "en": "e.g. “Remove the fire pump, change the price to 72K and add 6 sidewall heads in the corridor.”"
+          "en": "e.g. “Remove the fire pump, change the price to 72K and add 6 sidewall heads in the corridor.”",
+          "es": "ej.: “Quita la bomba contra incendios, cambia el precio a 72 mil y agrega 6 cabezas sidewall en el pasillo.”"
         }
       },
       prices: {
@@ -2223,35 +2435,77 @@
           { "id": "qrfs", "name": "QRFS (QuickResponse Fire Supply)", "short": "QRFS", "search": "site:qrfs.com" }
         ],
         "basic": [
-          [{ "pt": "Cabeça residencial pendente concealed", "en": "Residential concealed pendent head" }, { "pt": "Cabeças", "en": "Heads" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Cabeça residencial sidewall", "en": "Residential sidewall head" }, { "pt": "Cabeças", "en": "Heads" }, { "pt": "un", "en": "ea" }],
           [
-            { "pt": "Cabeça pendente quick response (comercial)", "en": "Quick-response pendent head (commercial)" }, { "pt": "Cabeças", "en": "Heads" },
-            { "pt": "un", "en": "ea" }
+            { "pt": "Cabeça residencial pendente concealed", "en": "Residential concealed pendent head", "es": "Cabeza residencial pendent oculta" },
+            { "pt": "Cabeças", "en": "Heads", "es": "Cabezas" }, { "pt": "un", "en": "ea", "es": "c/u" }
           ],
-          [{ "pt": "Cabeça upright", "en": "Upright head" }, { "pt": "Cabeças", "en": "Heads" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Dry pendent (comprimento sob medida)", "en": "Dry pendent head (custom length)" }, { "pt": "Cabeças", "en": "Heads" }, { "pt": "un", "en": "ea" }],
-          ["Cover plate / escutcheon", { "pt": "Cabeças", "en": "Heads" }, { "pt": "un", "en": "ea" }],
-          ["CPVC BlazeMaster 1\" — 15 ft", { "pt": "Tubulação", "en": "Piping" }, { "pt": "peça", "en": "each" }],
-          ["CPVC BlazeMaster 1-1/2\" — 15 ft", { "pt": "Tubulação", "en": "Piping" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Cola CPVC one-step (lata)", "en": "CPVC one-step cement (can)" }, { "pt": "Tubulação", "en": "Piping" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Tubo aço Schedule 10 2\" — 21 ft", "en": "Schedule 10 steel pipe 2\" — 21 ft" }, { "pt": "Tubulação", "en": "Piping" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Acoplamento ranhurado (grooved) 2\"", "en": "Grooved coupling 2\"" }, { "pt": "Conexões", "en": "Fittings" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Hanger (ring / clevis) com tirante", "en": "Hanger (ring / clevis) with rod" }, { "pt": "Suportes", "en": "Hangers" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Flow switch (vane)", "en": "Vane-type flow switch" }, { "pt": "Alarmes", "en": "Alarm devices" }, { "pt": "un", "en": "ea" }],
-          ["Tamper switch", { "pt": "Alarmes", "en": "Alarm devices" }, { "pt": "un", "en": "ea" }],
           [
-            { "pt": "Válvula de controle 4\" (butterfly / OS&Y)", "en": "4\" control valve (butterfly / OS&Y)" }, { "pt": "Válvulas", "en": "Valves" },
-            { "pt": "un", "en": "ea" }
+            { "pt": "Cabeça residencial sidewall", "en": "Residential sidewall head", "es": "Cabeza residencial sidewall" },
+            { "pt": "Cabeças", "en": "Heads", "es": "Cabezas" }, { "pt": "un", "en": "ea", "es": "c/u" }
           ],
-          [{ "pt": "Backflow DCDA 4\"", "en": "4\" double check detector assembly" }, { "pt": "Válvulas", "en": "Valves" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Riser manifold 13D (1\")", "en": "13D riser manifold (1\")" }, { "pt": "Válvulas", "en": "Valves" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "FDC 4\" Storz", "en": "4\" Storz FDC" }, "Standpipe / FDC", { "pt": "un", "en": "ea" }],
-          [{ "pt": "Caixa de cabeças sobressalentes + chave", "en": "Spare head cabinet + wrench" }, { "pt": "Acabamento", "en": "Closeout" }, { "pt": "un", "en": "ea" }]
+          [
+            {
+              "pt": "Cabeça pendente quick response (comercial)",
+              "en": "Quick-response pendent head (commercial)",
+              "es": "Cabeza pendent de respuesta rápida (comercial)"
+            },
+            { "pt": "Cabeças", "en": "Heads", "es": "Cabezas" },
+            { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [{ "pt": "Cabeça upright", "en": "Upright head", "es": "Cabeza upright" }, { "pt": "Cabeças", "en": "Heads", "es": "Cabezas" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          [
+            { "pt": "Dry pendent (comprimento sob medida)", "en": "Dry pendent head (custom length)", "es": "Cabeza dry pendent (largo a medida)" },
+            { "pt": "Cabeças", "en": "Heads", "es": "Cabezas" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          ["Cover plate / escutcheon", { "pt": "Cabeças", "en": "Heads", "es": "Cabezas" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          ["CPVC BlazeMaster 1\" — 15 ft", { "pt": "Tubulação", "en": "Piping", "es": "Tubería" }, { "pt": "peça", "en": "each", "es": "c/u" }],
+          ["CPVC BlazeMaster 1-1/2\" — 15 ft", { "pt": "Tubulação", "en": "Piping", "es": "Tubería" }, { "pt": "peça", "en": "each", "es": "c/u" }],
+          [
+            { "pt": "Cola CPVC one-step (lata)", "en": "CPVC one-step cement (can)", "es": "Cemento CPVC de un paso (lata)" },
+            { "pt": "Tubulação", "en": "Piping", "es": "Tubería" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Tubo aço Schedule 10 2\" — 21 ft", "en": "Schedule 10 steel pipe 2\" — 21 ft", "es": "Tubo de acero Schedule 10 de 2\" — 21 ft" },
+            { "pt": "Tubulação", "en": "Piping", "es": "Tubería" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Acoplamento ranhurado (grooved) 2\"", "en": "Grooved coupling 2\"", "es": "Acople ranurado (grooved) de 2\"" },
+            { "pt": "Conexões", "en": "Fittings", "es": "Conexiones (fittings)" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Hanger (ring / clevis) com tirante", "en": "Hanger (ring / clevis) with rod", "es": "Colgador (anillo / clevis) con varilla" },
+            { "pt": "Suportes", "en": "Hangers", "es": "Colgadores" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Flow switch (vane)", "en": "Vane-type flow switch", "es": "Flow switch tipo paleta" },
+            { "pt": "Alarmes", "en": "Alarm devices", "es": "Dispositivos de alarma" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          ["Tamper switch", { "pt": "Alarmes", "en": "Alarm devices", "es": "Dispositivos de alarma" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          [
+            { "pt": "Válvula de controle 4\" (butterfly / OS&Y)", "en": "4\" control valve (butterfly / OS&Y)", "es": "Válvula de control de 4\" (mariposa / OS&Y)" },
+            { "pt": "Válvulas", "en": "Valves", "es": "Válvulas" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Backflow DCDA 4\"", "en": "4\" double check detector assembly", "es": "Ensamble de doble check con detector de 4\"" },
+            { "pt": "Válvulas", "en": "Valves", "es": "Válvulas" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Riser manifold 13D (1\")", "en": "13D riser manifold (1\")", "es": "Manifold de riser 13D (1\")" },
+            { "pt": "Válvulas", "en": "Valves", "es": "Válvulas" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [{ "pt": "FDC 4\" Storz", "en": "4\" Storz FDC", "es": "FDC Storz de 4\"" }, "Standpipe / FDC", { "pt": "un", "en": "ea", "es": "c/u" }],
+          [
+            { "pt": "Caixa de cabeças sobressalentes + chave", "en": "Spare head cabinet + wrench", "es": "Gabinete de cabezas de repuesto + llave" },
+            { "pt": "Acabamento", "en": "Closeout", "es": "Cierre de obra" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ]
         ],
-        "basicOffer": [{ "list": "sprinkler", "label": { "pt": "Adicionar lista básica de sprinkler", "en": "Add basic sprinkler list" } }],
+        "basicOffer": [{ "list": "sprinkler", "label": { "pt": "Adicionar lista básica de sprinkler", "en": "Add basic sprinkler list", "es": "Agregar lista básica de rociadores" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: cabeça concealed, CPVC 1\", tamper", "en": "e.g. concealed head, 1\" CPVC, tamper switch" }
+        "searchExample": {
+          "pt": "ex.: cabeça concealed, CPVC 1\", tamper",
+          "en": "e.g. concealed head, 1\" CPVC, tamper switch",
+          "es": "ej.: cabeza concealed, CPVC 1\", tamper switch"
+        }
       }
     },
     {
@@ -2261,172 +2515,232 @@
       category: "finish",
       label: "Drywall",
       companySuffix: "Drywall",
-      onboarding: { "label": "Drywall", "desc": { "pt": "Hang, tape, acabamento, forro, metal stud", "en": "Hang, tape, finish, ceilings, metal studs" } },
+      onboarding: {
+        "label": "Drywall",
+        "desc": {
+          "pt": "Hang, tape, acabamento, forro, metal stud",
+          "en": "Hang, tape, finish, ceilings, metal studs",
+          "es": "Colgar, encintar, acabar, techos, perfiles metálicos"
+        }
+      },
       icon: {
         "svg": "<rect x=\"3.5\" y=\"3.5\" width=\"7.5\" height=\"17\" rx=\"1\"/><rect x=\"13\" y=\"3.5\" width=\"7.5\" height=\"17\" rx=\"1\"/><path d=\"M7.25 7v.01M7.25 12v.01M7.25 17v.01M16.75 7v.01M16.75 12v.01M16.75 17v.01\"/>"
       },
-      kind: { "pt": "trabalho de drywall", "en": "drywall job" },
+      kind: { "pt": "trabalho de drywall", "en": "drywall job", "es": "trabajo de drywall" },
       stepName: "Drywall",
       group: { "label": "Drywall", "icon": "trade-drywall" },
       workType: [
-        "New Construction", { "pt": "Reforma / remodel", "en": "Remodel / renovation" }, { "pt": "Porão (basement finish)", "en": "Basement finish" },
-        { "pt": "Addition (ampliação)", "en": "Addition" }, { "pt": "Comercial (metal stud / ACT)", "en": "Commercial (metal stud / ACT)" },
-        { "pt": "Multifamily (separação rated entre unidades)", "en": "Multifamily (rated unit separations)" },
-        { "pt": "Reparo / remendo (patch)", "en": "Repair / patch" }, { "pt": "Plaster (veneer / restauração)", "en": "Plaster (veneer / restoration)" }
+        "New Construction",
+        { "pt": "Reforma / remodel", "en": "Remodel / renovation", "es": "Remodelación / renovación" },
+        { "pt": "Porão (basement finish)", "en": "Basement finish", "es": "Acabado de sótano" },
+        { "pt": "Addition (ampliação)", "en": "Addition", "es": "Ampliación (addition)" },
+        { "pt": "Comercial (metal stud / ACT)", "en": "Commercial (metal stud / ACT)", "es": "Comercial (perfil metálico / ACT)" },
+        {
+          "pt": "Multifamily (separação rated entre unidades)",
+          "en": "Multifamily (rated unit separations)",
+          "es": "Multifamiliar (separaciones de unidades con clasificación)"
+        },
+        { "pt": "Reparo / remendo (patch)", "en": "Repair / patch", "es": "Reparación / parche" },
+        { "pt": "Plaster (veneer / restauração)", "en": "Plaster (veneer / restoration)", "es": "Yeso (veneer / restauración)" }
       ],
       fields: {
         "dwScope": {
-          "label": { "pt": "Serviço", "en": "Scope" },
+          "label": { "pt": "Serviço", "en": "Scope", "es": "Alcance" },
           "multi": true,
           "opts": [
-            { "pt": "Hang (pendurar)", "en": "Hang" }, "Tape & finish", { "pt": "Só acabamento (finish only)", "en": "Finish only" }, "Skim coat",
-            { "pt": "Metal framing (studs)", "en": "Metal framing (studs)" }, { "pt": "Forro acústico (ACT)", "en": "Acoustical ceiling (ACT)" },
-            { "pt": "Reparo / remendo", "en": "Repair / patch" }, "Primer (PVA)", { "pt": "Textura", "en": "Texture" }
+            { "pt": "Hang (pendurar)", "en": "Hang", "es": "Colgar" }, "Tape & finish",
+            { "pt": "Só acabamento (finish only)", "en": "Finish only", "es": "Solo acabado" }, "Skim coat",
+            { "pt": "Metal framing (studs)", "en": "Metal framing (studs)", "es": "Estructura metálica (perfiles)" },
+            { "pt": "Forro acústico (ACT)", "en": "Acoustical ceiling (ACT)", "es": "Cielo falso acústico (ACT)" },
+            { "pt": "Reparo / remendo", "en": "Repair / patch", "es": "Reparación / parche" }, "Primer (PVA)",
+            { "pt": "Textura", "en": "Texture", "es": "Textura" }
           ]
         },
         "board": {
-          "label": { "pt": "Tipo de placa", "en": "Board type" },
+          "label": { "pt": "Tipo de placa", "en": "Board type", "es": "Tipo de panel" },
           "multi": true,
           "opts": [
-            "1/2\" regular", { "pt": "1/2\" leve (lightweight)", "en": "1/2\" lightweight" },
-            { "pt": "5/8\" Type X (fire-rated)", "en": "5/8\" Type X (fire-rated)" }, "5/8\" Type C",
-            { "pt": "Resistente a umidade / mofo (roxo / XP)", "en": "Moisture / mold resistant (purple / XP)" },
-            { "pt": "Cement board / DensShield (área molhada)", "en": "Cement board / DensShield (wet area)" },
-            { "pt": "Abuse / impact resistant", "en": "Abuse / impact resistant" },
-            { "pt": "1/4\" ou 3/8\" (curvas / overlay)", "en": "1/4\" or 3/8\" (curves / overlay)" },
-            { "pt": "Acústica (QuietRock / soundboard)", "en": "Acoustic (QuietRock / soundboard)" }
+            "1/2\" regular", { "pt": "1/2\" leve (lightweight)", "en": "1/2\" lightweight", "es": "1/2\" liviano" },
+            { "pt": "5/8\" Type X (fire-rated)", "en": "5/8\" Type X (fire-rated)", "es": "5/8\" Type X (resistente al fuego)" }, "5/8\" Type C",
+            { "pt": "Resistente a umidade / mofo (roxo / XP)", "en": "Moisture / mold resistant (purple / XP)", "es": "Resistente a humedad / moho (morado / XP)" },
+            { "pt": "Cement board / DensShield (área molhada)", "en": "Cement board / DensShield (wet area)", "es": "Cement board / DensShield (área húmeda)" },
+            { "pt": "Abuse / impact resistant", "en": "Abuse / impact resistant", "es": "Resistente a golpes / impacto" },
+            { "pt": "1/4\" ou 3/8\" (curvas / overlay)", "en": "1/4\" or 3/8\" (curves / overlay)", "es": "1/4\" o 3/8\" (curvas / sobrecapa)" },
+            { "pt": "Acústica (QuietRock / soundboard)", "en": "Acoustic (QuietRock / soundboard)", "es": "Acústico (QuietRock / soundboard)" }
           ]
         },
         "finishLevel": {
-          "label": { "pt": "Nível de acabamento (GA-214)", "en": "Finish level (GA-214)" },
+          "label": { "pt": "Nível de acabamento (GA-214)", "en": "Finish level (GA-214)", "es": "Nivel de acabado (GA-214)" },
           "opts": [
-            { "pt": "Level 0 (temporário)", "en": "Level 0 (temporary)" },
-            { "pt": "Level 1 (acima do forro / plenum)", "en": "Level 1 (above ceiling / plenum)" },
-            { "pt": "Level 2 (garagem / base de tile)", "en": "Level 2 (garage / tile substrate)" },
-            { "pt": "Level 3 (textura pesada)", "en": "Level 3 (heavy texture)" },
-            { "pt": "Level 4 (padrão residencial)", "en": "Level 4 (standard residential)" },
-            { "pt": "Level 5 (skim total — luz rasante / brilho)", "en": "Level 5 (full skim — critical light / gloss)" }
+            { "pt": "Level 0 (temporário)", "en": "Level 0 (temporary)", "es": "Nivel 0 (temporal)" },
+            { "pt": "Level 1 (acima do forro / plenum)", "en": "Level 1 (above ceiling / plenum)", "es": "Nivel 1 (sobre el cielo falso / plenum)" },
+            { "pt": "Level 2 (garagem / base de tile)", "en": "Level 2 (garage / tile substrate)", "es": "Nivel 2 (garaje / base para azulejo)" },
+            { "pt": "Level 3 (textura pesada)", "en": "Level 3 (heavy texture)", "es": "Nivel 3 (textura gruesa)" },
+            { "pt": "Level 4 (padrão residencial)", "en": "Level 4 (standard residential)", "es": "Nivel 4 (residencial estándar)" },
+            {
+              "pt": "Level 5 (skim total — luz rasante / brilho)",
+              "en": "Level 5 (full skim — critical light / gloss)",
+              "es": "Nivel 5 (skim completo — luz crítica / brillo)"
+            }
           ]
         },
         "framing": {
-          "label": { "pt": "Estrutura", "en": "Framing" },
+          "label": { "pt": "Estrutura", "en": "Framing", "es": "Estructura" },
           "opts": [
-            { "pt": "Madeira (wood studs)", "en": "Wood studs" }, "Metal stud 25 ga", "Metal stud 20 ga",
-            { "pt": "Furring / resilient channel", "en": "Furring / resilient channel" }, { "pt": "Parede existente", "en": "Existing wall" }
+            { "pt": "Madeira (wood studs)", "en": "Wood studs", "es": "Montantes de madera" }, "Metal stud 25 ga", "Metal stud 20 ga",
+            { "pt": "Furring / resilient channel", "en": "Furring / resilient channel", "es": "Furring / canal resiliente" },
+            { "pt": "Parede existente", "en": "Existing wall", "es": "Pared existente" }
           ]
         },
         "fireRating": {
-          "label": { "pt": "Resistência ao fogo", "en": "Fire rating" },
+          "label": { "pt": "Resistência ao fogo", "en": "Fire rating", "es": "Resistencia al fuego" },
           "opts": [
-            { "pt": "Nenhuma", "en": "None" }, { "pt": "1 hora", "en": "1 hour" }, { "pt": "2 horas", "en": "2 hours" },
-            { "pt": "Separação de garagem", "en": "Garage separation" }, { "pt": "Separação entre unidades / corredor", "en": "Unit / corridor separation" },
-            "Shaft wall"
+            { "pt": "Nenhuma", "en": "None", "es": "Ninguno" }, { "pt": "1 hora", "en": "1 hour", "es": "1 hora" },
+            { "pt": "2 horas", "en": "2 hours", "es": "2 horas" }, { "pt": "Separação de garagem", "en": "Garage separation", "es": "Separación del garaje" },
+            { "pt": "Separação entre unidades / corredor", "en": "Unit / corridor separation", "es": "Separación de unidades / pasillo" }, "Shaft wall"
           ]
         },
         "ceilingHeight": {
-          "label": { "pt": "Altura do teto", "en": "Ceiling height" },
+          "label": { "pt": "Altura do teto", "en": "Ceiling height", "es": "Altura del techo" },
           "opts": [
-            { "pt": "Até 8 ft", "en": "Up to 8 ft" }, "9–10 ft", { "pt": "Teto alto / catedral (>10 ft)", "en": "High / cathedral (>10 ft)" },
-            { "pt": "Escadaria (stairwell)", "en": "Stairwell" }
+            { "pt": "Até 8 ft", "en": "Up to 8 ft", "es": "Hasta 8 ft" }, "9–10 ft",
+            { "pt": "Teto alto / catedral (>10 ft)", "en": "High / cathedral (>10 ft)", "es": "Alto / catedral (>10 ft)" },
+            { "pt": "Escadaria (stairwell)", "en": "Stairwell", "es": "Escalera (caja de escalera)" }
           ]
         },
         "ceilingType": {
-          "label": { "pt": "Forro / teto", "en": "Ceiling" },
+          "label": { "pt": "Forro / teto", "en": "Ceiling", "es": "Techo" },
           "opts": [
-            { "pt": "Drywall liso", "en": "Smooth drywall" }, { "pt": "Textura (knockdown / orange peel)", "en": "Texture (knockdown / orange peel)" },
-            { "pt": "Popcorn existente (remover)", "en": "Existing popcorn (remove)" }, "Drop ceiling 2x2", "Drop ceiling 2x4",
-            { "pt": "Plaster existente", "en": "Existing plaster" }
+            { "pt": "Drywall liso", "en": "Smooth drywall", "es": "Drywall liso" },
+            { "pt": "Textura (knockdown / orange peel)", "en": "Texture (knockdown / orange peel)", "es": "Textura (knockdown / orange peel)" },
+            { "pt": "Popcorn existente (remover)", "en": "Existing popcorn (remove)", "es": "Popcorn existente (quitar)" }, "Drop ceiling 2x2",
+            "Drop ceiling 2x4", { "pt": "Plaster existente", "en": "Existing plaster", "es": "Yeso existente" }
           ]
         },
         "corners": {
-          "label": { "pt": "Cantoneiras", "en": "Corner bead" },
+          "label": { "pt": "Cantoneiras", "en": "Corner bead", "es": "Esquinero" },
           "multi": true,
           "opts": [
-            { "pt": "Cantoneira metálica", "en": "Metal corner bead" },
-            { "pt": "Paper-faced (No-Coat / Strait-Flex)", "en": "Paper-faced (No-Coat / Strait-Flex)" }, "Bullnose",
-            { "pt": "L-bead / J-bead (reveal)", "en": "L-bead / J-bead (reveal)" }, { "pt": "Arco / curva", "en": "Arch / curve" }
+            { "pt": "Cantoneira metálica", "en": "Metal corner bead", "es": "Esquinero metálico" },
+            { "pt": "Paper-faced (No-Coat / Strait-Flex)", "en": "Paper-faced (No-Coat / Strait-Flex)", "es": "Esquinero de papel (No-Coat / Strait-Flex)" },
+            "Bullnose", { "pt": "L-bead / J-bead (reveal)", "en": "L-bead / J-bead (reveal)", "es": "L-bead / J-bead (reveal)" },
+            { "pt": "Arco / curva", "en": "Arch / curve", "es": "Arco / curva" }
           ]
         },
         "compound": {
-          "label": { "pt": "Massa (compound)", "en": "Joint compound" },
+          "label": { "pt": "Massa (compound)", "en": "Joint compound", "es": "Compuesto para juntas" },
           "opts": [
-            { "pt": "Massa pronta all-purpose", "en": "All-purpose ready-mix" }, { "pt": "Setting compound (hot mud)", "en": "Setting compound (hot mud)" },
-            { "pt": "Massa leve (lightweight)", "en": "Lightweight" },
-            { "pt": "Mista (hot mud na fita + leve no acabamento)", "en": "Mixed (hot mud tape coat + lightweight topping)" }
+            { "pt": "Massa pronta all-purpose", "en": "All-purpose ready-mix", "es": "Premezclado multiuso" },
+            { "pt": "Setting compound (hot mud)", "en": "Setting compound (hot mud)", "es": "Compuesto de fraguado (hot mud)" },
+            { "pt": "Massa leve (lightweight)", "en": "Lightweight", "es": "Liviano" },
+            {
+              "pt": "Mista (hot mud na fita + leve no acabamento)",
+              "en": "Mixed (hot mud tape coat + lightweight topping)",
+              "es": "Mixto (hot mud para encintar + liviano de acabado)"
+            }
           ]
         },
         "insulation": {
-          "label": { "pt": "Isolamento", "en": "Insulation" },
+          "label": { "pt": "Isolamento", "en": "Insulation", "es": "Aislamiento" },
           "system": true,
           "opts": [
-            { "pt": "Por outros", "en": "By others" }, { "pt": "Sound batt (mineral wool) — nosso", "en": "Sound batt (mineral wool) — ours" },
-            { "pt": "Fiberglass — nosso", "en": "Fiberglass — ours" }, { "pt": "Não tem", "en": "None" }
+            { "pt": "Por outros", "en": "By others", "es": "Por otros" },
+            { "pt": "Sound batt (mineral wool) — nosso", "en": "Sound batt (mineral wool) — ours", "es": "Aislamiento acústico (lana mineral) — nuestro" },
+            { "pt": "Fiberglass — nosso", "en": "Fiberglass — ours", "es": "Fibra de vidrio — nuestra" }, { "pt": "Não tem", "en": "None", "es": "Ninguno" }
           ]
         },
         "delivery": {
-          "label": { "pt": "Entrega do material", "en": "Material delivery" },
+          "label": { "pt": "Entrega do material", "en": "Material delivery", "es": "Entrega del material" },
           "system": true,
           "opts": [
-            { "pt": "Boom delivery (pela janela)", "en": "Boom delivery (through window)" }, { "pt": "Entrega no chão", "en": "Ground drop" },
-            { "pt": "Carregar por escada (stocking)", "en": "Hand-carry up stairs (stocking)" }
+            { "pt": "Boom delivery (pela janela)", "en": "Boom delivery (through window)", "es": "Entrega con grúa (por la ventana)" },
+            { "pt": "Entrega no chão", "en": "Ground drop", "es": "Descarga en el suelo" },
+            { "pt": "Carregar por escada (stocking)", "en": "Hand-carry up stairs (stocking)", "es": "Subir a mano por la escalera (stocking)" }
           ]
         },
         "hazard": {
-          "label": { "pt": "Casa antiga (chumbo / asbesto)", "en": "Older building (lead / asbestos)" },
+          "label": { "pt": "Casa antiga (chumbo / asbesto)", "en": "Older building (lead / asbestos)", "es": "Edificio antiguo (plomo / asbesto)" },
           "opts": [
-            { "pt": "1978 ou depois", "en": "1978 or later" }, { "pt": "Antes de 1978 (RRP)", "en": "Before 1978 (RRP)" },
-            { "pt": "Popcorn / massa antiga — testar asbesto", "en": "Popcorn / old compound — test for asbestos" }
+            { "pt": "1978 ou depois", "en": "1978 or later", "es": "1978 o después" },
+            { "pt": "Antes de 1978 (RRP)", "en": "Before 1978 (RRP)", "es": "Antes de 1978 (RRP)" },
+            {
+              "pt": "Popcorn / massa antiga — testar asbesto",
+              "en": "Popcorn / old compound — test for asbestos",
+              "es": "Popcorn / compuesto viejo — hacer prueba de asbesto"
+            }
           ]
         }
       },
       text: [
-        { "key": "sheets", "label": { "pt": "Folhas (quantidade estimada)", "en": "Sheets (estimated count)" }, "unit": "sheet", "type": "number" },
-        { "key": "boardArea", "label": { "pt": "Área de drywall (sq ft)", "en": "Drywall area (sq ft)" }, "unit": "sqft", "type": "number" },
-        { "key": "metalFraming", "label": { "pt": "Metal framing (linear ft)", "en": "Metal framing (linear ft)" }, "unit": "lf", "type": "number" },
-        { "key": "ulDesign", "label": { "pt": "Assembly rated (ex.: UL U305)", "en": "Rated assembly (e.g. UL U305)" } }
+        {
+          "key": "sheets",
+          "label": { "pt": "Folhas (quantidade estimada)", "en": "Sheets (estimated count)", "es": "Hojas (cantidad estimada)" },
+          "unit": "sheet",
+          "type": "number"
+        },
+        { "key": "boardArea", "label": { "pt": "Área de drywall (sq ft)", "en": "Drywall area (sq ft)", "es": "Área de drywall (sq ft)" }, "unit": "sqft", "type": "number" },
+        {
+          "key": "metalFraming",
+          "label": { "pt": "Metal framing (linear ft)", "en": "Metal framing (linear ft)", "es": "Estructura metálica (pies lineales)" },
+          "unit": "lf",
+          "type": "number"
+        },
+        { "key": "ulDesign", "label": { "pt": "Assembly rated (ex.: UL U305)", "en": "Rated assembly (e.g. UL U305)", "es": "Ensamble clasificado (ej.: UL U305)" } }
       ],
       units: [
-        { "id": "sheet", "label": { "pt": "folha", "en": "sheet" } }, { "id": "sqft", "label": "sq ft" },
-        { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft" } }, { "id": "box", "label": { "pt": "caixa", "en": "box" } },
-        { "id": "pail", "label": { "pt": "balde", "en": "pail" } }, { "id": "bag", "label": { "pt": "saco", "en": "bag" } },
-        { "id": "ea", "label": { "pt": "un", "en": "ea" } }
+        { "id": "sheet", "label": { "pt": "folha", "en": "sheet", "es": "hoja" } }, { "id": "sqft", "label": "sq ft" },
+        { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft", "es": "pie lineal" } },
+        { "id": "box", "label": { "pt": "caixa", "en": "box", "es": "caja" } }, { "id": "pail", "label": { "pt": "balde", "en": "pail", "es": "cubeta" } },
+        { "id": "bag", "label": { "pt": "saco", "en": "bag", "es": "bolsa" } }, { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } }
       ],
       tasks: {
         "Preparação": [
-          { "pt": "Medição e takeoff (folhas)", "en": "Measure & takeoff (sheets)" },
-          { "pt": "Proteção do local (pisos, janelas)", "en": "Site protection (floors, windows)" },
-          { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)" },
-          { "pt": "Remover drywall / plaster existente", "en": "Remove existing drywall / plaster" },
-          { "pt": "Entrega e distribuição do material (stocking)", "en": "Material delivery & stocking" },
-          { "pt": "Conferir blocking / backing", "en": "Verify blocking / backing" }
+          { "pt": "Medição e takeoff (folhas)", "en": "Measure & takeoff (sheets)", "es": "Medir y sacar cantidades (hojas)" },
+          { "pt": "Proteção do local (pisos, janelas)", "en": "Site protection (floors, windows)", "es": "Protección del lugar (pisos, ventanas)" },
+          { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)", "es": "Contención segura contra plomo (RRP)" },
+          { "pt": "Remover drywall / plaster existente", "en": "Remove existing drywall / plaster", "es": "Quitar drywall / yeso existente" },
+          { "pt": "Entrega e distribuição do material (stocking)", "en": "Material delivery & stocking", "es": "Entrega y distribución del material" },
+          { "pt": "Conferir blocking / backing", "en": "Verify blocking / backing", "es": "Verificar refuerzos (blocking / backing)" }
         ],
         "Framing leve e forro": [
-          { "pt": "Metal studs e track", "en": "Metal studs & track" }, "Furring / resilient channel",
-          { "pt": "Isolamento acústico (sound batt)", "en": "Sound insulation (sound batts)" },
-          { "pt": "Grid do forro acústico (ACT)", "en": "Acoustical ceiling grid (ACT)" },
-          { "pt": "Placas do forro acústico", "en": "Acoustical ceiling tiles" }
+          { "pt": "Metal studs e track", "en": "Metal studs & track", "es": "Perfiles y canales metálicos" }, "Furring / resilient channel",
+          { "pt": "Isolamento acústico (sound batt)", "en": "Sound insulation (sound batts)", "es": "Aislamiento acústico (sound batts)" },
+          { "pt": "Grid do forro acústico (ACT)", "en": "Acoustical ceiling grid (ACT)", "es": "Rejilla de cielo falso acústico (ACT)" },
+          { "pt": "Placas do forro acústico", "en": "Acoustical ceiling tiles", "es": "Placas de cielo falso acústico" }
         ],
         "Hang": [
-          { "pt": "Pendurar tetos", "en": "Hang ceilings" }, { "pt": "Pendurar paredes", "en": "Hang walls" },
-          { "pt": "Drywall fire-rated (5/8\" Type X)", "en": "Fire-rated drywall (5/8\" Type X)" },
-          { "pt": "Drywall resistente à umidade / cement board", "en": "Moisture-resistant drywall / cement board" },
-          { "pt": "Cortes de caixas e aberturas", "en": "Cut out boxes & openings" }
+          { "pt": "Pendurar tetos", "en": "Hang ceilings", "es": "Colgar techos" },
+          { "pt": "Pendurar paredes", "en": "Hang walls", "es": "Colgar paredes" },
+          { "pt": "Drywall fire-rated (5/8\" Type X)", "en": "Fire-rated drywall (5/8\" Type X)", "es": "Drywall resistente al fuego (5/8\" Type X)" },
+          {
+            "pt": "Drywall resistente à umidade / cement board",
+            "en": "Moisture-resistant drywall / cement board",
+            "es": "Drywall resistente a humedad / cement board"
+          },
+          { "pt": "Cortes de caixas e aberturas", "en": "Cut out boxes & openings", "es": "Recortar cajas y aberturas" }
         ],
         "Tape & finish": [
-          { "pt": "Fita (tape) e 1ª demão", "en": "Tape & 1st coat" }, { "pt": "Cantoneiras (corner bead)", "en": "Corner bead" },
-          { "pt": "2ª demão", "en": "2nd coat" }, { "pt": "3ª demão / acabamento", "en": "3rd coat / finish coat" }, "Skim coat (Level 5)",
-          { "pt": "Lixamento", "en": "Sanding" }, { "pt": "Textura", "en": "Texture" }, { "pt": "Reparos / remendos", "en": "Repairs / patches" }
+          { "pt": "Fita (tape) e 1ª demão", "en": "Tape & 1st coat", "es": "Encintar y 1.ª mano" },
+          { "pt": "Cantoneiras (corner bead)", "en": "Corner bead", "es": "Esquinero" }, { "pt": "2ª demão", "en": "2nd coat", "es": "2.ª mano" },
+          { "pt": "3ª demão / acabamento", "en": "3rd coat / finish coat", "es": "3.ª mano / mano de acabado" }, "Skim coat (Level 5)",
+          { "pt": "Lixamento", "en": "Sanding", "es": "Lijado" }, { "pt": "Textura", "en": "Texture", "es": "Textura" },
+          { "pt": "Reparos / remendos", "en": "Repairs / patches", "es": "Reparaciones / parches" }
         ],
         "Acabamento": [
-          "Primer (PVA)", { "pt": "Retoques após outros ofícios (pickup)", "en": "Pickup after other trades" },
-          { "pt": "Limpeza e descarte", "en": "Cleanup & disposal" }, { "pt": "Punch list com o cliente / GC", "en": "Punch list walkthrough with owner / GC" }
+          "Primer (PVA)", { "pt": "Retoques após outros ofícios (pickup)", "en": "Pickup after other trades", "es": "Retoques después de otros oficios" },
+          { "pt": "Limpeza e descarte", "en": "Cleanup & disposal", "es": "Limpieza y desecho" },
+          { "pt": "Punch list com o cliente / GC", "en": "Punch list walkthrough with owner / GC", "es": "Recorrido de punch list con el dueño / GC" }
         ],
         "Inspeções": [
-          { "pt": "Inspeção de framing / isolamento liberada", "en": "Framing / insulation inspection passed" },
-          { "pt": "Teste de asbesto (popcorn / massa antiga)", "en": "Asbestos test (popcorn / old compound)" },
-          { "pt": "Inspeção de fire-rated (parafusamento)", "en": "Fire-rated inspection (screw pattern)" },
-          { "pt": "Inspeção com luz rasante (critical light)", "en": "Critical-light inspection" },
-          { "pt": "Inspeção final (building)", "en": "Final inspection (building)" }
+          { "pt": "Inspeção de framing / isolamento liberada", "en": "Framing / insulation inspection passed", "es": "Inspección de framing / aislamiento aprobada" },
+          { "pt": "Teste de asbesto (popcorn / massa antiga)", "en": "Asbestos test (popcorn / old compound)", "es": "Prueba de asbesto (popcorn / compuesto viejo)" },
+          {
+            "pt": "Inspeção de fire-rated (parafusamento)",
+            "en": "Fire-rated inspection (screw pattern)",
+            "es": "Inspección de resistencia al fuego (patrón de tornillos)"
+          },
+          { "pt": "Inspeção com luz rasante (critical light)", "en": "Critical-light inspection", "es": "Inspección con luz crítica" },
+          { "pt": "Inspeção final (building)", "en": "Final inspection (building)", "es": "Inspección final (construcción)" }
         ]
       },
       suggest: {
@@ -2503,41 +2817,61 @@
       },
       inspections: [
         {
-          "label": { "pt": "Inspeção de framing / isolamento liberada", "en": "Framing / insulation inspection passed" },
+          "label": { "pt": "Inspeção de framing / isolamento liberada", "en": "Framing / insulation inspection passed", "es": "Inspección de framing / aislamiento aprobada" },
           "authority": {
             "pt": "Building inspector (780 CMR) + energy code (isolamento); rough de elétrica / plumbing / HVAC aprovados",
-            "en": "Building inspector (780 CMR) + energy code (insulation); electrical / plumbing / HVAC rough approved"
+            "en": "Building inspector (780 CMR) + energy code (insulation); electrical / plumbing / HVAC rough approved",
+            "es": "Inspector de construcción (780 CMR) + código de energía (aislamiento); rough de electricidad / plomería / HVAC aprobado"
           },
-          "when": { "pt": "Antes de pendurar a primeira folha", "en": "Before hanging the first sheet" }
+          "when": { "pt": "Antes de pendurar a primeira folha", "en": "Before hanging the first sheet", "es": "Antes de colgar la primera hoja" }
         },
         {
-          "label": { "pt": "Inspeção de fire-rated (parafusamento)", "en": "Fire-rated inspection (screw pattern)" },
+          "label": {
+            "pt": "Inspeção de fire-rated (parafusamento)",
+            "en": "Fire-rated inspection (screw pattern)",
+            "es": "Inspección de resistencia al fuego (patrón de tornillos)"
+          },
           "authority": {
             "pt": "Building inspector — assembly listada (UL / GA-600): camadas, tipo de placa e espaçamento de parafusos",
-            "en": "Building inspector — listed assembly (UL / GA-600): layers, board type, and screw spacing"
+            "en": "Building inspector — listed assembly (UL / GA-600): layers, board type, and screw spacing",
+            "es": "Inspector de construcción — ensamble listado (UL / GA-600): capas, tipo de panel y espaciado de tornillos"
           },
           "when": {
             "pt": "Paredes / tetos rated (garagem, entre unidades, corredor) antes de passar fita, quando a cidade exige",
-            "en": "Rated walls / ceilings (garage, unit separation, corridor) before taping, where the town requires"
+            "en": "Rated walls / ceilings (garage, unit separation, corridor) before taping, where the town requires",
+            "es": "Paredes / techos clasificados (garaje, separación de unidades, pasillo) antes de encintar, donde el municipio lo exija"
           }
         },
         {
-          "label": { "pt": "Teste de asbesto (popcorn / massa antiga)", "en": "Asbestos test (popcorn / old compound)" },
-          "authority": { "pt": "Inspetor de asbesto licenciado pelo DLS (MassDEP 310 CMR 7.15)", "en": "DLS-licensed asbestos inspector (MassDEP 310 CMR 7.15)" },
-          "when": { "pt": "Antes de demolir popcorn, massa ou plaster antigos", "en": "Before demolishing old popcorn, joint compound, or plaster" }
+          "label": { "pt": "Teste de asbesto (popcorn / massa antiga)", "en": "Asbestos test (popcorn / old compound)", "es": "Prueba de asbesto (popcorn / compuesto viejo)" },
+          "authority": {
+            "pt": "Inspetor de asbesto licenciado pelo DLS (MassDEP 310 CMR 7.15)",
+            "en": "DLS-licensed asbestos inspector (MassDEP 310 CMR 7.15)",
+            "es": "Inspector de asbesto con licencia DLS (MassDEP 310 CMR 7.15)"
+          },
+          "when": {
+            "pt": "Antes de demolir popcorn, massa ou plaster antigos",
+            "en": "Before demolishing old popcorn, joint compound, or plaster",
+            "es": "Antes de demoler popcorn, compuesto de juntas o yeso viejos"
+          }
         },
         {
           "label": "CSL + HIC (MA)",
-          "authority": { "pt": "Board of Building Regulations and Standards (CSL) + OCABR (HIC)", "en": "Board of Building Regulations and Standards (CSL) + OCABR (HIC)" },
+          "authority": {
+            "pt": "Board of Building Regulations and Standards (CSL) + OCABR (HIC)",
+            "en": "Board of Building Regulations and Standards (CSL) + OCABR (HIC)",
+            "es": "Board of Building Regulations and Standards (CSL) + OCABR (HIC)"
+          },
           "when": {
             "pt": "Sheetrock / wallboard em casa de 1–4 famílias: CSL + HIC + building permit (normalmente do GC)",
-            "en": "Sheetrock / wallboard on 1–4 family homes: CSL + HIC + building permit (usually the GC's)"
+            "en": "Sheetrock / wallboard on 1–4 family homes: CSL + HIC + building permit (usually the GC's)",
+            "es": "Sheetrock / wallboard en casas de 1 a 4 familias: CSL + HIC + permiso de construcción (normalmente del GC)"
           }
         },
         {
-          "label": { "pt": "Inspeção final (building)", "en": "Final inspection (building)" },
-          "authority": { "pt": "Building inspector", "en": "Building inspector" },
-          "when": { "pt": "Fim da obra (junto com o GC)", "en": "End of job (with the GC)" }
+          "label": { "pt": "Inspeção final (building)", "en": "Final inspection (building)", "es": "Inspección final (construcción)" },
+          "authority": { "pt": "Building inspector", "en": "Building inspector", "es": "Inspector de construcción" },
+          "when": { "pt": "Fim da obra (junto com o GC)", "en": "End of job (with the GC)", "es": "Final de la obra (con el GC)" }
         }
       ],
       proposal: {
@@ -2607,7 +2941,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Casa nova de dois andares, mais ou menos 260 folhas: meia polegada nas paredes, 5/8 Type X na garagem e no teto, roxo nos banheiros. Fita e acabamento nível 4, primer incluído. Preço 31.500, 30/40/30.”",
-          "en": "e.g. “New two-story house, about 260 sheets: half-inch on walls, 5/8 Type X in the garage and ceilings, purple board in the bathrooms. Tape and finish Level 4, primer included. Price 31,500, 30/40/30.”"
+          "en": "e.g. “New two-story house, about 260 sheets: half-inch on walls, 5/8 Type X in the garage and ceilings, purple board in the bathrooms. Tape and finish Level 4, primer included. Price 31,500, 30/40/30.”",
+          "es": "ej.: “Casa nueva de dos pisos, unas 260 hojas: media pulgada en las paredes, 5/8 Type X en el garaje y los techos, panel morado en los baños. Encintado y acabado Nivel 4, primer incluido. Precio 31,500, 30/40/30.”"
         },
         "aiRules": "Trade: DRYWALL / interior systems contractor (hang, tape and finish, light-gauge metal framing, acoustical ceilings, plaster repair).\nStandards: ASTM C840, GA-216 (application), GA-214 (levels of finish), UL / GA-600 (rated assemblies), ASTM C636 (suspended ceilings), 780 CMR. In MA, wallboard work on 1–4 family homes is done under a CSL + HIC; the building permit is usually the GC's — only say \"permit fees included\" if spoken.\nTypical sections: \"Site Protection & Material Handling\", \"Light-Gauge Metal Framing\", \"Gypsum Board — Hanging\", \"Fire-Rated Assemblies\", \"Taping & Finishing\", \"Level 5 Skim Coat\", \"Plaster & Drywall Repairs\", \"Acoustical Ceilings\", \"Cleanup & Touch-Up\".\nAlways state board thickness and type per area (1/2\" regular or lightweight; 5/8\" Type X at garage separation and rated assemblies; moisture-resistant in baths; cement board behind tile) and the finish level (default GA-214 Level 4 unless spoken).\nQuantities: sheets (4x8 / 4x12 / 4x10) or sq ft of board, metal framing in linear feet, ACT in sq ft. If the speaker says \"X folhas\", write \"approx. X sheets\". Never list screws, tape, or compound quantities.\nRated assemblies: quote the UL design number only if spoken; never claim a fire rating without a listed design. Firestopping of MEP penetrations is by those trades.\nAlways exclude: wood framing / blocking unless listed, insulation unless listed, paint / primer unless listed, asbestos or lead abatement, damage by other trades after finish, dumpster unless listed.\nConditions: building closed in and heated (min 50°F), inspections approved before hanging; one return visit for nail pops.\nMA owner-occupied 1–4 family homes contracted directly with the Owner (HIC law, M.G.L. c.142A): deposit max one-third of the price unless for special-order materials.\nSpeech terms: \"folha\" = sheet, \"massa\" = joint compound, \"fita\" = tape, \"cantoneira\" = corner bead, \"hot mud / durabond\" = setting compound, \"gesso / sheetrock\" = gypsum board, \"roxo\" = purple moisture-resistant board, \"forro\" = ceiling / drop ceiling, \"corta-fogo\" = fire-rated, \"lixar\" = sand.",
         "facts": {
@@ -2640,7 +2975,8 @@
         ],
         "adjustExample": {
           "pt": "Ex.: “Tira o primer, muda o preço para 29 mil e acrescenta o teto da garagem em 5/8 Type X.”",
-          "en": "e.g. “Remove the primer, change the price to 29K and add the garage ceiling in 5/8 Type X.”"
+          "en": "e.g. “Remove the primer, change the price to 29K and add the garage ceiling in 5/8 Type X.”",
+          "es": "ej.: “Quita el primer, cambia el precio a 29 mil y agrega el techo del garaje en 5/8 Type X.”"
         }
       },
       prices: {
@@ -2649,33 +2985,66 @@
           { "id": "gms", "name": "GMS (Gypsum Management & Supply)", "short": "GMS", "search": "site:gms.com" }, "homedepot", "lowes", "lumberyard"
         ],
         "basic": [
-          ["Drywall 1/2\" 4x8", "Drywall", { "pt": "folha", "en": "sheet" }],
-          ["Drywall 1/2\" 4x12", "Drywall", { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Drywall 1/2\" leve (lightweight) 4x8", "en": "Drywall 1/2\" lightweight 4x8" }, "Drywall", { "pt": "folha", "en": "sheet" }],
-          ["Drywall 5/8\" Type X 4x8", "Drywall", { "pt": "folha", "en": "sheet" }],
-          ["Drywall 5/8\" Type X 4x12", "Drywall", { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Drywall resistente a umidade 1/2\" 4x8", "en": "Moisture-resistant drywall 1/2\" 4x8" }, "Drywall", { "pt": "folha", "en": "sheet" }],
-          ["Cement board 1/2\" 3x5", "Drywall", { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Massa all-purpose 4,5 gal", "en": "All-purpose joint compound 4.5 gal" }, { "pt": "Massa", "en": "Compound" }, { "pt": "balde", "en": "pail" }],
-          [{ "pt": "Massa leve (lightweight) — caixa", "en": "Lightweight joint compound — carton" }, { "pt": "Massa", "en": "Compound" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Setting compound 45/90 min (saco)", "en": "Setting compound 45/90 min (bag)" }, { "pt": "Massa", "en": "Compound" }, { "pt": "saco", "en": "bag" }],
-          [{ "pt": "Fita de papel 500 ft", "en": "Paper joint tape 500 ft" }, { "pt": "Fita e cantoneira", "en": "Tape & bead" }, { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Cantoneira metálica 8 ft", "en": "Metal corner bead 8 ft" }, { "pt": "Fita e cantoneira", "en": "Tape & bead" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Cantoneira paper-faced 10 ft", "en": "Paper-faced corner bead 10 ft" }, { "pt": "Fita e cantoneira", "en": "Tape & bead" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Parafuso drywall 1-1/4\" (caixa)", "en": "Drywall screws 1-1/4\" (box)" }, { "pt": "Fixação", "en": "Fasteners" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Parafuso drywall 1-5/8\" (caixa)", "en": "Drywall screws 1-5/8\" (box)" }, { "pt": "Fixação", "en": "Fasteners" }, { "pt": "caixa", "en": "box" }],
-          ["Metal stud 3-5/8\" 25 ga — 10 ft", "Framing", { "pt": "peça", "en": "each" }],
-          ["Track 3-5/8\" 25 ga — 10 ft", "Framing", { "pt": "peça", "en": "each" }],
-          ["Resilient channel — 12 ft", "Framing", { "pt": "peça", "en": "each" }],
-          [{ "pt": "Grid ACT main tee 12 ft", "en": "ACT grid main tee 12 ft" }, { "pt": "Forro acústico", "en": "Acoustical ceiling" }, { "pt": "peça", "en": "each" }],
+          ["Drywall 1/2\" 4x8", "Drywall", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          ["Drywall 1/2\" 4x12", "Drywall", { "pt": "folha", "en": "sheet", "es": "hoja" }],
           [
-            { "pt": "Placa de forro acústico 2x2 (caixa)", "en": "Acoustical ceiling tile 2x2 (carton)" },
-            { "pt": "Forro acústico", "en": "Acoustical ceiling" }, { "pt": "caixa", "en": "box" }
+            { "pt": "Drywall 1/2\" leve (lightweight) 4x8", "en": "Drywall 1/2\" lightweight 4x8", "es": "Drywall 1/2\" liviano 4x8" }, "Drywall",
+            { "pt": "folha", "en": "sheet", "es": "hoja" }
+          ],
+          ["Drywall 5/8\" Type X 4x8", "Drywall", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          ["Drywall 5/8\" Type X 4x12", "Drywall", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          [
+            { "pt": "Drywall resistente a umidade 1/2\" 4x8", "en": "Moisture-resistant drywall 1/2\" 4x8", "es": "Drywall resistente a humedad 1/2\" 4x8" },
+            "Drywall", { "pt": "folha", "en": "sheet", "es": "hoja" }
+          ],
+          ["Cement board 1/2\" 3x5", "Drywall", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          [
+            { "pt": "Massa all-purpose 4,5 gal", "en": "All-purpose joint compound 4.5 gal", "es": "Compuesto para juntas multiuso 4.5 gal" },
+            { "pt": "Massa", "en": "Compound", "es": "Compuesto" }, { "pt": "balde", "en": "pail", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Massa leve (lightweight) — caixa", "en": "Lightweight joint compound — carton", "es": "Compuesto para juntas liviano — caja" },
+            { "pt": "Massa", "en": "Compound", "es": "Compuesto" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [
+            { "pt": "Setting compound 45/90 min (saco)", "en": "Setting compound 45/90 min (bag)", "es": "Compuesto de fraguado 45/90 min (bolsa)" },
+            { "pt": "Massa", "en": "Compound", "es": "Compuesto" }, { "pt": "saco", "en": "bag", "es": "bolsa" }
+          ],
+          [
+            { "pt": "Fita de papel 500 ft", "en": "Paper joint tape 500 ft", "es": "Cinta de papel para juntas 500 ft" },
+            { "pt": "Fita e cantoneira", "en": "Tape & bead", "es": "Cinta y esquineros" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Cantoneira metálica 8 ft", "en": "Metal corner bead 8 ft", "es": "Esquinero metálico 8 ft" },
+            { "pt": "Fita e cantoneira", "en": "Tape & bead", "es": "Cinta y esquineros" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Cantoneira paper-faced 10 ft", "en": "Paper-faced corner bead 10 ft", "es": "Esquinero de papel 10 ft" },
+            { "pt": "Fita e cantoneira", "en": "Tape & bead", "es": "Cinta y esquineros" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Parafuso drywall 1-1/4\" (caixa)", "en": "Drywall screws 1-1/4\" (box)", "es": "Tornillos para drywall 1-1/4\" (caja)" },
+            { "pt": "Fixação", "en": "Fasteners", "es": "Fijaciones" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [
+            { "pt": "Parafuso drywall 1-5/8\" (caixa)", "en": "Drywall screws 1-5/8\" (box)", "es": "Tornillos para drywall 1-5/8\" (caja)" },
+            { "pt": "Fixação", "en": "Fasteners", "es": "Fijaciones" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          ["Metal stud 3-5/8\" 25 ga — 10 ft", { "pt": "Framing", "en": "Framing", "es": "Estructura metálica" }, { "pt": "peça", "en": "each", "es": "c/u" }],
+          ["Track 3-5/8\" 25 ga — 10 ft", { "pt": "Framing", "en": "Framing", "es": "Estructura metálica" }, { "pt": "peça", "en": "each", "es": "c/u" }],
+          ["Resilient channel — 12 ft", { "pt": "Framing", "en": "Framing", "es": "Estructura metálica" }, { "pt": "peça", "en": "each", "es": "c/u" }],
+          [
+            { "pt": "Grid ACT main tee 12 ft", "en": "ACT grid main tee 12 ft", "es": "Main tee de rejilla ACT 12 ft" },
+            { "pt": "Forro acústico", "en": "Acoustical ceiling", "es": "Cielo falso acústico" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Placa de forro acústico 2x2 (caixa)", "en": "Acoustical ceiling tile 2x2 (carton)", "es": "Placa de cielo falso acústico 2x2 (caja)" },
+            { "pt": "Forro acústico", "en": "Acoustical ceiling", "es": "Cielo falso acústico" }, { "pt": "caixa", "en": "box", "es": "caja" }
           ]
         ],
-        "basicOffer": [{ "list": "drywall", "label": { "pt": "Adicionar lista básica de drywall", "en": "Add basic drywall list" } }],
+        "basicOffer": [{ "list": "drywall", "label": { "pt": "Adicionar lista básica de drywall", "en": "Add basic drywall list", "es": "Agregar lista básica de drywall" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: 1/2\" regular, Type X, massa leve", "en": "e.g. 1/2\" regular, Type X, lightweight mud" }
+        "searchExample": { "pt": "ex.: 1/2\" regular, Type X, massa leve", "en": "e.g. 1/2\" regular, Type X, lightweight mud", "es": "ej.: 1/2\" regular, Type X, compuesto liviano" }
       },
       groupsI18n: {
         "en": {
@@ -2685,6 +3054,14 @@
           "Tape & finish": "Tape & finish",
           "Acabamento": "Finish",
           "Inspeções": "Inspections"
+        },
+        "es": {
+          "Preparação": "Preparación",
+          "Framing leve e forro": "Estructura liviana y techos",
+          "Hang": "Colgar (hang)",
+          "Tape & finish": "Encintado y acabado",
+          "Acabamento": "Acabado",
+          "Inspeções": "Inspecciones"
         }
       }
     },
@@ -2693,158 +3070,199 @@
       aliases: [],
       order: 60,
       category: "finish",
-      label: { "pt": "Pintura", "en": "Painting" },
+      label: { "pt": "Pintura", "en": "Painting", "es": "Pintura" },
       companySuffix: "Painting",
-      onboarding: { "label": { "pt": "Pintura", "en": "Painting" }, "desc": { "pt": "Interior, exterior, armários, stain", "en": "Interior, exterior, cabinets, stain" } },
+      onboarding: {
+        "label": { "pt": "Pintura", "en": "Painting", "es": "Pintura" },
+        "desc": { "pt": "Interior, exterior, armários, stain", "en": "Interior, exterior, cabinets, stain", "es": "Interior, exterior, gabinetes, tinte" }
+      },
       icon: {
         "svg": "<rect x=\"4\" y=\"3.5\" width=\"13\" height=\"5\" rx=\"1.5\"/><path d=\"M17 6h2.5v5H12v3.5\"/><rect x=\"10.5\" y=\"14.5\" width=\"3\" height=\"6\" rx=\"1\"/>"
       },
-      kind: { "pt": "trabalho de pintura", "en": "painting job" },
-      stepName: { "pt": "Pintura", "en": "Painting" },
-      group: { "label": { "pt": "Pintura", "en": "Painting" }, "icon": "trade-painting" },
+      kind: { "pt": "trabalho de pintura", "en": "painting job", "es": "trabajo de pintura" },
+      stepName: { "pt": "Pintura", "en": "Painting", "es": "Pintura" },
+      group: { "label": { "pt": "Pintura", "en": "Painting", "es": "Pintura" }, "icon": "trade-painting" },
       workType: [
-        { "pt": "Interior residencial", "en": "Residential interior" }, { "pt": "Exterior residencial", "en": "Residential exterior" }, "Interior + exterior",
-        { "pt": "Comercial / multifamily", "en": "Commercial / multifamily" }, "New Construction",
-        { "pt": "Repintura de unidade (turnover)", "en": "Unit turnover repaint" }, { "pt": "Armários (cabinet refinishing)", "en": "Cabinet refinishing" },
-        { "pt": "Deck / cerca (stain)", "en": "Deck / fence (stain)" }
+        { "pt": "Interior residencial", "en": "Residential interior", "es": "Interior residencial" },
+        { "pt": "Exterior residencial", "en": "Residential exterior", "es": "Exterior residencial" }, "Interior + exterior",
+        { "pt": "Comercial / multifamily", "en": "Commercial / multifamily", "es": "Comercial / multifamiliar" }, "New Construction",
+        { "pt": "Repintura de unidade (turnover)", "en": "Unit turnover repaint", "es": "Repintado de unidad (turnover)" },
+        { "pt": "Armários (cabinet refinishing)", "en": "Cabinet refinishing", "es": "Renovación de gabinetes" },
+        { "pt": "Deck / cerca (stain)", "en": "Deck / fence (stain)", "es": "Deck / cerca (tinte)" }
       ],
       fields: {
         "paintScope": {
-          "label": { "pt": "O que pintar", "en": "Surfaces to paint" },
+          "label": { "pt": "O que pintar", "en": "Surfaces to paint", "es": "Superficies a pintar" },
           "multi": true,
           "opts": [
-            { "pt": "Paredes", "en": "Walls" }, { "pt": "Tetos", "en": "Ceilings" }, { "pt": "Trim / rodapés", "en": "Trim & baseboards" },
-            { "pt": "Portas", "en": "Doors" }, { "pt": "Janelas", "en": "Windows" }, { "pt": "Armários", "en": "Cabinets" },
-            { "pt": "Escadas e corrimão", "en": "Stairs & railings" }, "Siding / clapboard", "Soffit / fascia", { "pt": "Deck / cerca", "en": "Deck / fence" },
-            { "pt": "Piso de concreto (epóxi)", "en": "Concrete floor (epoxy)" }
+            { "pt": "Paredes", "en": "Walls", "es": "Paredes" }, { "pt": "Tetos", "en": "Ceilings", "es": "Techos" },
+            { "pt": "Trim / rodapés", "en": "Trim & baseboards", "es": "Molduras y zócalos" }, { "pt": "Portas", "en": "Doors", "es": "Puertas" },
+            { "pt": "Janelas", "en": "Windows", "es": "Ventanas" }, { "pt": "Armários", "en": "Cabinets", "es": "Gabinetes" },
+            { "pt": "Escadas e corrimão", "en": "Stairs & railings", "es": "Escaleras y barandas" }, "Siding / clapboard", "Soffit / fascia",
+            { "pt": "Deck / cerca", "en": "Deck / fence", "es": "Deck / cerca" },
+            { "pt": "Piso de concreto (epóxi)", "en": "Concrete floor (epoxy)", "es": "Piso de concreto (epoxi)" }
           ]
         },
         "substrate": {
-          "label": { "pt": "Superfície (substrato)", "en": "Substrate" },
+          "label": { "pt": "Superfície (substrato)", "en": "Substrate", "es": "Superficie base" },
           "multi": true,
           "opts": [
-            { "pt": "Drywall novo", "en": "New drywall" }, { "pt": "Drywall já pintado", "en": "Previously painted drywall" }, "Plaster",
-            { "pt": "Madeira", "en": "Wood" }, { "pt": "Vinil / alumínio", "en": "Vinyl / aluminum" }, "Fiber cement",
-            { "pt": "Alvenaria / estuque", "en": "Masonry / stucco" }, "Metal", { "pt": "Concreto", "en": "Concrete" }
+            { "pt": "Drywall novo", "en": "New drywall", "es": "Drywall nuevo" },
+            { "pt": "Drywall já pintado", "en": "Previously painted drywall", "es": "Drywall ya pintado" }, "Plaster",
+            { "pt": "Madeira", "en": "Wood", "es": "Madera" }, { "pt": "Vinil / alumínio", "en": "Vinyl / aluminum", "es": "Vinilo / aluminio" }, "Fiber cement",
+            { "pt": "Alvenaria / estuque", "en": "Masonry / stucco", "es": "Mampostería / estuco" }, "Metal",
+            { "pt": "Concreto", "en": "Concrete", "es": "Concreto" }
           ]
         },
         "leadAge": {
-          "label": { "pt": "Ano da casa (chumbo)", "en": "Year built (lead)" },
+          "label": { "pt": "Ano da casa (chumbo)", "en": "Year built (lead)", "es": "Año de construcción (plomo)" },
           "opts": [
-            { "pt": "Antes de 1978 (RRP lead-safe)", "en": "Before 1978 (RRP lead-safe)" }, { "pt": "1978 ou depois", "en": "1978 or later" },
-            { "pt": "Não sei (testar)", "en": "Unknown (test)" }
+            { "pt": "Antes de 1978 (RRP lead-safe)", "en": "Before 1978 (RRP lead-safe)", "es": "Antes de 1978 (RRP, seguro contra plomo)" },
+            { "pt": "1978 ou depois", "en": "1978 or later", "es": "1978 o después" },
+            { "pt": "Não sei (testar)", "en": "Unknown (test)", "es": "Desconocido (hacer prueba)" }
           ]
         },
         "condition": {
-          "label": { "pt": "Condição das superfícies", "en": "Surface condition" },
+          "label": { "pt": "Condição das superfícies", "en": "Surface condition", "es": "Estado de la superficie" },
           "opts": [
-            { "pt": "Boa (só repintar)", "en": "Good (repaint only)" }, { "pt": "Pequenos reparos (furos)", "en": "Minor repairs (nail holes)" },
-            { "pt": "Reparos médios (trincas, massa)", "en": "Moderate repairs (cracks, patching)" },
-            { "pt": "Descascando / muito dano", "en": "Peeling / heavy damage" }
+            { "pt": "Boa (só repintar)", "en": "Good (repaint only)", "es": "Bueno (solo repintar)" },
+            { "pt": "Pequenos reparos (furos)", "en": "Minor repairs (nail holes)", "es": "Reparaciones menores (huecos de clavos)" },
+            { "pt": "Reparos médios (trincas, massa)", "en": "Moderate repairs (cracks, patching)", "es": "Reparaciones moderadas (grietas, parches)" },
+            { "pt": "Descascando / muito dano", "en": "Peeling / heavy damage", "es": "Pintura descascarada / daño grave" }
           ]
         },
         "prep": {
-          "label": { "pt": "Preparação", "en": "Surface prep" },
+          "label": { "pt": "Preparação", "en": "Surface prep", "es": "Preparación de la superficie" },
           "multi": true,
           "opts": [
-            { "pt": "Lavar (power wash)", "en": "Power wash" }, { "pt": "Raspar e lixar", "en": "Scrape & sand" },
-            { "pt": "Massa (spackle)", "en": "Spackle & patch" }, "Skim coat", { "pt": "Calafetar (caulk)", "en": "Caulking" },
-            { "pt": "Primer spot", "en": "Spot prime" }, { "pt": "Primer total", "en": "Full prime" },
-            { "pt": "Trocar madeira podre", "en": "Replace rotted wood" }, { "pt": "Remover papel de parede", "en": "Wallpaper removal" },
-            { "pt": "Tratar mofo", "en": "Mildew treatment" }
+            { "pt": "Lavar (power wash)", "en": "Power wash", "es": "Lavado a presión" },
+            { "pt": "Raspar e lixar", "en": "Scrape & sand", "es": "Raspar y lijar" },
+            { "pt": "Massa (spackle)", "en": "Spackle & patch", "es": "Masillar y parchar" }, "Skim coat",
+            { "pt": "Calafetar (caulk)", "en": "Caulking", "es": "Calafateo" }, { "pt": "Primer spot", "en": "Spot prime", "es": "Primer en puntos" },
+            { "pt": "Primer total", "en": "Full prime", "es": "Primer completo" },
+            { "pt": "Trocar madeira podre", "en": "Replace rotted wood", "es": "Cambiar madera podrida" },
+            { "pt": "Remover papel de parede", "en": "Wallpaper removal", "es": "Quitar papel tapiz" },
+            { "pt": "Tratar mofo", "en": "Mildew treatment", "es": "Tratamiento contra moho" }
           ]
         },
         "coats": {
-          "label": { "pt": "Demãos", "en": "Coats" },
+          "label": { "pt": "Demãos", "en": "Coats", "es": "Manos" },
           "opts": [
-            { "pt": "1 demão (refresh)", "en": "1 coat (refresh)" }, { "pt": "2 demãos", "en": "2 coats" },
-            { "pt": "Primer + 2 demãos", "en": "Primer + 2 coats" }, { "pt": "3+ demãos (troca forte de cor)", "en": "3+ coats (major color change)" }
+            { "pt": "1 demão (refresh)", "en": "1 coat (refresh)", "es": "1 mano (refrescar)" }, { "pt": "2 demãos", "en": "2 coats", "es": "2 manos" },
+            { "pt": "Primer + 2 demãos", "en": "Primer + 2 coats", "es": "Primer + 2 manos" },
+            { "pt": "3+ demãos (troca forte de cor)", "en": "3+ coats (major color change)", "es": "3+ manos (gran cambio de color)" }
           ]
         },
-        "sheen": { "label": { "pt": "Brilho (sheen)", "en": "Sheen" }, "multi": true, "opts": ["Flat / matte", "Eggshell", "Satin", "Semi-gloss", "Gloss"] },
+        "sheen": { "label": { "pt": "Brilho (sheen)", "en": "Sheen", "es": "Acabado (brillo)" }, "multi": true, "opts": ["Flat / matte", "Eggshell", "Satin", "Semi-gloss", "Gloss"] },
         "paintBrand": {
-          "label": { "pt": "Marca da tinta", "en": "Paint brand" },
-          "opts": ["Sherwin-Williams", "Benjamin Moore", "Behr", "PPG", "Valspar", { "pt": "Fornecida pelo cliente", "en": "Supplied by owner" }, { "pt": "Outra", "en": "Other" }]
+          "label": { "pt": "Marca da tinta", "en": "Paint brand", "es": "Marca de pintura" },
+          "opts": [
+            "Sherwin-Williams", "Benjamin Moore", "Behr", "PPG", "Valspar",
+            { "pt": "Fornecida pelo cliente", "en": "Supplied by owner", "es": "La pone el dueño" }, { "pt": "Outra", "en": "Other", "es": "Otra" }
+          ]
         },
         "productLine": {
-          "label": { "pt": "Linha da tinta", "en": "Product line" },
+          "label": { "pt": "Linha da tinta", "en": "Product line", "es": "Línea de producto" },
           "opts": [
-            { "pt": "Contractor (ProMar / Ultra Spec)", "en": "Contractor grade (ProMar / Ultra Spec)" },
-            { "pt": "Intermediária (SuperPaint / ben)", "en": "Mid-grade (SuperPaint / ben)" }, "Premium (Duration / Emerald / Aura / Regal)",
-            { "pt": "Esmalte para armário (urethane / alkyd híbrido)", "en": "Cabinet enamel (urethane / hybrid alkyd)" },
-            { "pt": "Stain (sólido / semi-transparente)", "en": "Stain (solid / semi-transparent)" }
+            { "pt": "Contractor (ProMar / Ultra Spec)", "en": "Contractor grade (ProMar / Ultra Spec)", "es": "Grado contratista (ProMar / Ultra Spec)" },
+            { "pt": "Intermediária (SuperPaint / ben)", "en": "Mid-grade (SuperPaint / ben)", "es": "Grado medio (SuperPaint / ben)" },
+            "Premium (Duration / Emerald / Aura / Regal)",
+            {
+              "pt": "Esmalte para armário (urethane / alkyd híbrido)",
+              "en": "Cabinet enamel (urethane / hybrid alkyd)",
+              "es": "Esmalte para gabinetes (uretano / alquídico híbrido)"
+            },
+            { "pt": "Stain (sólido / semi-transparente)", "en": "Stain (solid / semi-transparent)", "es": "Tinte (sólido / semitransparente)" }
           ]
         },
         "colorChange": {
-          "label": { "pt": "Troca de cor", "en": "Color change" },
+          "label": { "pt": "Troca de cor", "en": "Color change", "es": "Cambio de color" },
           "opts": [
-            { "pt": "Mesma cor", "en": "Same color" }, { "pt": "Cor parecida", "en": "Similar color" },
-            { "pt": "Troca forte (claro ↔ escuro)", "en": "Major change (light ↔ dark)" }, { "pt": "Várias cores por cômodo", "en": "Multiple colors by room" }
+            { "pt": "Mesma cor", "en": "Same color", "es": "Mismo color" }, { "pt": "Cor parecida", "en": "Similar color", "es": "Color parecido" },
+            { "pt": "Troca forte (claro ↔ escuro)", "en": "Major change (light ↔ dark)", "es": "Cambio grande (claro ↔ oscuro)" },
+            { "pt": "Várias cores por cômodo", "en": "Multiple colors by room", "es": "Varios colores por cuarto" }
           ]
         },
         "height": {
-          "label": { "pt": "Altura / acesso", "en": "Height / access" },
+          "label": { "pt": "Altura / acesso", "en": "Height / access", "es": "Altura / acceso" },
           "multi": true,
           "system": true,
           "opts": [
-            { "pt": "Até 10 ft (escada comum)", "en": "Up to 10 ft (step ladder)" }, { "pt": "Teto alto / escadaria", "en": "High ceiling / stairwell" },
-            { "pt": "Escada extensível (2 andares)", "en": "Extension ladder (2 stories)" }, { "pt": "Andaime / staging", "en": "Staging / scaffold" },
-            { "pt": "Lift (boom / tesoura)", "en": "Lift (boom / scissor)" }
+            { "pt": "Até 10 ft (escada comum)", "en": "Up to 10 ft (step ladder)", "es": "Hasta 10 ft (escalera de tijera)" },
+            { "pt": "Teto alto / escadaria", "en": "High ceiling / stairwell", "es": "Techo alto / caja de escalera" },
+            { "pt": "Escada extensível (2 andares)", "en": "Extension ladder (2 stories)", "es": "Escalera de extensión (2 pisos)" },
+            { "pt": "Andaime / staging", "en": "Staging / scaffold", "es": "Andamio" },
+            { "pt": "Lift (boom / tesoura)", "en": "Lift (boom / scissor)", "es": "Elevador (boom / tijera)" }
           ]
         },
         "method": {
-          "label": { "pt": "Aplicação", "en": "Application" },
+          "label": { "pt": "Aplicação", "en": "Application", "es": "Aplicación" },
           "multi": true,
           "system": true,
-          "opts": [{ "pt": "Rolo e pincel", "en": "Brush & roll" }, "Spray airless", "Spray + back-roll", { "pt": "HVLP (armários)", "en": "HVLP (cabinets)" }]
+          "opts": [
+            { "pt": "Rolo e pincel", "en": "Brush & roll", "es": "Brocha y rodillo" }, "Spray airless", "Spray + back-roll",
+            { "pt": "HVLP (armários)", "en": "HVLP (cabinets)", "es": "HVLP (gabinetes)" }
+          ]
         }
       },
       text: [
-        { "key": "paintArea", "label": { "pt": "Área de pintura (sq ft)", "en": "Paint area (sq ft)" }, "unit": "sqft", "type": "number" },
-        { "key": "rooms", "label": { "pt": "Cômodos / ambientes", "en": "Rooms / areas" } },
-        { "key": "colors", "label": { "pt": "Cores (nome / código)", "en": "Colors (name / code)" } },
-        { "key": "gallons", "label": { "pt": "Tinta estimada (galões)", "en": "Estimated paint (gallons)" }, "unit": "gal", "type": "number" }
+        { "key": "paintArea", "label": { "pt": "Área de pintura (sq ft)", "en": "Paint area (sq ft)", "es": "Área de pintura (sq ft)" }, "unit": "sqft", "type": "number" },
+        { "key": "rooms", "label": { "pt": "Cômodos / ambientes", "en": "Rooms / areas", "es": "Cuartos / áreas" } },
+        { "key": "colors", "label": { "pt": "Cores (nome / código)", "en": "Colors (name / code)", "es": "Colores (nombre / código)" } },
+        {
+          "key": "gallons",
+          "label": { "pt": "Tinta estimada (galões)", "en": "Estimated paint (gallons)", "es": "Pintura estimada (galones)" },
+          "unit": "gal",
+          "type": "number"
+        }
       ],
       units: [
-        { "id": "sqft", "label": "sq ft" }, { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft" } },
-        { "id": "ea", "label": { "pt": "un", "en": "ea" } }, { "id": "gal", "label": { "pt": "galões", "en": "gal" } },
-        { "id": "qt", "label": { "pt": "quart", "en": "qt" } }, { "id": "pail", "label": { "pt": "balde 5 gal", "en": "5-gal pail" } },
-        { "id": "room", "label": { "pt": "cômodo", "en": "room" } }
+        { "id": "sqft", "label": "sq ft" }, { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft", "es": "pie lineal" } },
+        { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } }, { "id": "gal", "label": { "pt": "galões", "en": "gal", "es": "gal" } },
+        { "id": "qt", "label": { "pt": "quart", "en": "qt", "es": "qt" } },
+        { "id": "pail", "label": { "pt": "balde 5 gal", "en": "5-gal pail", "es": "cubeta de 5 gal" } },
+        { "id": "room", "label": { "pt": "cômodo", "en": "room", "es": "cuarto" } }
       ],
       tasks: {
         "Preparação e proteção": [
-          { "pt": "Mover / cobrir móveis", "en": "Move / cover furniture" },
-          { "pt": "Proteger pisos (drop cloth / Ram Board)", "en": "Protect floors (drop cloths / Ram Board)" },
-          { "pt": "Mascarar janelas, trim e ferragens", "en": "Mask windows, trim & hardware" },
-          { "pt": "Remover espelhos de tomada e ferragens", "en": "Remove cover plates & hardware" },
-          { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)" },
-          { "pt": "Lavar superfícies (power wash / TSP)", "en": "Wash surfaces (power wash / TSP)" }
+          { "pt": "Mover / cobrir móveis", "en": "Move / cover furniture", "es": "Mover / cubrir los muebles" },
+          { "pt": "Proteger pisos (drop cloth / Ram Board)", "en": "Protect floors (drop cloths / Ram Board)", "es": "Proteger los pisos (lonas / Ram Board)" },
+          { "pt": "Mascarar janelas, trim e ferragens", "en": "Mask windows, trim & hardware", "es": "Enmascarar ventanas, molduras y herrajes" },
+          { "pt": "Remover espelhos de tomada e ferragens", "en": "Remove cover plates & hardware", "es": "Quitar tapas y herrajes" },
+          { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)", "es": "Contención segura contra plomo (RRP)" },
+          { "pt": "Lavar superfícies (power wash / TSP)", "en": "Wash surfaces (power wash / TSP)", "es": "Lavar las superficies (lavado a presión / TSP)" }
         ],
         "Reparos de superfície": [
-          { "pt": "Raspar tinta solta", "en": "Scrape loose paint" }, { "pt": "Lixar e desbastar", "en": "Sand & feather edges" },
-          { "pt": "Massa em furos e trincas", "en": "Patch holes & cracks" }, "Skim coat", { "pt": "Remover papel de parede", "en": "Wallpaper removal" },
-          { "pt": "Trocar madeira podre", "en": "Replace rotted wood" }, { "pt": "Calafetar juntas (caulk)", "en": "Caulk joints" },
-          { "pt": "Primer (spot / total)", "en": "Prime (spot / full)" }
+          { "pt": "Raspar tinta solta", "en": "Scrape loose paint", "es": "Raspar la pintura suelta" },
+          { "pt": "Lixar e desbastar", "en": "Sand & feather edges", "es": "Lijar y emparejar bordes" },
+          { "pt": "Massa em furos e trincas", "en": "Patch holes & cracks", "es": "Parchar huecos y grietas" }, "Skim coat",
+          { "pt": "Remover papel de parede", "en": "Wallpaper removal", "es": "Quitar papel tapiz" },
+          { "pt": "Trocar madeira podre", "en": "Replace rotted wood", "es": "Cambiar madera podrida" },
+          { "pt": "Calafetar juntas (caulk)", "en": "Caulk joints", "es": "Calafatear juntas" },
+          { "pt": "Primer (spot / total)", "en": "Prime (spot / full)", "es": "Primer (en puntos / completo)" }
         ],
         "Pintura interior": [
-          { "pt": "Tetos", "en": "Ceilings" }, { "pt": "Paredes — 1ª demão", "en": "Walls — 1st coat" },
-          { "pt": "Paredes — 2ª demão", "en": "Walls — 2nd coat" }, { "pt": "Trim e rodapés", "en": "Trim & baseboards" },
-          { "pt": "Portas e batentes", "en": "Doors & jambs" }, { "pt": "Armários (cabinets)", "en": "Cabinets" }
+          { "pt": "Tetos", "en": "Ceilings", "es": "Techos" }, { "pt": "Paredes — 1ª demão", "en": "Walls — 1st coat", "es": "Paredes — 1.ª mano" },
+          { "pt": "Paredes — 2ª demão", "en": "Walls — 2nd coat", "es": "Paredes — 2.ª mano" },
+          { "pt": "Trim e rodapés", "en": "Trim & baseboards", "es": "Molduras y zócalos" },
+          { "pt": "Portas e batentes", "en": "Doors & jambs", "es": "Puertas y marcos" }, { "pt": "Armários (cabinets)", "en": "Cabinets", "es": "Gabinetes" }
         ],
         "Pintura exterior": [
-          "Siding / clapboard", { "pt": "Trim, soffit e fascia", "en": "Trim, soffit & fascia" },
-          { "pt": "Janelas e portas externas", "en": "Exterior windows and doors" }, { "pt": "Deck / cerca (stain)", "en": "Deck / fence (stain)" }
+          "Siding / clapboard", { "pt": "Trim, soffit e fascia", "en": "Trim, soffit & fascia", "es": "Molduras, soffit y fascia" },
+          { "pt": "Janelas e portas externas", "en": "Exterior windows and doors", "es": "Ventanas y puertas exteriores" },
+          { "pt": "Deck / cerca (stain)", "en": "Deck / fence (stain)", "es": "Deck / cerca (tinte)" }
         ],
         "Acabamento": [
-          { "pt": "Recolocar espelhos e ferragens", "en": "Reinstall cover plates & hardware" }, { "pt": "Retoques (touch-up)", "en": "Touch-ups" },
-          { "pt": "Limpeza diária e final", "en": "Daily & final cleanup" },
-          { "pt": "Entregar sobra de tinta etiquetada", "en": "Leave labeled leftover paint" },
-          { "pt": "Punch list com o cliente", "en": "Punch list walkthrough with owner" }
+          { "pt": "Recolocar espelhos e ferragens", "en": "Reinstall cover plates & hardware", "es": "Volver a poner tapas y herrajes" },
+          { "pt": "Retoques (touch-up)", "en": "Touch-ups", "es": "Retoques" },
+          { "pt": "Limpeza diária e final", "en": "Daily & final cleanup", "es": "Limpieza diaria y final" },
+          { "pt": "Entregar sobra de tinta etiquetada", "en": "Leave labeled leftover paint", "es": "Dejar la pintura sobrante etiquetada" },
+          { "pt": "Punch list com o cliente", "en": "Punch list walkthrough with owner", "es": "Recorrido de punch list con el dueño" }
         ],
         "Inspeções": [
-          { "pt": "Registro de condições antes de começar (fotos)", "en": "Pre-job condition photos" },
-          { "pt": "Teste de chumbo (casa pré-1978)", "en": "Lead test (pre-1978 home)" },
-          { "pt": "Verificação de limpeza RRP (cleaning verification)", "en": "RRP cleaning verification" }
+          { "pt": "Registro de condições antes de começar (fotos)", "en": "Pre-job condition photos", "es": "Fotos del estado antes de la obra" },
+          { "pt": "Teste de chumbo (casa pré-1978)", "en": "Lead test (pre-1978 home)", "es": "Prueba de plomo (casa de antes de 1978)" },
+          { "pt": "Verificação de limpeza RRP (cleaning verification)", "en": "RRP cleaning verification", "es": "Verificación de limpieza RRP" }
         ]
       },
       suggest: {
@@ -2944,43 +3362,60 @@
       },
       inspections: [
         {
-          "label": { "pt": "Teste de chumbo (casa pré-1978)", "en": "Lead test (pre-1978 home)" },
+          "label": { "pt": "Teste de chumbo (casa pré-1978)", "en": "Lead test (pre-1978 home)", "es": "Prueba de plomo (casa de antes de 1978)" },
           "authority": {
             "pt": "Certified renovator (EPA RRP); em MA, Lead-Safe Renovator licenciado pelo DLS (454 CMR 22)",
-            "en": "Certified renovator (EPA RRP); in MA, DLS-licensed Lead-Safe Renovator (454 CMR 22)"
+            "en": "Certified renovator (EPA RRP); in MA, DLS-licensed Lead-Safe Renovator (454 CMR 22)",
+            "es": "Renovador certificado (EPA RRP); en MA, Lead-Safe Renovator con licencia DLS (454 CMR 22)"
           },
           "when": {
             "pt": "Antes de orçar/começar em casa construída antes de 1978 (ou presumir chumbo)",
-            "en": "Before starting work in a home built before 1978 (or presume lead)"
+            "en": "Before starting work in a home built before 1978 (or presume lead)",
+            "es": "Antes de empezar en una casa construida antes de 1978 (o presumir plomo)"
           }
         },
         {
-          "label": { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)" },
-          "authority": { "pt": "EPA RRP (40 CFR 745); em MA, DLS — Lead-Safe Renovation Contractor", "en": "EPA RRP (40 CFR 745); in MA, DLS Lead-Safe Renovation Contractor" },
+          "label": { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)", "es": "Contención segura contra plomo (RRP)" },
+          "authority": {
+            "pt": "EPA RRP (40 CFR 745); em MA, DLS — Lead-Safe Renovation Contractor",
+            "en": "EPA RRP (40 CFR 745); in MA, DLS Lead-Safe Renovation Contractor",
+            "es": "EPA RRP (40 CFR 745); en MA, DLS Lead-Safe Renovation Contractor"
+          },
           "when": {
             "pt": "Pré-1978 e perturbar mais de 6 sq ft por cômodo (interior) ou 20 sq ft (exterior)",
-            "en": "Pre-1978 and disturbing more than 6 sq ft per room (interior) or 20 sq ft (exterior)"
+            "en": "Pre-1978 and disturbing more than 6 sq ft per room (interior) or 20 sq ft (exterior)",
+            "es": "Antes de 1978 y alterando más de 6 sq ft por cuarto (interior) o 20 sq ft (exterior)"
           }
         },
         {
-          "label": { "pt": "Verificação de limpeza RRP (cleaning verification)", "en": "RRP cleaning verification" },
-          "authority": { "pt": "Certified renovator da empresa", "en": "Firm's certified renovator" },
-          "when": { "pt": "No fim da obra, antes de liberar a área", "en": "At completion, before releasing the work area" }
+          "label": { "pt": "Verificação de limpeza RRP (cleaning verification)", "en": "RRP cleaning verification", "es": "Verificación de limpieza RRP" },
+          "authority": { "pt": "Certified renovator da empresa", "en": "Firm's certified renovator", "es": "Renovador certificado de la empresa" },
+          "when": {
+            "pt": "No fim da obra, antes de liberar a área",
+            "en": "At completion, before releasing the work area",
+            "es": "Al terminar, antes de liberar el área de trabajo"
+          }
         },
         {
-          "label": { "pt": "Registro HIC (MA)", "en": "HIC registration (MA)" },
-          "authority": { "pt": "Office of Consumer Affairs (OCABR) — MA", "en": "Office of Consumer Affairs (OCABR) — MA" },
+          "label": { "pt": "Registro HIC (MA)", "en": "HIC registration (MA)", "es": "Registro HIC (MA)" },
+          "authority": { "pt": "Office of Consumer Affairs (OCABR) — MA", "en": "Office of Consumer Affairs (OCABR) — MA", "es": "Office of Consumer Affairs (OCABR) — MA" },
           "when": {
             "pt": "Verificar o registro HIC com o OCABR (M.G.L. c.142A): reforma residencial em casa de 1–4 famílias ocupada pelo dono — interior ou exterior; contrato escrito acima de US$ 1.000",
-            "en": "Check HIC registration with OCABR (M.G.L. c.142A): residential contracting on an owner-occupied 1–4 family home — interior or exterior; written contract over $1,000"
+            "en": "Check HIC registration with OCABR (M.G.L. c.142A): residential contracting on an owner-occupied 1–4 family home — interior or exterior; written contract over $1,000",
+            "es": "Verificar el registro HIC en la OCABR (M.G.L. c.142A): trabajo residencial en casa de 1 a 4 familias ocupada por el dueño — interior o exterior; contrato escrito de más de $1,000"
           }
         },
         {
-          "label": { "pt": "Building permit: não precisa", "en": "Building permit: not required" },
-          "authority": { "pt": "780 CMR 105.2 — pintura é trabalho de acabamento isento", "en": "780 CMR 105.2 — painting is exempt finish work" },
+          "label": { "pt": "Building permit: não precisa", "en": "Building permit: not required", "es": "Permiso de construcción: no hace falta" },
+          "authority": {
+            "pt": "780 CMR 105.2 — pintura é trabalho de acabamento isento",
+            "en": "780 CMR 105.2 — painting is exempt finish work",
+            "es": "780 CMR 105.2 — la pintura es trabajo de acabado exento"
+          },
           "when": {
             "pt": "Só precisa se houver troca de madeira estrutural ou carpintaria maior (aí é outro ramo)",
-            "en": "Only if structural wood replacement or major carpentry is involved"
+            "en": "Only if structural wood replacement or major carpentry is involved",
+            "es": "Solo si hay cambio de madera estructural o carpintería mayor"
           }
         }
       ],
@@ -3052,7 +3487,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Pintura interior da casa toda: quatro quartos, sala e cozinha, tetos e paredes, duas demãos Benjamin Moore Regal eggshell, trim e portas semi-gloss. Casa de 1950, então lead-safe. Preço 14.500, 30/40/30.”",
-          "en": "e.g. “Whole-house interior: four bedrooms, living room and kitchen, ceilings and walls, two coats Benjamin Moore Regal eggshell, trim and doors semi-gloss. House from 1950, so lead-safe. Price 14,500, 30/40/30.”"
+          "en": "e.g. “Whole-house interior: four bedrooms, living room and kitchen, ceilings and walls, two coats Benjamin Moore Regal eggshell, trim and doors semi-gloss. House from 1950, so lead-safe. Price 14,500, 30/40/30.”",
+          "es": "ej.: “Interior de toda la casa: cuatro habitaciones, sala y cocina, techos y paredes, dos manos de Benjamin Moore Regal eggshell, molduras y puertas en semi-gloss. Casa de 1950, así que seguro contra plomo. Precio 14,500, 30/40/30.”"
         },
         "aiRules": "Trade: PAINTING contractor (interior / exterior, residential and commercial). Painting needs no building permit (780 CMR 105.2) — never write \"permit fees included\".\nStandards: EPA RRP Rule (40 CFR 745) for pre-1978 housing; in MA also Lead Safe Renovation 454 CMR 22.00 (DLS) and VOC limits 310 CMR 7.25; manufacturer application instructions; PDCA standards. Commercial jobs may reference the spec section (Division 09 91 00) and MPI products if the speaker mentions them.\nTypical sections: \"Surface Preparation\", \"Protection of the Work Area\", \"Lead-Safe Work Practices (Pre-1978)\", \"Interior Walls & Ceilings\", \"Interior Trim, Doors & Cabinets\", \"Exterior Body & Trim\", \"Carpentry & Rot Repair\", \"Stain & Clear Finishes\", \"Cleanup & Final Walkthrough\".\nFor every surface state product line, sheen, and number of coats exactly as spoken (e.g. \"**two (2) coats** of **Benjamin Moore Regal Select, eggshell**\"). If no brand is said write \"premium 100% acrylic\" — never invent a brand, color, or coat count.\nQuantities: describe by room/area and surface (walls, ceilings, trim in linear feet, doors and windows each); use sq ft only if spoken; never put gallons in the client document.\nPre-1978 house or \"chumbo/lead\": add the Lead-Safe section. RRP lead-safe practices are NOT deleading/abatement — never promise lead abatement or a Letter of Compliance.\nAlways in Not Included: drywall/plaster repair beyond minor patching, carpentry/rot beyond what is listed, asbestos, mold remediation, moving heavy furniture. Rot found after scraping = change order with photos.\nExterior jobs: keep the weather/temperature clause. Cabinets: degrease, scuff-sand, bonding primer, urethane enamel, spray-applied, doors removed.\nMA owner-occupied 1–4 family homes (HIC law, M.G.L. c.142A): the deposit may not exceed one-third of the price unless for special-order materials — prefer 30/40/30 or thirds over 50/50.\nSpeech terms: \"éguixel\" = eggshell, \"semi-glós\" = semi-gloss, \"Ben Moore\" = Benjamin Moore, \"Sherwin\" = Sherwin-Williams, \"massa\" = spackle / joint compound, \"calafetar\" = caulk, \"lixar\" = sand, \"raspar\" = scrape, \"demão\" = coat, \"rodapé\" = baseboard.\nNever write 'permit fees included' (painting needs no building permit); item line 'Labor and material per the scope above'. Coats, sheen, and product line only as spoken; otherwise 'as listed'. Payment: Deposit / Midpoint / Final (never 'Rough-In'). In MA pre-1978 homes add the Massachusetts Lead Law note (105 CMR 460: Owner's deleading obligation if a child under six lives there).",
         "facts": {
@@ -3098,7 +3534,8 @@
         ],
         "adjustExample": {
           "pt": "Ex.: “Tira os armários, muda o preço para 12 mil e acrescenta o corredor de cima.”",
-          "en": "e.g. “Remove the cabinets, change the price to 12K and add the upstairs hallway.”"
+          "en": "e.g. “Remove the cabinets, change the price to 12K and add the upstairs hallway.”",
+          "es": "ej.: “Quita los gabinetes, cambia el precio a 12 mil y agrega el pasillo de arriba.”"
         }
       },
       prices: {
@@ -3106,7 +3543,7 @@
           { "id": "sherwin", "name": "Sherwin-Williams", "short": "Sherwin-Williams", "search": "site:sherwin-williams.com" },
           {
             "id": "benjaminmoore",
-            "name": { "pt": "Benjamin Moore (revendedor)", "en": "Benjamin Moore (dealer)" },
+            "name": { "pt": "Benjamin Moore (revendedor)", "en": "Benjamin Moore (dealer)", "es": "Benjamin Moore (distribuidor)" },
             "short": "Benjamin Moore",
             "search": "site:benjaminmoore.com"
           },
@@ -3115,28 +3552,82 @@
           "lowes"
         ],
         "basic": [
-          [{ "pt": "Tinta interior premium — galão", "en": "Premium interior paint — gallon" }, { "pt": "Tinta", "en": "Paint" }, { "pt": "galão", "en": "gal" }],
-          [{ "pt": "Tinta interior — balde 5 gal", "en": "Interior paint — 5-gal pail" }, { "pt": "Tinta", "en": "Paint" }, { "pt": "balde", "en": "pail" }],
-          [{ "pt": "Tinta de teto flat — balde 5 gal", "en": "Flat ceiling paint — 5-gal pail" }, { "pt": "Tinta", "en": "Paint" }, { "pt": "balde", "en": "pail" }],
-          [{ "pt": "Esmalte semi-gloss para trim — galão", "en": "Semi-gloss trim enamel — gallon" }, { "pt": "Tinta", "en": "Paint" }, { "pt": "galão", "en": "gal" }],
-          [{ "pt": "Tinta exterior 100% acrílica — galão", "en": "100% acrylic exterior paint — gallon" }, { "pt": "Tinta", "en": "Paint" }, { "pt": "galão", "en": "gal" }],
-          [{ "pt": "Stain sólido exterior — galão", "en": "Exterior solid stain — gallon" }, { "pt": "Tinta", "en": "Paint" }, { "pt": "galão", "en": "gal" }],
-          [{ "pt": "Primer bloqueador (stain-blocking) — galão", "en": "Stain-blocking primer — gallon" }, "Primer", { "pt": "galão", "en": "gal" }],
-          [{ "pt": "Primer PVA para drywall novo — balde 5 gal", "en": "PVA drywall primer — 5-gal pail" }, "Primer", { "pt": "balde", "en": "pail" }],
-          [{ "pt": "Caulk acrílico pintável (tubo)", "en": "Paintable acrylic caulk (tube)" }, { "pt": "Preparação", "en": "Prep" }, { "pt": "tubo", "en": "tube" }],
-          [{ "pt": "Massa spackle — quart", "en": "Spackling compound — quart" }, { "pt": "Preparação", "en": "Prep" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Lixa / esponja de lixa (pacote)", "en": "Sandpaper / sanding sponges (pack)" }, { "pt": "Preparação", "en": "Prep" }, { "pt": "pacote", "en": "pack" }],
-          [{ "pt": "Fita crepe azul 1,5\" (rolo)", "en": "Blue painter's tape 1.5\" (roll)" }, { "pt": "Proteção", "en": "Protection" }, { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Plástico 9 x 400 ft", "en": "Plastic sheeting 9 x 400 ft" }, { "pt": "Proteção", "en": "Protection" }, { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Lona de pintor (drop cloth)", "en": "Canvas drop cloth" }, { "pt": "Proteção", "en": "Protection" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Capa de rolo 9\" — 3/8\"", "en": "Roller cover 9\" — 3/8\" nap" }, { "pt": "Ferramentas", "en": "Tools" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Pincel angular 2,5\"", "en": "Angled sash brush 2.5\"" }, { "pt": "Ferramentas", "en": "Tools" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Kit de teste de chumbo (reconhecido pela EPA)", "en": "Lead test kit (EPA-recognized)" }, "Lead-safe", "kit"],
-          [{ "pt": "Plástico 6 mil para contenção (RRP)", "en": "6-mil poly for containment (RRP)" }, "Lead-safe", { "pt": "rolo", "en": "roll" }]
+          [
+            { "pt": "Tinta interior premium — galão", "en": "Premium interior paint — gallon", "es": "Pintura interior premium — galón" },
+            { "pt": "Tinta", "en": "Paint", "es": "Pintura" }, { "pt": "galão", "en": "gal", "es": "gal" }
+          ],
+          [
+            { "pt": "Tinta interior — balde 5 gal", "en": "Interior paint — 5-gal pail", "es": "Pintura interior — cubeta de 5 gal" },
+            { "pt": "Tinta", "en": "Paint", "es": "Pintura" }, { "pt": "balde", "en": "pail", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Tinta de teto flat — balde 5 gal", "en": "Flat ceiling paint — 5-gal pail", "es": "Pintura mate para techos — cubeta de 5 gal" },
+            { "pt": "Tinta", "en": "Paint", "es": "Pintura" }, { "pt": "balde", "en": "pail", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Esmalte semi-gloss para trim — galão", "en": "Semi-gloss trim enamel — gallon", "es": "Esmalte semi-gloss para molduras — galón" },
+            { "pt": "Tinta", "en": "Paint", "es": "Pintura" }, { "pt": "galão", "en": "gal", "es": "gal" }
+          ],
+          [
+            { "pt": "Tinta exterior 100% acrílica — galão", "en": "100% acrylic exterior paint — gallon", "es": "Pintura exterior 100% acrílica — galón" },
+            { "pt": "Tinta", "en": "Paint", "es": "Pintura" }, { "pt": "galão", "en": "gal", "es": "gal" }
+          ],
+          [
+            { "pt": "Stain sólido exterior — galão", "en": "Exterior solid stain — gallon", "es": "Tinte sólido exterior — galón" },
+            { "pt": "Tinta", "en": "Paint", "es": "Pintura" }, { "pt": "galão", "en": "gal", "es": "gal" }
+          ],
+          [
+            { "pt": "Primer bloqueador (stain-blocking) — galão", "en": "Stain-blocking primer — gallon", "es": "Primer bloqueador de manchas — galón" },
+            "Primer", { "pt": "galão", "en": "gal", "es": "gal" }
+          ],
+          [
+            { "pt": "Primer PVA para drywall novo — balde 5 gal", "en": "PVA drywall primer — 5-gal pail", "es": "Primer PVA para drywall — cubeta de 5 gal" },
+            "Primer", { "pt": "balde", "en": "pail", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Caulk acrílico pintável (tubo)", "en": "Paintable acrylic caulk (tube)", "es": "Sellador acrílico pintable (tubo)" },
+            { "pt": "Preparação", "en": "Prep", "es": "Preparación" }, { "pt": "tubo", "en": "tube", "es": "tubo" }
+          ],
+          [
+            { "pt": "Massa spackle — quart", "en": "Spackling compound — quart", "es": "Masilla (spackle) — cuarto de galón" },
+            { "pt": "Preparação", "en": "Prep", "es": "Preparación" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Lixa / esponja de lixa (pacote)", "en": "Sandpaper / sanding sponges (pack)", "es": "Lijas / esponjas de lija (paquete)" },
+            { "pt": "Preparação", "en": "Prep", "es": "Preparación" }, { "pt": "pacote", "en": "pack", "es": "paquete" }
+          ],
+          [
+            { "pt": "Fita crepe azul 1,5\" (rolo)", "en": "Blue painter's tape 1.5\" (roll)", "es": "Cinta azul de pintor 1.5\" (rollo)" },
+            { "pt": "Proteção", "en": "Protection", "es": "Protección" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Plástico 9 x 400 ft", "en": "Plastic sheeting 9 x 400 ft", "es": "Plástico 9 x 400 ft" },
+            { "pt": "Proteção", "en": "Protection", "es": "Protección" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Lona de pintor (drop cloth)", "en": "Canvas drop cloth", "es": "Lona de tela" },
+            { "pt": "Proteção", "en": "Protection", "es": "Protección" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Capa de rolo 9\" — 3/8\"", "en": "Roller cover 9\" — 3/8\" nap", "es": "Rodillo 9\" — felpa de 3/8\"" },
+            { "pt": "Ferramentas", "en": "Tools", "es": "Herramientas" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Pincel angular 2,5\"", "en": "Angled sash brush 2.5\"", "es": "Brocha angular 2.5\"" },
+            { "pt": "Ferramentas", "en": "Tools", "es": "Herramientas" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Kit de teste de chumbo (reconhecido pela EPA)", "en": "Lead test kit (EPA-recognized)", "es": "Kit de prueba de plomo (reconocido por la EPA)" },
+            "Lead-safe", "kit"
+          ],
+          [
+            { "pt": "Plástico 6 mil para contenção (RRP)", "en": "6-mil poly for containment (RRP)", "es": "Plástico de 6 mil para contención (RRP)" },
+            "Lead-safe", { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ]
         ],
-        "basicOffer": [{ "list": "painting", "label": { "pt": "Adicionar lista básica de pintura", "en": "Add basic painting list" } }],
+        "basicOffer": [{ "list": "painting", "label": { "pt": "Adicionar lista básica de pintura", "en": "Add basic painting list", "es": "Agregar lista básica de pintura" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: Regal eggshell, primer, caulk", "en": "e.g. Regal eggshell, primer, caulk" }
+        "searchExample": { "pt": "ex.: Regal eggshell, primer, caulk", "en": "e.g. Regal eggshell, primer, caulk", "es": "ej.: Regal eggshell, primer, sellador" }
       },
       groupsI18n: {
         "en": {
@@ -3146,6 +3637,14 @@
           "Pintura exterior": "Exterior painting",
           "Acabamento": "Finish",
           "Inspeções": "Inspections"
+        },
+        "es": {
+          "Preparação e proteção": "Preparación y protección",
+          "Reparos de superfície": "Reparación de superficies",
+          "Pintura interior": "Pintura interior",
+          "Pintura exterior": "Pintura exterior",
+          "Acabamento": "Acabado",
+          "Inspeções": "Inspecciones"
         }
       },
       warnings: [
@@ -3153,14 +3652,16 @@
           "if": { "all": [{ "f": "workType", "re": "^Exterior" }, { "f": "paintScope", "re": "^(?:Paredes|Tetos|Armários|Escadas e corrimão)$" }] },
           "msg": {
             "pt": "Tipo “Exterior residencial” com escopo de interior (paredes, tetos, armários ou escadas). Confira: talvez seja “Interior + exterior”.",
-            "en": "“Exterior residential” job with interior scope (walls, ceilings, cabinets, or stairs). Check: maybe it is “Interior + exterior”."
+            "en": "“Exterior residential” job with interior scope (walls, ceilings, cabinets, or stairs). Check: maybe it is “Interior + exterior”.",
+            "es": "Trabajo “Exterior residencial” con alcance interior (paredes, techos, gabinetes o escaleras). Revisa: quizás es “Interior + exterior”."
           }
         },
         {
           "if": { "all": [{ "f": "workType", "re": "^Interior residencial" }, { "f": "paintScope", "re": "Siding" }] },
           "msg": {
             "pt": "Tipo “Interior residencial” com siding marcado. Confira: talvez seja “Interior + exterior”.",
-            "en": "“Interior residential” job with siding selected. Check: maybe it is “Interior + exterior”."
+            "en": "“Interior residential” job with siding selected. Check: maybe it is “Interior + exterior”.",
+            "es": "Trabajo “Interior residencial” con siding seleccionado. Revisa: quizás es “Interior + exterior”."
           }
         }
       ]
@@ -3170,176 +3671,216 @@
       aliases: [],
       order: 70,
       category: "finish",
-      label: { "pt": "Piso", "en": "Flooring" },
+      label: { "pt": "Piso", "en": "Flooring", "es": "Pisos" },
       companySuffix: "Flooring",
-      onboarding: { "label": { "pt": "Piso", "en": "Flooring" }, "desc": { "pt": "Madeira, LVP, tile, carpete, refinish", "en": "Hardwood, LVP, tile, carpet, refinishing" } },
+      onboarding: {
+        "label": { "pt": "Piso", "en": "Flooring", "es": "Pisos" },
+        "desc": { "pt": "Madeira, LVP, tile, carpete, refinish", "en": "Hardwood, LVP, tile, carpet, refinishing", "es": "Madera, LVP, azulejo, alfombra, refinish" }
+      },
       icon: { "svg": "<rect x=\"3.5\" y=\"4\" width=\"17\" height=\"16\" rx=\"2\"/><path d=\"M3.5 9.3h17M3.5 14.7h17M10 4v5.3M15.5 9.3v5.4M8 14.7V20\"/>" },
-      kind: { "pt": "trabalho de piso", "en": "flooring job" },
-      stepName: { "pt": "Piso", "en": "Flooring" },
-      group: { "label": { "pt": "Piso", "en": "Flooring" }, "icon": "trade-flooring" },
+      kind: { "pt": "trabalho de piso", "en": "flooring job", "es": "trabajo de pisos" },
+      stepName: { "pt": "Piso", "en": "Flooring", "es": "Pisos" },
+      group: { "label": { "pt": "Piso", "en": "Flooring", "es": "Pisos" }, "icon": "trade-flooring" },
       workType: [
-        { "pt": "Instalação nova (casa nova)", "en": "New install (new construction)" },
-        { "pt": "Troca de piso (remover + instalar)", "en": "Floor replacement (tear-out + install)" },
-        { "pt": "Refinish de madeira (lixar e envernizar)", "en": "Hardwood refinish (sand & finish)" },
-        { "pt": "Screen & recoat (sem lixar)", "en": "Screen & recoat" },
-        { "pt": "Tile / porcelanato (banheiro, cozinha)", "en": "Tile / porcelain (bath, kitchen)" }, { "pt": "Carpete", "en": "Carpet" },
-        { "pt": "Comercial (LVT / VCT / carpet tile)", "en": "Commercial (LVT / VCT / carpet tile)" },
-        { "pt": "Escada (degraus)", "en": "Stairs (treads & risers)" }
+        { "pt": "Instalação nova (casa nova)", "en": "New install (new construction)", "es": "Instalación nueva (construcción nueva)" },
+        { "pt": "Troca de piso (remover + instalar)", "en": "Floor replacement (tear-out + install)", "es": "Cambio de piso (quitar + instalar)" },
+        { "pt": "Refinish de madeira (lixar e envernizar)", "en": "Hardwood refinish (sand & finish)", "es": "Refinish de madera (lijar y acabar)" },
+        { "pt": "Screen & recoat (sem lixar)", "en": "Screen & recoat", "es": "Screen & recoat (lijado ligero y nueva capa)" },
+        { "pt": "Tile / porcelanato (banheiro, cozinha)", "en": "Tile / porcelain (bath, kitchen)", "es": "Azulejo / porcelanato (baño, cocina)" },
+        { "pt": "Carpete", "en": "Carpet", "es": "Alfombra" },
+        { "pt": "Comercial (LVT / VCT / carpet tile)", "en": "Commercial (LVT / VCT / carpet tile)", "es": "Comercial (LVT / VCT / alfombra en placas)" },
+        { "pt": "Escada (degraus)", "en": "Stairs (treads & risers)", "es": "Escaleras (huellas y contrahuellas)" }
       ],
       fields: {
         "floorMaterial": {
-          "label": { "pt": "Material do piso", "en": "Flooring material" },
+          "label": { "pt": "Material do piso", "en": "Flooring material", "es": "Material del piso" },
           "multi": true,
           "opts": [
-            { "pt": "Madeira maciça (solid hardwood)", "en": "Solid hardwood" }, { "pt": "Madeira engenheirada (engineered)", "en": "Engineered hardwood" },
-            { "pt": "LVP / vinil click", "en": "LVP / click vinyl" }, { "pt": "LVT / vinil colado", "en": "LVT / glue-down vinyl" },
-            { "pt": "Laminado", "en": "Laminate" }, { "pt": "Tile cerâmico", "en": "Ceramic tile" }, { "pt": "Porcelanato", "en": "Porcelain tile" },
-            { "pt": "Pedra natural", "en": "Natural stone" }, { "pt": "Carpete", "en": "Carpet" }, "VCT", "Sheet vinyl"
+            { "pt": "Madeira maciça (solid hardwood)", "en": "Solid hardwood", "es": "Madera sólida" },
+            { "pt": "Madeira engenheirada (engineered)", "en": "Engineered hardwood", "es": "Madera de ingeniería" },
+            { "pt": "LVP / vinil click", "en": "LVP / click vinyl", "es": "LVP / vinilo click" },
+            { "pt": "LVT / vinil colado", "en": "LVT / glue-down vinyl", "es": "LVT / vinilo pegado" }, { "pt": "Laminado", "en": "Laminate", "es": "Laminado" },
+            { "pt": "Tile cerâmico", "en": "Ceramic tile", "es": "Azulejo cerámico" }, { "pt": "Porcelanato", "en": "Porcelain tile", "es": "Porcelanato" },
+            { "pt": "Pedra natural", "en": "Natural stone", "es": "Piedra natural" }, { "pt": "Carpete", "en": "Carpet", "es": "Alfombra" }, "VCT",
+            "Sheet vinyl"
           ]
         },
         "installMethod": {
-          "label": { "pt": "Método de instalação", "en": "Installation method" },
+          "label": { "pt": "Método de instalação", "en": "Installation method", "es": "Método de instalación" },
           "multi": true,
           "opts": [
-            { "pt": "Pregado (nail-down)", "en": "Nail-down" }, { "pt": "Colado (glue-down)", "en": "Glue-down" },
-            { "pt": "Flutuante (floating / click)", "en": "Floating (click)" }, { "pt": "Argamassa (thinset)", "en": "Thinset mortar" },
-            { "pt": "Tack strip + pad (carpete)", "en": "Tack strip + pad (carpet)" }
+            { "pt": "Pregado (nail-down)", "en": "Nail-down", "es": "Clavado" }, { "pt": "Colado (glue-down)", "en": "Glue-down", "es": "Pegado" },
+            { "pt": "Flutuante (floating / click)", "en": "Floating (click)", "es": "Flotante (click)" },
+            { "pt": "Argamassa (thinset)", "en": "Thinset mortar", "es": "Mortero thinset" },
+            { "pt": "Tack strip + pad (carpete)", "en": "Tack strip + pad (carpet)", "es": "Tachuelas + bajoalfombra (alfombra)" }
           ]
         },
         "existingFloor": {
-          "label": { "pt": "Piso existente", "en": "Existing floor" },
+          "label": { "pt": "Piso existente", "en": "Existing floor", "es": "Piso existente" },
           "opts": [
-            { "pt": "Contrapiso exposto", "en": "Bare subfloor" }, { "pt": "Carpete", "en": "Carpet" }, { "pt": "Madeira (hardwood)", "en": "Hardwood" },
-            { "pt": "Vinil / linóleo antigo", "en": "Old vinyl / linoleum" }, "Tile", { "pt": "Laminado / LVP", "en": "Laminate / LVP" },
-            { "pt": "Tile 9x9 antigo (possível asbesto)", "en": "Old 9x9 tile (possible asbestos)" }
+            { "pt": "Contrapiso exposto", "en": "Bare subfloor", "es": "Contrapiso desnudo" }, { "pt": "Carpete", "en": "Carpet", "es": "Alfombra" },
+            { "pt": "Madeira (hardwood)", "en": "Hardwood", "es": "Madera" },
+            { "pt": "Vinil / linóleo antigo", "en": "Old vinyl / linoleum", "es": "Vinilo / linóleo viejo" }, "Tile",
+            { "pt": "Laminado / LVP", "en": "Laminate / LVP", "es": "Laminado / LVP" },
+            { "pt": "Tile 9x9 antigo (possível asbesto)", "en": "Old 9x9 tile (possible asbestos)", "es": "Azulejo viejo 9x9 (posible asbesto)" }
           ]
         },
         "removal": {
-          "label": { "pt": "Remoção", "en": "Removal" },
+          "label": { "pt": "Remoção", "en": "Removal", "es": "Retiro" },
           "opts": [
-            { "pt": "Não precisa remover", "en": "No removal" }, { "pt": "Remover 1 camada", "en": "Remove 1 layer" },
-            { "pt": "Remover várias camadas", "en": "Remove multiple layers" }, { "pt": "Remover tile (com argamassa)", "en": "Remove tile (with mortar bed)" },
-            { "pt": "Instalar por cima (se o fabricante permitir)", "en": "Install over existing (if allowed)" }
+            { "pt": "Não precisa remover", "en": "No removal", "es": "Sin retiro" }, { "pt": "Remover 1 camada", "en": "Remove 1 layer", "es": "Quitar 1 capa" },
+            { "pt": "Remover várias camadas", "en": "Remove multiple layers", "es": "Quitar varias capas" },
+            { "pt": "Remover tile (com argamassa)", "en": "Remove tile (with mortar bed)", "es": "Quitar azulejo (con cama de mortero)" },
+            { "pt": "Instalar por cima (se o fabricante permitir)", "en": "Install over existing (if allowed)", "es": "Instalar sobre el existente (si se permite)" }
           ]
         },
         "subfloor": {
-          "label": { "pt": "Contrapiso (subfloor)", "en": "Subfloor" },
+          "label": { "pt": "Contrapiso (subfloor)", "en": "Subfloor", "es": "Contrapiso" },
           "opts": [
-            { "pt": "Compensado (plywood)", "en": "Plywood" }, "OSB", { "pt": "Tábuas antigas (planks)", "en": "Old board planks" },
-            { "pt": "Concreto no nível do solo", "en": "Concrete on grade" },
-            { "pt": "Concreto abaixo do solo (porão)", "en": "Concrete below grade (basement)" },
-            { "pt": "Laje acima do solo", "en": "Suspended concrete slab" }
+            { "pt": "Compensado (plywood)", "en": "Plywood", "es": "Plywood" }, "OSB",
+            { "pt": "Tábuas antigas (planks)", "en": "Old board planks", "es": "Tablones viejos" },
+            { "pt": "Concreto no nível do solo", "en": "Concrete on grade", "es": "Concreto a nivel del suelo" },
+            { "pt": "Concreto abaixo do solo (porão)", "en": "Concrete below grade (basement)", "es": "Concreto bajo nivel (sótano)" },
+            { "pt": "Laje acima do solo", "en": "Suspended concrete slab", "es": "Losa de concreto suspendida" }
           ]
         },
         "subfloorPrep": {
-          "label": { "pt": "Preparo do contrapiso", "en": "Subfloor prep" },
+          "label": { "pt": "Preparo do contrapiso", "en": "Subfloor prep", "es": "Preparación del contrapiso" },
           "multi": true,
           "opts": [
-            { "pt": "Nivelar (self-leveler)", "en": "Self-leveler" }, { "pt": "Lixar pontos altos", "en": "Grind / sand high spots" },
-            { "pt": "Trocar / reforçar contrapiso", "en": "Replace / reinforce subfloor" },
-            { "pt": "Parafusar contrapiso (rangidos)", "en": "Re-screw subfloor (squeaks)" },
-            { "pt": "Underlayment plywood 1/4\"", "en": "1/4\" plywood underlayment" }, { "pt": "Barreira de vapor", "en": "Vapor retarder" },
-            { "pt": "Membrana desacopladora (Ditra)", "en": "Uncoupling membrane (Ditra)" }, "Cement board"
+            { "pt": "Nivelar (self-leveler)", "en": "Self-leveler", "es": "Autonivelante" },
+            { "pt": "Lixar pontos altos", "en": "Grind / sand high spots", "es": "Esmerilar / lijar puntos altos" },
+            { "pt": "Trocar / reforçar contrapiso", "en": "Replace / reinforce subfloor", "es": "Cambiar / reforzar el contrapiso" },
+            { "pt": "Parafusar contrapiso (rangidos)", "en": "Re-screw subfloor (squeaks)", "es": "Volver a atornillar el contrapiso (rechinidos)" },
+            { "pt": "Underlayment plywood 1/4\"", "en": "1/4\" plywood underlayment", "es": "Base de plywood de 1/4\"" },
+            { "pt": "Barreira de vapor", "en": "Vapor retarder", "es": "Barrera de vapor" },
+            { "pt": "Membrana desacopladora (Ditra)", "en": "Uncoupling membrane (Ditra)", "es": "Membrana desacopladora (Ditra)" }, "Cement board"
           ]
         },
         "moistureTest": {
-          "label": { "pt": "Teste de umidade", "en": "Moisture test" },
+          "label": { "pt": "Teste de umidade", "en": "Moisture test", "es": "Prueba de humedad" },
           "opts": [
-            { "pt": "Medidor de madeira (pin / pinless)", "en": "Wood meter (pin / pinless)" },
-            { "pt": "RH no concreto (ASTM F2170)", "en": "Concrete in-situ RH (ASTM F2170)" },
-            { "pt": "Cloreto de cálcio (ASTM F1869)", "en": "Calcium chloride (ASTM F1869)" }, { "pt": "Não feito", "en": "Not done" }
+            { "pt": "Medidor de madeira (pin / pinless)", "en": "Wood meter (pin / pinless)", "es": "Medidor para madera (con / sin pines)" },
+            { "pt": "RH no concreto (ASTM F2170)", "en": "Concrete in-situ RH (ASTM F2170)", "es": "HR in situ del concreto (ASTM F2170)" },
+            { "pt": "Cloreto de cálcio (ASTM F1869)", "en": "Calcium chloride (ASTM F1869)", "es": "Cloruro de calcio (ASTM F1869)" },
+            { "pt": "Não feito", "en": "Not done", "es": "No se hizo" }
           ]
         },
         "layout": {
-          "label": { "pt": "Padrão / layout", "en": "Pattern / layout" },
+          "label": { "pt": "Padrão / layout", "en": "Pattern / layout", "es": "Patrón / distribución" },
           "opts": [
-            { "pt": "Reto (straight lay)", "en": "Straight lay" }, "Diagonal", { "pt": "Espinha de peixe (herringbone)", "en": "Herringbone" }, "Chevron",
-            { "pt": "Larguras mistas", "en": "Random widths" }, { "pt": "Tile alinhado / offset", "en": "Tile stacked / offset" }
+            { "pt": "Reto (straight lay)", "en": "Straight lay", "es": "Recto" }, "Diagonal",
+            { "pt": "Espinha de peixe (herringbone)", "en": "Herringbone", "es": "Espiga (herringbone)" }, "Chevron",
+            { "pt": "Larguras mistas", "en": "Random widths", "es": "Anchos variados" },
+            { "pt": "Tile alinhado / offset", "en": "Tile stacked / offset", "es": "Azulejo alineado / desfasado" }
           ]
         },
         "plankSize": {
-          "label": { "pt": "Largura / tamanho", "en": "Width / size" },
+          "label": { "pt": "Largura / tamanho", "en": "Width / size", "es": "Ancho / tamaño" },
           "opts": [
-            { "pt": "Tábua 2-1/4\"", "en": "2-1/4\" strip" }, { "pt": "Tábua 3-1/4\"", "en": "3-1/4\" plank" },
-            { "pt": "Tábua 5\"+ (wide plank)", "en": "5\"+ wide plank" }, { "pt": "Tile até 12x12", "en": "Tile up to 12x12" }, "Tile 12x24",
-            { "pt": "Grande formato (24x48+)", "en": "Large format (24x48+)" }
+            { "pt": "Tábua 2-1/4\"", "en": "2-1/4\" strip", "es": "Tira de 2-1/4\"" },
+            { "pt": "Tábua 3-1/4\"", "en": "3-1/4\" plank", "es": "Tablón de 3-1/4\"" },
+            { "pt": "Tábua 5\"+ (wide plank)", "en": "5\"+ wide plank", "es": "Tablón ancho de 5\"+" },
+            { "pt": "Tile até 12x12", "en": "Tile up to 12x12", "es": "Azulejo de hasta 12x12" }, "Tile 12x24",
+            { "pt": "Grande formato (24x48+)", "en": "Large format (24x48+)", "es": "Formato grande (24x48+)" }
           ]
         },
         "woodFinish": {
-          "label": { "pt": "Acabamento da madeira", "en": "Wood finish" },
+          "label": { "pt": "Acabamento da madeira", "en": "Wood finish", "es": "Acabado de la madera" },
           "opts": [
-            { "pt": "Pré-acabado de fábrica", "en": "Factory prefinished" }, { "pt": "Poliuretano à base de água", "en": "Waterborne polyurethane" },
-            { "pt": "Poliuretano à base de óleo", "en": "Oil-based polyurethane" }, "Hardwax oil", { "pt": "Stain + poliuretano", "en": "Stain + polyurethane" },
-            { "pt": "Não se aplica", "en": "N/A" }
+            { "pt": "Pré-acabado de fábrica", "en": "Factory prefinished", "es": "Prefinished de fábrica" },
+            { "pt": "Poliuretano à base de água", "en": "Waterborne polyurethane", "es": "Poliuretano a base de agua" },
+            { "pt": "Poliuretano à base de óleo", "en": "Oil-based polyurethane", "es": "Poliuretano a base de aceite" }, "Hardwax oil",
+            { "pt": "Stain + poliuretano", "en": "Stain + polyurethane", "es": "Tinte + poliuretano" }, { "pt": "Não se aplica", "en": "N/A", "es": "N/A" }
           ]
         },
         "trimTransitions": {
-          "label": { "pt": "Rodapé e transições", "en": "Base & transitions" },
+          "label": { "pt": "Rodapé e transições", "en": "Base & transitions", "es": "Zócalos y transiciones" },
           "multi": true,
           "system": true,
           "opts": [
-            { "pt": "Remover e recolocar rodapé", "en": "Remove & reinstall baseboard" }, { "pt": "Rodapé novo", "en": "New baseboard" }, "Shoe / quarter round",
-            { "pt": "Transições (T-mold, reducer)", "en": "Transitions (T-mold, reducer)" }, { "pt": "Soleiras (thresholds)", "en": "Thresholds" },
-            "Stair nosing"
+            { "pt": "Remover e recolocar rodapé", "en": "Remove & reinstall baseboard", "es": "Quitar y reinstalar zócalos" },
+            { "pt": "Rodapé novo", "en": "New baseboard", "es": "Zócalo nuevo" }, "Shoe / quarter round",
+            { "pt": "Transições (T-mold, reducer)", "en": "Transitions (T-mold, reducer)", "es": "Transiciones (T-mold, reductor)" },
+            { "pt": "Soleiras (thresholds)", "en": "Thresholds", "es": "Umbrales" }, "Stair nosing"
           ]
         },
         "furniture": {
-          "label": { "pt": "Móveis / eletrodomésticos", "en": "Furniture / appliances" },
+          "label": { "pt": "Móveis / eletrodomésticos", "en": "Furniture / appliances", "es": "Muebles / electrodomésticos" },
           "system": true,
           "opts": [
-            { "pt": "Área vazia", "en": "Empty area" }, { "pt": "Nós movemos os móveis", "en": "We move furniture" },
-            { "pt": "Cliente move os móveis", "en": "Owner moves furniture" },
-            { "pt": "Tirar e recolocar vaso / eletrodomésticos", "en": "Pull & reset toilet / appliances" }
+            { "pt": "Área vazia", "en": "Empty area", "es": "Área vacía" },
+            { "pt": "Nós movemos os móveis", "en": "We move furniture", "es": "Nosotros movemos los muebles" },
+            { "pt": "Cliente move os móveis", "en": "Owner moves furniture", "es": "El dueño mueve los muebles" },
+            { "pt": "Tirar e recolocar vaso / eletrodomésticos", "en": "Pull & reset toilet / appliances", "es": "Quitar y reinstalar inodoro / electrodomésticos" }
           ]
         }
       },
       text: [
-        { "key": "floorArea", "label": { "pt": "Área de piso (sq ft)", "en": "Floor area (sq ft)" }, "unit": "sqft", "type": "number" },
-        { "key": "rooms", "label": { "pt": "Cômodos", "en": "Rooms" } },
-        { "key": "stairs", "label": { "pt": "Degraus (quantidade)", "en": "Stair treads (count)" }, "unit": "ea", "type": "number" },
-        { "key": "product", "label": { "pt": "Produto (marca / linha / cor)", "en": "Product (brand / line / color)" } }
+        { "key": "floorArea", "label": { "pt": "Área de piso (sq ft)", "en": "Floor area (sq ft)", "es": "Área del piso (sq ft)" }, "unit": "sqft", "type": "number" },
+        { "key": "rooms", "label": { "pt": "Cômodos", "en": "Rooms", "es": "Cuartos" } },
+        { "key": "stairs", "label": { "pt": "Degraus (quantidade)", "en": "Stair treads (count)", "es": "Huellas de escalera (cantidad)" }, "unit": "ea", "type": "number" },
+        { "key": "product", "label": { "pt": "Produto (marca / linha / cor)", "en": "Product (brand / line / color)", "es": "Producto (marca / línea / color)" } }
       ],
       units: [
-        { "id": "sqft", "label": "sq ft" }, { "id": "sqyd", "label": { "pt": "jarda² (sq yd)", "en": "sq yd" } },
-        { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft" } }, { "id": "box", "label": { "pt": "caixa", "en": "box" } },
-        { "id": "ea", "label": { "pt": "un", "en": "ea" } }, { "id": "bag", "label": { "pt": "saco", "en": "bag" } },
-        { "id": "sheet", "label": { "pt": "folha", "en": "sheet" } }
+        { "id": "sqft", "label": "sq ft" }, { "id": "sqyd", "label": { "pt": "jarda² (sq yd)", "en": "sq yd", "es": "yd²" } },
+        { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft", "es": "pie lineal" } },
+        { "id": "box", "label": { "pt": "caixa", "en": "box", "es": "caja" } }, { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } },
+        { "id": "bag", "label": { "pt": "saco", "en": "bag", "es": "bolsa" } }, { "id": "sheet", "label": { "pt": "folha", "en": "sheet", "es": "hoja" } }
       ],
       tasks: {
         "Preparação e remoção": [
-          { "pt": "Medição e layout", "en": "Measure & layout" }, { "pt": "Aclimatar material", "en": "Acclimate material" },
-          { "pt": "Mover móveis", "en": "Move furniture" }, { "pt": "Proteger áreas e montar contenção de pó", "en": "Protect areas & set up dust containment" },
-          { "pt": "Remover rodapé / shoe", "en": "Remove baseboard / shoe molding" }, { "pt": "Remover piso existente", "en": "Remove existing flooring" },
-          { "pt": "Remover vaso / eletrodomésticos", "en": "Pull toilet / appliances" }, { "pt": "Descarte do entulho", "en": "Debris disposal" }
+          { "pt": "Medição e layout", "en": "Measure & layout", "es": "Medir y distribuir" },
+          { "pt": "Aclimatar material", "en": "Acclimate material", "es": "Aclimatar el material" },
+          { "pt": "Mover móveis", "en": "Move furniture", "es": "Mover los muebles" },
+          { "pt": "Proteger áreas e montar contenção de pó", "en": "Protect areas & set up dust containment", "es": "Proteger áreas y montar contención de polvo" },
+          { "pt": "Remover rodapé / shoe", "en": "Remove baseboard / shoe molding", "es": "Quitar zócalos / cuarto de caña" },
+          { "pt": "Remover piso existente", "en": "Remove existing flooring", "es": "Quitar el piso existente" },
+          { "pt": "Remover vaso / eletrodomésticos", "en": "Pull toilet / appliances", "es": "Quitar inodoro / electrodomésticos" },
+          { "pt": "Descarte do entulho", "en": "Debris disposal", "es": "Desecho de escombros" }
         ],
         "Contrapiso": [
-          { "pt": "Parafusar contrapiso (rangidos)", "en": "Re-screw subfloor (squeaks)" },
-          { "pt": "Trocar / reforçar contrapiso", "en": "Replace / reinforce subfloor" },
-          { "pt": "Nivelar (self-leveler / lixar pontos altos)", "en": "Flatten floor (self-leveler / grind high spots)" },
-          { "pt": "Underlayment / barreira de vapor", "en": "Underlayment / vapor barrier" },
-          { "pt": "Cement board / membrana (tile)", "en": "Cement board / membrane (tile)" }
+          { "pt": "Parafusar contrapiso (rangidos)", "en": "Re-screw subfloor (squeaks)", "es": "Volver a atornillar el contrapiso (rechinidos)" },
+          { "pt": "Trocar / reforçar contrapiso", "en": "Replace / reinforce subfloor", "es": "Cambiar / reforzar el contrapiso" },
+          {
+            "pt": "Nivelar (self-leveler / lixar pontos altos)",
+            "en": "Flatten floor (self-leveler / grind high spots)",
+            "es": "Nivelar el piso (autonivelante / esmerilar puntos altos)"
+          },
+          { "pt": "Underlayment / barreira de vapor", "en": "Underlayment / vapor barrier", "es": "Base / barrera de vapor" },
+          { "pt": "Cement board / membrana (tile)", "en": "Cement board / membrane (tile)", "es": "Cement board / membrana (azulejo)" }
         ],
         "Instalação": [
-          { "pt": "Instalar piso de madeira", "en": "Install hardwood floor" }, { "pt": "Instalar LVP / laminado", "en": "Install LVP / laminate" },
-          { "pt": "Instalar piso colado (LVT / VCT / sheet)", "en": "Install glue-down floor (LVT / VCT / sheet)" },
-          { "pt": "Assentar tile / porcelanato", "en": "Set tile / porcelain" }, { "pt": "Rejuntar (grout) e selar", "en": "Grout & seal" },
-          { "pt": "Instalar carpete e pad", "en": "Install carpet & pad" }, { "pt": "Degraus e nosing", "en": "Stair treads & nosing" }
+          { "pt": "Instalar piso de madeira", "en": "Install hardwood floor", "es": "Instalar piso de madera" },
+          { "pt": "Instalar LVP / laminado", "en": "Install LVP / laminate", "es": "Instalar LVP / laminado" },
+          { "pt": "Instalar piso colado (LVT / VCT / sheet)", "en": "Install glue-down floor (LVT / VCT / sheet)", "es": "Instalar piso pegado (LVT / VCT / rollo)" },
+          { "pt": "Assentar tile / porcelanato", "en": "Set tile / porcelain", "es": "Colocar azulejo / porcelanato" },
+          { "pt": "Rejuntar (grout) e selar", "en": "Grout & seal", "es": "Fraguar y sellar" },
+          { "pt": "Instalar carpete e pad", "en": "Install carpet & pad", "es": "Instalar alfombra y bajoalfombra" },
+          { "pt": "Degraus e nosing", "en": "Stair treads & nosing", "es": "Huellas y narices de escalera" }
         ],
         "Refinish": [
-          { "pt": "Lixamento (sanding)", "en": "Sanding" }, { "pt": "Buffing / screen", "en": "Buff & screen" }, "Stain",
-          { "pt": "Acabamento — 1ª demão", "en": "Finish — 1st coat" }, { "pt": "Acabamento — demãos finais", "en": "Finish — final coats" }
+          { "pt": "Lixamento (sanding)", "en": "Sanding", "es": "Lijado" }, { "pt": "Buffing / screen", "en": "Buff & screen", "es": "Pulir y screen" }, "Stain",
+          { "pt": "Acabamento — 1ª demão", "en": "Finish — 1st coat", "es": "Acabado — 1.ª mano" },
+          { "pt": "Acabamento — demãos finais", "en": "Finish — final coats", "es": "Acabado — manos finales" }
         ],
         "Acabamento": [
-          { "pt": "Rodapé / shoe / quarter round", "en": "Baseboard / shoe / quarter round" },
-          { "pt": "Transições e soleiras", "en": "Transitions & thresholds" }, { "pt": "Recolocar vaso e eletrodomésticos", "en": "Reset toilet & appliances" },
-          { "pt": "Limpeza final", "en": "Final cleaning" }, { "pt": "Orientar cuidados e tempo de cura", "en": "Review care & cure time with owner" },
-          { "pt": "Punch list com o cliente", "en": "Punch list walkthrough with owner" }
+          { "pt": "Rodapé / shoe / quarter round", "en": "Baseboard / shoe / quarter round", "es": "Zócalo / shoe / cuarto de caña" },
+          { "pt": "Transições e soleiras", "en": "Transitions & thresholds", "es": "Transiciones y umbrales" },
+          { "pt": "Recolocar vaso e eletrodomésticos", "en": "Reset toilet & appliances", "es": "Reinstalar inodoro y electrodomésticos" },
+          { "pt": "Limpeza final", "en": "Final cleaning", "es": "Limpieza final" },
+          { "pt": "Orientar cuidados e tempo de cura", "en": "Review care & cure time with owner", "es": "Repasar cuidados y tiempo de curado con el dueño" },
+          { "pt": "Punch list com o cliente", "en": "Punch list walkthrough with owner", "es": "Recorrido de punch list con el dueño" }
         ],
         "Inspeções": [
-          { "pt": "Teste de umidade (madeira / concreto)", "en": "Moisture test (wood / concrete)" },
-          { "pt": "Verificar asbesto em piso antigo", "en": "Check old flooring for asbestos" },
-          { "pt": "Verificar planicidade (flatness)", "en": "Check flatness" },
-          { "pt": "Inspeção de contrapiso estrutural (permit)", "en": "Structural subfloor inspection (permit)" }
+          { "pt": "Teste de umidade (madeira / concreto)", "en": "Moisture test (wood / concrete)", "es": "Prueba de humedad (madera / concreto)" },
+          { "pt": "Verificar asbesto em piso antigo", "en": "Check old flooring for asbestos", "es": "Revisar el piso viejo por asbesto" },
+          { "pt": "Verificar planicidade (flatness)", "en": "Check flatness", "es": "Revisar la planitud" },
+          {
+            "pt": "Inspeção de contrapiso estrutural (permit)",
+            "en": "Structural subfloor inspection (permit)",
+            "es": "Inspección estructural del contrapiso (permiso)"
+          }
         ]
       },
       suggest: {
@@ -3420,47 +3961,65 @@
       },
       inspections: [
         {
-          "label": { "pt": "Teste de umidade (madeira / concreto)", "en": "Moisture test (wood / concrete)" },
+          "label": { "pt": "Teste de umidade (madeira / concreto)", "en": "Moisture test (wood / concrete)", "es": "Prueba de humedad (madera / concreto)" },
           "authority": {
             "pt": "NWFA (madeira: piso e contrapiso dentro de 2–4% entre si); concreto: ASTM F2170 (RH) / F1869 dentro do limite do fabricante",
-            "en": "NWFA (wood: flooring and subfloor within 2–4% of each other); concrete: ASTM F2170 (RH) / F1869 within the manufacturer's limit"
+            "en": "NWFA (wood: flooring and subfloor within 2–4% of each other); concrete: ASTM F2170 (RH) / F1869 within the manufacturer's limit",
+            "es": "NWFA (madera: piso y contrapiso dentro de 2–4% entre sí); concreto: ASTM F2170 (HR) / F1869 dentro del límite del fabricante"
           },
           "when": {
             "pt": "Antes de instalar madeira ou qualquer piso sobre concreto — anotar leituras",
-            "en": "Before installing wood or any flooring over concrete — record readings"
+            "en": "Before installing wood or any flooring over concrete — record readings",
+            "es": "Antes de instalar madera o cualquier piso sobre concreto — anotar las lecturas"
           }
         },
         {
-          "label": { "pt": "Verificar asbesto em piso antigo", "en": "Check old flooring for asbestos" },
+          "label": { "pt": "Verificar asbesto em piso antigo", "en": "Check old flooring for asbestos", "es": "Revisar el piso viejo por asbesto" },
           "authority": {
             "pt": "MassDEP 310 CMR 7.15 + DLS: inspetor de asbesto licenciado antes de reformar; acima de 100 sq ft exige notificação e contratante licenciado",
-            "en": "MassDEP 310 CMR 7.15 + DLS: licensed asbestos inspector before renovation; over 100 sq ft requires notification and a licensed contractor"
+            "en": "MassDEP 310 CMR 7.15 + DLS: licensed asbestos inspector before renovation; over 100 sq ft requires notification and a licensed contractor",
+            "es": "MassDEP 310 CMR 7.15 + DLS: inspector de asbesto con licencia antes de la renovación; más de 100 sq ft exige notificación y contratista con licencia"
           },
           "when": {
             "pt": "Tile 9x9, vinil / linóleo antigo ou cola preta (mastic) — não lixar, não quebrar",
-            "en": "9x9 tile, old sheet vinyl / linoleum, or black mastic — do not sand or break"
+            "en": "9x9 tile, old sheet vinyl / linoleum, or black mastic — do not sand or break",
+            "es": "Azulejo 9x9, vinilo en rollo / linóleo viejo o mastic negro — no lijar ni romper"
           }
         },
         {
           "label": "Lead-safe (RRP)",
-          "authority": { "pt": "EPA RRP; em MA, DLS 454 CMR 22", "en": "EPA RRP; in MA, DLS 454 CMR 22" },
-          "when": { "pt": "Casa pré-1978: remover rodapé/trim pintado ou lixar piso pintado", "en": "Pre-1978 home: removing painted base/trim or sanding painted floors" }
-        },
-        {
-          "label": { "pt": "Inspeção de contrapiso estrutural (permit)", "en": "Structural subfloor inspection (permit)" },
-          "authority": {
-            "pt": "Building department — em MA, piso estrutural exige CSL + HIC + permit; piso de acabamento é isento (780 CMR 105.2)",
-            "en": "Building department — in MA structural flooring requires CSL + HIC + permit; finish flooring is exempt (780 CMR 105.2)"
-          },
+          "authority": { "pt": "EPA RRP; em MA, DLS 454 CMR 22", "en": "EPA RRP; in MA, DLS 454 CMR 22", "es": "EPA RRP; en MA, DLS 454 CMR 22" },
           "when": {
-            "pt": "Troca de contrapiso / vigas; em 3 e 4 famílias pode precisar de permit por fire-resistance",
-            "en": "Subfloor / joist replacement; 3- and 4-family homes may need a permit for fire-resistance"
+            "pt": "Casa pré-1978: remover rodapé/trim pintado ou lixar piso pintado",
+            "en": "Pre-1978 home: removing painted base/trim or sanding painted floors",
+            "es": "Casa de antes de 1978: quitar zócalos/molduras pintados o lijar pisos pintados"
           }
         },
         {
-          "label": { "pt": "Verificar planicidade (flatness)", "en": "Check flatness" },
-          "authority": { "pt": "Fabricante / TCNA (tile grande formato: 1/8\" em 10 ft)", "en": "Manufacturer / TCNA (large-format tile: 1/8\" in 10 ft)" },
-          "when": { "pt": "Antes de instalar — régua de 10 ft", "en": "Before installation — 10 ft straightedge" }
+          "label": {
+            "pt": "Inspeção de contrapiso estrutural (permit)",
+            "en": "Structural subfloor inspection (permit)",
+            "es": "Inspección estructural del contrapiso (permiso)"
+          },
+          "authority": {
+            "pt": "Building department — em MA, piso estrutural exige CSL + HIC + permit; piso de acabamento é isento (780 CMR 105.2)",
+            "en": "Building department — in MA structural flooring requires CSL + HIC + permit; finish flooring is exempt (780 CMR 105.2)",
+            "es": "Departamento de construcción — en MA el piso estructural exige CSL + HIC + permiso; el piso de acabado está exento (780 CMR 105.2)"
+          },
+          "when": {
+            "pt": "Troca de contrapiso / vigas; em 3 e 4 famílias pode precisar de permit por fire-resistance",
+            "en": "Subfloor / joist replacement; 3- and 4-family homes may need a permit for fire-resistance",
+            "es": "Cambio de contrapiso / vigas; casas de 3 y 4 familias pueden necesitar permiso por la resistencia al fuego"
+          }
+        },
+        {
+          "label": { "pt": "Verificar planicidade (flatness)", "en": "Check flatness", "es": "Revisar la planitud" },
+          "authority": {
+            "pt": "Fabricante / TCNA (tile grande formato: 1/8\" em 10 ft)",
+            "en": "Manufacturer / TCNA (large-format tile: 1/8\" in 10 ft)",
+            "es": "Fabricante / TCNA (azulejo de formato grande: 1/8\" en 10 ft)"
+          },
+          "when": { "pt": "Antes de instalar — régua de 10 ft", "en": "Before installation — 10 ft straightedge", "es": "Antes de la instalación — regla de 10 ft" }
         }
       ],
       proposal: {
@@ -3537,7 +4096,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Tirar o carpete dos três quartos e do corredor, uns 650 pés, parafusar o contrapiso e instalar LVP click com manta. Rodapé novo e transições. Material por nossa conta. Preço 9.800, 30/40/30.”",
-          "en": "e.g. “Remove the carpet in three bedrooms and the hallway, about 650 sq ft, re-screw the subfloor and install click LVP with underlayment. New baseboard and transitions. We supply the material. Price 9,800, 30/40/30.”"
+          "en": "e.g. “Remove the carpet in three bedrooms and the hallway, about 650 sq ft, re-screw the subfloor and install click LVP with underlayment. New baseboard and transitions. We supply the material. Price 9,800, 30/40/30.”",
+          "es": "ej.: “Quitar la alfombra de tres habitaciones y el pasillo, unos 650 pies, volver a atornillar el contrapiso e instalar LVP click con base. Zócalos nuevos y transiciones. El material lo ponemos nosotros. Precio 9,800, 30/40/30.”"
         },
         "aiRules": "Trade: FLOORING contractor (solid / engineered hardwood, LVP / laminate, resilient, tile and stone, carpet, refinishing). Finish flooring needs no building permit (780 CMR 105.2); structural subfloor / joist work does.\nStandards: NWFA Installation Guidelines (wood), TCNA Handbook + ANSI A108 / A118 (tile), CRI 105 (carpet), ASTM F2170 / F1869 (concrete moisture), manufacturer's instructions.\nTypical sections: \"Site Protection & Preparation\", \"Removal of Existing Flooring\", \"Subfloor Preparation & Moisture Testing\", \"Hardwood Flooring\", \"LVP, Laminate & Resilient Flooring\", \"Tile & Stone\", \"Carpet\", \"Sanding & Refinishing\", \"Trim, Transitions & Final Cleanup\".\nQuantities in sq ft (carpet may be in sq yd), base / shoe / transitions in linear feet, stairs per tread. State product details exactly as spoken (species, width, thickness, LVP wear layer in mil, tile size); never invent a brand or color. Waste factor only in Clarifications.\nAlways say who supplies the flooring material; if not spoken, write \"flooring material supplied by Owner\" and add a note asking to confirm.\nOld 9x9 tile, old sheet vinyl, or black mastic: never promise removal before asbestos testing; keep the asbestos exclusion. Solid hardwood is not installed below grade (use engineered or LVP).\nWood: include acclimation and moisture testing. Refinish: number of sanding passes, stain sample approval, number and type of finish coats, and cure times. Screen & recoat is not a full sanding — never call it that.\nAlways exclude: appliance or toilet plumbing disconnection (unless pulling / resetting a toilet is listed), painting trim, concrete moisture mitigation, heavy furniture, structural repairs.\nSpeech terms: \"piso de madeira\" = hardwood, \"taco\" = parquet, \"contrapiso\" = subfloor, \"rodapé\" = baseboard, \"rejunte\" = grout, \"argamassa\" = thinset, \"nivelador / massa niveladora\" = self-leveler, \"elvipí\" = LVP, \"manta\" = underlayment, \"verniz / poliuretano\" = polyurethane finish, \"lixar\" = sand, \"degrau\" = stair tread.\n'Screen & recoat' is NOT sanding: abrade and recoat only (section 'Screen & Recoat'), no stain, no new flooring. Hardwood: 'solid or engineered as listed'. Item line 'Labor and material per the scope above' (no permit unless structural subfloor work). Payment: Deposit / Midpoint / Final (never 'Rough-In').",
         "facts": {
@@ -3563,7 +4123,8 @@
         "clientRole": "Homeowner",
         "adjustExample": {
           "pt": "Ex.: “Tira o rodapé novo, muda o preço para 9 mil e acrescenta o closet.”",
-          "en": "e.g. “Remove the new baseboard, change the price to 9K and add the closet.”"
+          "en": "e.g. “Remove the new baseboard, change the price to 9K and add the closet.”",
+          "es": "ej.: “Quita los zócalos nuevos, cambia el precio a 9 mil y agrega el clóset.”"
         }
       },
       prices: {
@@ -3574,42 +4135,92 @@
           { "id": "tileshop", "name": "The Tile Shop", "short": "Tile Shop", "search": "site:tileshop.com" },
           {
             "id": "hardwooddist",
-            "name": { "pt": "Distribuidor de madeira (hardwood)", "en": "Hardwood flooring distributor" },
-            "short": "Hardwood",
+            "name": { "pt": "Distribuidor de madeira (hardwood)", "en": "Hardwood flooring distributor", "es": "Distribuidor de pisos de madera" },
+            "short": { "pt": "Hardwood", "en": "Hardwood", "es": "Pisos de madera" },
             "search": "hardwood flooring distributor Massachusetts"
           }
         ],
         "basic": [
-          [{ "pt": "LVP click 6–7 mm (caixa)", "en": "Click LVP 6–7 mm (box)" }, { "pt": "Piso", "en": "Flooring" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Laminado 12 mm (caixa)", "en": "Laminate 12 mm (box)" }, { "pt": "Piso", "en": "Flooring" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Madeira maciça red oak 3-1/4\" (caixa)", "en": "Solid red oak 3-1/4\" (box)" }, { "pt": "Piso", "en": "Flooring" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Madeira engenheirada (caixa)", "en": "Engineered hardwood (box)" }, { "pt": "Piso", "en": "Flooring" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Porcelanato 12x24 (caixa)", "en": "Porcelain tile 12x24 (box)" }, "Tile", { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Argamassa modificada (thinset) 50 lb", "en": "Modified thinset 50 lb" }, "Tile", { "pt": "saco", "en": "bag" }],
-          [{ "pt": "Rejunte (grout) 25 lb", "en": "Grout 25 lb" }, "Tile", { "pt": "saco", "en": "bag" }],
-          [{ "pt": "Membrana desacopladora (Ditra) — rolo", "en": "Uncoupling membrane (Ditra) — roll" }, "Tile", { "pt": "rolo", "en": "roll" }],
-          ["Cement board 1/2\" 3x5", "Tile", { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Nivelador (self-leveler) 50 lb", "en": "Self-leveling underlayment 50 lb" }, { "pt": "Contrapiso", "en": "Subfloor" }, { "pt": "saco", "en": "bag" }],
-          [{ "pt": "Manta / underlayment LVP (rolo)", "en": "LVP underlayment (roll)" }, { "pt": "Contrapiso", "en": "Subfloor" }, { "pt": "rolo", "en": "roll" }],
           [
-            { "pt": "Papel / barreira para madeira (rosin / Aquabar)", "en": "Wood floor underlayment paper (rosin / Aquabar)" },
-            { "pt": "Contrapiso", "en": "Subfloor" }, { "pt": "rolo", "en": "roll" }
+            { "pt": "LVP click 6–7 mm (caixa)", "en": "Click LVP 6–7 mm (box)", "es": "LVP click 6–7 mm (caja)" },
+            { "pt": "Piso", "en": "Flooring", "es": "Pisos" }, { "pt": "caixa", "en": "box", "es": "caja" }
           ],
-          [{ "pt": "Underlayment plywood 1/4\" 4x8", "en": "Plywood underlayment 1/4\" 4x8" }, { "pt": "Contrapiso", "en": "Subfloor" }, { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Cleats / grampos de piso 2\" (caixa)", "en": "Flooring cleats / staples 2\" (box)" }, { "pt": "Fixação", "en": "Fasteners" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Cola de piso (urethane) — balde", "en": "Urethane flooring adhesive — pail" }, { "pt": "Fixação", "en": "Fasteners" }, { "pt": "balde", "en": "pail" }],
-          [{ "pt": "Poliuretano à base de água (galão)", "en": "Waterborne polyurethane (gallon)" }, { "pt": "Acabamento", "en": "Finish" }, { "pt": "galão", "en": "gal" }],
-          [{ "pt": "Lixas para refinish (pacote)", "en": "Floor sanding abrasives (pack)" }, { "pt": "Acabamento", "en": "Finish" }, { "pt": "pacote", "en": "pack" }],
           [
-            { "pt": "Quarter round / shoe — 8 ft", "en": "Quarter round / shoe — 8 ft" }, { "pt": "Rodapé e transições", "en": "Base & transitions" },
-            { "pt": "peça", "en": "each" }
+            { "pt": "Laminado 12 mm (caixa)", "en": "Laminate 12 mm (box)", "es": "Laminado 12 mm (caja)" }, { "pt": "Piso", "en": "Flooring", "es": "Pisos" },
+            { "pt": "caixa", "en": "box", "es": "caja" }
           ],
-          [{ "pt": "Transição T-mold / reducer", "en": "T-molding / reducer" }, { "pt": "Rodapé e transições", "en": "Base & transitions" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Carpete + pad (jarda²)", "en": "Carpet + pad (sq yd)" }, { "pt": "Carpete", "en": "Carpet" }, { "pt": "jarda²", "en": "sq yd" }]
+          [
+            { "pt": "Madeira maciça red oak 3-1/4\" (caixa)", "en": "Solid red oak 3-1/4\" (box)", "es": "Roble rojo sólido 3-1/4\" (caja)" },
+            { "pt": "Piso", "en": "Flooring", "es": "Pisos" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [
+            { "pt": "Madeira engenheirada (caixa)", "en": "Engineered hardwood (box)", "es": "Madera de ingeniería (caja)" },
+            { "pt": "Piso", "en": "Flooring", "es": "Pisos" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [{ "pt": "Porcelanato 12x24 (caixa)", "en": "Porcelain tile 12x24 (box)", "es": "Porcelanato 12x24 (caja)" }, "Tile", { "pt": "caixa", "en": "box", "es": "caja" }],
+          [
+            { "pt": "Argamassa modificada (thinset) 50 lb", "en": "Modified thinset 50 lb", "es": "Thinset modificado 50 lb" }, "Tile",
+            { "pt": "saco", "en": "bag", "es": "bolsa" }
+          ],
+          [{ "pt": "Rejunte (grout) 25 lb", "en": "Grout 25 lb", "es": "Fragua (grout) 25 lb" }, "Tile", { "pt": "saco", "en": "bag", "es": "bolsa" }],
+          [
+            { "pt": "Membrana desacopladora (Ditra) — rolo", "en": "Uncoupling membrane (Ditra) — roll", "es": "Membrana desacopladora (Ditra) — rollo" },
+            "Tile", { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          ["Cement board 1/2\" 3x5", "Tile", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          [
+            { "pt": "Nivelador (self-leveler) 50 lb", "en": "Self-leveling underlayment 50 lb", "es": "Autonivelante 50 lb" },
+            { "pt": "Contrapiso", "en": "Subfloor", "es": "Contrapiso" }, { "pt": "saco", "en": "bag", "es": "bolsa" }
+          ],
+          [
+            { "pt": "Manta / underlayment LVP (rolo)", "en": "LVP underlayment (roll)", "es": "Base para LVP (rollo)" },
+            { "pt": "Contrapiso", "en": "Subfloor", "es": "Contrapiso" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            {
+              "pt": "Papel / barreira para madeira (rosin / Aquabar)",
+              "en": "Wood floor underlayment paper (rosin / Aquabar)",
+              "es": "Papel base para piso de madera (rosin / Aquabar)"
+            },
+            { "pt": "Contrapiso", "en": "Subfloor", "es": "Contrapiso" },
+            { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Underlayment plywood 1/4\" 4x8", "en": "Plywood underlayment 1/4\" 4x8", "es": "Plywood de base 1/4\" 4x8" },
+            { "pt": "Contrapiso", "en": "Subfloor", "es": "Contrapiso" }, { "pt": "folha", "en": "sheet", "es": "hoja" }
+          ],
+          [
+            { "pt": "Cleats / grampos de piso 2\" (caixa)", "en": "Flooring cleats / staples 2\" (box)", "es": "Clavos / grapas para piso 2\" (caja)" },
+            { "pt": "Fixação", "en": "Fasteners", "es": "Fijaciones" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [
+            { "pt": "Cola de piso (urethane) — balde", "en": "Urethane flooring adhesive — pail", "es": "Adhesivo de uretano para pisos — cubeta" },
+            { "pt": "Fixação", "en": "Fasteners", "es": "Fijaciones" }, { "pt": "balde", "en": "pail", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Poliuretano à base de água (galão)", "en": "Waterborne polyurethane (gallon)", "es": "Poliuretano a base de agua (galón)" },
+            { "pt": "Acabamento", "en": "Finish", "es": "Acabado" }, { "pt": "galão", "en": "gal", "es": "gal" }
+          ],
+          [
+            { "pt": "Lixas para refinish (pacote)", "en": "Floor sanding abrasives (pack)", "es": "Abrasivos para lijar pisos (paquete)" },
+            { "pt": "Acabamento", "en": "Finish", "es": "Acabado" }, { "pt": "pacote", "en": "pack", "es": "paquete" }
+          ],
+          [
+            { "pt": "Quarter round / shoe — 8 ft", "en": "Quarter round / shoe — 8 ft", "es": "Cuarto de caña / shoe — 8 ft" },
+            { "pt": "Rodapé e transições", "en": "Base & transitions", "es": "Zócalos y transiciones" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Transição T-mold / reducer", "en": "T-molding / reducer", "es": "T-molding / reductor" },
+            { "pt": "Rodapé e transições", "en": "Base & transitions", "es": "Zócalos y transiciones" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Carpete + pad (jarda²)", "en": "Carpet + pad (sq yd)", "es": "Alfombra + bajoalfombra (yd²)" },
+            { "pt": "Carpete", "en": "Carpet", "es": "Alfombra" }, { "pt": "jarda²", "en": "sq yd", "es": "yd²" }
+          ]
         ],
-        "basicOffer": [{ "list": "flooring", "label": { "pt": "Adicionar lista básica de piso", "en": "Add basic flooring list" } }],
+        "basicOffer": [{ "list": "flooring", "label": { "pt": "Adicionar lista básica de piso", "en": "Add basic flooring list", "es": "Agregar lista básica de pisos" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: LVP click, underlayment, T-molding", "en": "e.g. click LVP, underlayment, T-molding" }
+        "searchExample": { "pt": "ex.: LVP click, underlayment, T-molding", "en": "e.g. click LVP, underlayment, T-molding", "es": "ej.: LVP click, base, T-molding" }
       },
       groupsI18n: {
         "en": {
@@ -3619,6 +4230,14 @@
           "Refinish": "Refinishing",
           "Acabamento": "Finish",
           "Inspeções": "Inspections"
+        },
+        "es": {
+          "Preparação e remoção": "Preparación y retiro",
+          "Contrapiso": "Contrapiso",
+          "Instalação": "Instalación",
+          "Refinish": "Refinish",
+          "Acabamento": "Acabado",
+          "Inspeções": "Inspecciones"
         }
       }
     },
@@ -3629,89 +4248,110 @@
       category: "envelope",
       label: "Siding",
       companySuffix: "Siding",
-      onboarding: { "label": "Siding", "desc": { "pt": "Vinil, Hardie, cedar, trim, soffit", "en": "Vinyl, fiber cement, cedar, trim, soffit" } },
+      onboarding: {
+        "label": "Siding",
+        "desc": { "pt": "Vinil, Hardie, cedar, trim, soffit", "en": "Vinyl, fiber cement, cedar, trim, soffit", "es": "Vinilo, fibrocemento, cedro, molduras, soffit" }
+      },
       icon: { "svg": "<path d=\"M3.5 10.5 12 4l8.5 6.5\"/><path d=\"M5.5 9v11.5h13V9\"/><path d=\"M5.5 12.5h13M5.5 15.5h13M5.5 18.5h13\"/>" },
-      kind: { "pt": "trabalho de siding", "en": "siding job" },
+      kind: { "pt": "trabalho de siding", "en": "siding job", "es": "trabajo de siding" },
       stepName: "Siding",
       group: { "label": "Siding", "icon": "trade-siding" },
       workType: [
-        { "pt": "Troca completa de siding (re-side)", "en": "Full re-side" }, "New Construction", { "pt": "Addition (ampliação)", "en": "Addition" },
-        { "pt": "Reparo / troca parcial", "en": "Repair / partial replacement" }, { "pt": "Trim, soffit e fascia", "en": "Trim, soffit & fascia" },
-        { "pt": "Janelas e portas (com flashing)", "en": "Windows & doors (with flashing)" },
-        { "pt": "Comercial / multifamily", "en": "Commercial / multifamily" }, { "pt": "Calhas e acabamento externo", "en": "Gutters & exterior finish" }
+        { "pt": "Troca completa de siding (re-side)", "en": "Full re-side", "es": "Cambio completo de siding" }, "New Construction",
+        { "pt": "Addition (ampliação)", "en": "Addition", "es": "Ampliación (addition)" },
+        { "pt": "Reparo / troca parcial", "en": "Repair / partial replacement", "es": "Reparación / cambio parcial" },
+        { "pt": "Trim, soffit e fascia", "en": "Trim, soffit & fascia", "es": "Molduras, soffit y fascia" },
+        { "pt": "Janelas e portas (com flashing)", "en": "Windows & doors (with flashing)", "es": "Ventanas y puertas (con flashing)" },
+        { "pt": "Comercial / multifamily", "en": "Commercial / multifamily", "es": "Comercial / multifamiliar" },
+        { "pt": "Calhas e acabamento externo", "en": "Gutters & exterior finish", "es": "Canaletas y acabado exterior" }
       ],
       fields: {
         "sidingMaterial": {
-          "label": { "pt": "Material do siding", "en": "Siding material" },
+          "label": { "pt": "Material do siding", "en": "Siding material", "es": "Material del siding" },
           "multi": true,
           "opts": [
-            { "pt": "Vinil", "en": "Vinyl" }, { "pt": "Vinil insulado", "en": "Insulated vinyl" }, "Fiber cement (James Hardie)",
-            "Engineered wood (LP SmartSide)", "Cedar clapboard", "Cedar shingles", { "pt": "Alumínio", "en": "Aluminum" }, "Board & batten",
-            { "pt": "Pedra (stone veneer)", "en": "Stone veneer" }
+            { "pt": "Vinil", "en": "Vinyl", "es": "Vinilo" }, { "pt": "Vinil insulado", "en": "Insulated vinyl", "es": "Vinilo aislado" },
+            "Fiber cement (James Hardie)", "Engineered wood (LP SmartSide)", "Cedar clapboard", "Cedar shingles",
+            { "pt": "Alumínio", "en": "Aluminum", "es": "Aluminio" }, "Board & batten",
+            { "pt": "Pedra (stone veneer)", "en": "Stone veneer", "es": "Chapa de piedra" }
           ]
         },
         "profile": {
-          "label": { "pt": "Perfil / exposição", "en": "Profile / exposure" },
+          "label": { "pt": "Perfil / exposição", "en": "Profile / exposure", "es": "Perfil / exposición" },
           "opts": [
-            "Clapboard / lap 4\"", "Dutch lap", { "pt": "Lap 6–7\" de exposição", "en": "Lap 6–7\" exposure" }, "Shingles / shakes",
-            { "pt": "Vertical (board & batten)", "en": "Vertical (board & batten)" }, { "pt": "Painéis", "en": "Panels" }
+            "Clapboard / lap 4\"", "Dutch lap", { "pt": "Lap 6–7\" de exposição", "en": "Lap 6–7\" exposure", "es": "Lap con exposición de 6–7\"" },
+            "Shingles / shakes", { "pt": "Vertical (board & batten)", "en": "Vertical (board & batten)", "es": "Vertical (board & batten)" },
+            { "pt": "Painéis", "en": "Panels", "es": "Paneles" }
           ]
         },
         "existingSiding": {
-          "label": { "pt": "Siding existente", "en": "Existing siding" },
+          "label": { "pt": "Siding existente", "en": "Existing siding", "es": "Siding existente" },
           "opts": [
-            { "pt": "Sem siding (casa nova)", "en": "None (new construction)" }, { "pt": "Vinil", "en": "Vinyl" }, { "pt": "Alumínio", "en": "Aluminum" },
-            { "pt": "Madeira (clapboard / shingle)", "en": "Wood (clapboard / shingle)" },
-            { "pt": "Asbesto-cimento (transite) — cuidado", "en": "Asbestos-cement (transite) — caution" }, "Fiber cement"
+            { "pt": "Sem siding (casa nova)", "en": "None (new construction)", "es": "Ninguno (construcción nueva)" },
+            { "pt": "Vinil", "en": "Vinyl", "es": "Vinilo" }, { "pt": "Alumínio", "en": "Aluminum", "es": "Aluminio" },
+            { "pt": "Madeira (clapboard / shingle)", "en": "Wood (clapboard / shingle)", "es": "Madera (clapboard / shingle)" },
+            { "pt": "Asbesto-cimento (transite) — cuidado", "en": "Asbestos-cement (transite) — caution", "es": "Asbesto-cemento (transite) — cuidado" },
+            "Fiber cement"
           ]
         },
         "removalType": {
-          "label": { "pt": "Remoção", "en": "Removal" },
+          "label": { "pt": "Remoção", "en": "Removal", "es": "Retiro" },
           "opts": [
-            { "pt": "Remover tudo até o sheathing", "en": "Full tear-off to sheathing" },
-            { "pt": "Instalar por cima (over existing)", "en": "Install over existing" }, { "pt": "Remoção parcial", "en": "Partial removal" },
-            { "pt": "Não se aplica (casa nova)", "en": "N/A (new construction)" }
+            { "pt": "Remover tudo até o sheathing", "en": "Full tear-off to sheathing", "es": "Retiro completo hasta el sheathing" },
+            { "pt": "Instalar por cima (over existing)", "en": "Install over existing", "es": "Instalar sobre el existente" },
+            { "pt": "Remoção parcial", "en": "Partial removal", "es": "Retiro parcial" },
+            { "pt": "Não se aplica (casa nova)", "en": "N/A (new construction)", "es": "N/A (construcción nueva)" }
           ]
         },
         "sheathing": {
-          "label": { "pt": "Sheathing (chapeamento)", "en": "Sheathing" },
+          "label": { "pt": "Sheathing (chapeamento)", "en": "Sheathing", "es": "Sheathing (forro)" },
           "opts": [
-            { "pt": "OK — só inspecionar", "en": "OK — inspect only" }, { "pt": "Trocar áreas podres", "en": "Replace rotted areas" },
-            { "pt": "Sheathing novo (OSB / plywood)", "en": "New sheathing (OSB / plywood)" },
-            { "pt": "Isolamento rígido contínuo (foam)", "en": "Continuous rigid insulation (foam)" }, "Zip System"
+            { "pt": "OK — só inspecionar", "en": "OK — inspect only", "es": "OK — solo inspeccionar" },
+            { "pt": "Trocar áreas podres", "en": "Replace rotted areas", "es": "Cambiar las partes podridas" },
+            { "pt": "Sheathing novo (OSB / plywood)", "en": "New sheathing (OSB / plywood)", "es": "Sheathing nuevo (OSB / plywood)" },
+            { "pt": "Isolamento rígido contínuo (foam)", "en": "Continuous rigid insulation (foam)", "es": "Aislamiento rígido continuo (espuma)" },
+            "Zip System"
           ]
         },
         "wrb": {
-          "label": { "pt": "Barreira (WRB)", "en": "Water-resistive barrier (WRB)" },
+          "label": { "pt": "Barreira (WRB)", "en": "Water-resistive barrier (WRB)", "es": "Barrera resistente al agua (WRB)" },
           "opts": [
-            "House wrap (Tyvek / Typar)", "Drainable wrap (DrainWrap)", { "pt": "Zip System (barreira no sheathing)", "en": "Zip System (integrated WRB)" },
-            { "pt": "Rainscreen com furring", "en": "Rainscreen with furring strips" }, { "pt": "Feltro asfáltico #15", "en": "#15 asphalt felt" }
+            "House wrap (Tyvek / Typar)", "Drainable wrap (DrainWrap)",
+            { "pt": "Zip System (barreira no sheathing)", "en": "Zip System (integrated WRB)", "es": "Zip System (WRB integrado)" },
+            { "pt": "Rainscreen com furring", "en": "Rainscreen with furring strips", "es": "Rainscreen con listones (furring)" },
+            { "pt": "Feltro asfáltico #15", "en": "#15 asphalt felt", "es": "Fieltro asfáltico #15" }
           ]
         },
         "trimMaterial": {
           "label": "Trim",
           "multi": true,
           "opts": [
-            "PVC (AZEK / Royal)", "Fiber cement (HardieTrim)", { "pt": "Madeira (pine / cedar)", "en": "Wood (pine / cedar)" },
-            { "pt": "Capeamento de alumínio (coil)", "en": "Aluminum coil capping" }, "LP SmartSide trim"
+            "PVC (AZEK / Royal)", "Fiber cement (HardieTrim)", { "pt": "Madeira (pine / cedar)", "en": "Wood (pine / cedar)", "es": "Madera (pino / cedro)" },
+            { "pt": "Capeamento de alumínio (coil)", "en": "Aluminum coil capping", "es": "Forrado con lámina de aluminio (coil)" }, "LP SmartSide trim"
           ]
         },
         "eaves": {
-          "label": { "pt": "Beiral (soffit, fascia, calhas)", "en": "Eaves (soffit, fascia, gutters)" },
+          "label": { "pt": "Beiral (soffit, fascia, calhas)", "en": "Eaves (soffit, fascia, gutters)", "es": "Aleros (soffit, fascia, canaletas)" },
           "multi": true,
           "opts": [
-            { "pt": "Soffit vinil ventilado", "en": "Vented vinyl soffit" }, { "pt": "Soffit alumínio", "en": "Aluminum soffit" },
-            { "pt": "Soffit fiber cement", "en": "Fiber cement soffit" }, { "pt": "Fascia alumínio (wrap)", "en": "Aluminum fascia wrap" },
-            { "pt": "Fascia PVC", "en": "PVC fascia" }, { "pt": "Remover e recolocar calhas", "en": "Remove & reinstall gutters" },
-            { "pt": "Calhas novas (seamless)", "en": "New seamless gutters" }, { "pt": "Manter existente", "en": "Keep existing" }
+            { "pt": "Soffit vinil ventilado", "en": "Vented vinyl soffit", "es": "Soffit de vinilo ventilado" },
+            { "pt": "Soffit alumínio", "en": "Aluminum soffit", "es": "Soffit de aluminio" },
+            { "pt": "Soffit fiber cement", "en": "Fiber cement soffit", "es": "Soffit de fibrocemento" },
+            { "pt": "Fascia alumínio (wrap)", "en": "Aluminum fascia wrap", "es": "Forrado de fascia en aluminio" },
+            { "pt": "Fascia PVC", "en": "PVC fascia", "es": "Fascia de PVC" },
+            { "pt": "Remover e recolocar calhas", "en": "Remove & reinstall gutters", "es": "Quitar y reinstalar canaletas" },
+            { "pt": "Calhas novas (seamless)", "en": "New seamless gutters", "es": "Canaletas nuevas sin costura" },
+            { "pt": "Manter existente", "en": "Keep existing", "es": "Mantener las existentes" }
           ]
         },
         "windows": {
-          "label": { "pt": "Janelas e portas", "en": "Windows & doors" },
+          "label": { "pt": "Janelas e portas", "en": "Windows & doors", "es": "Ventanas y puertas" },
           "opts": [
-            { "pt": "Sem mudança", "en": "No change" }, { "pt": "Só capeamento do trim", "en": "Trim capping only" },
-            { "pt": "Reflash das existentes", "en": "Reflash existing" }, { "pt": "Trocar janelas (replacement)", "en": "Replacement windows" },
-            { "pt": "Janelas novas (nail fin)", "en": "New-construction windows (nail fin)" }
+            { "pt": "Sem mudança", "en": "No change", "es": "Sin cambio" },
+            { "pt": "Só capeamento do trim", "en": "Trim capping only", "es": "Solo forrar las molduras" },
+            { "pt": "Reflash das existentes", "en": "Reflash existing", "es": "Rehacer el flashing existente" },
+            { "pt": "Trocar janelas (replacement)", "en": "Replacement windows", "es": "Ventanas de reemplazo" },
+            { "pt": "Janelas novas (nail fin)", "en": "New-construction windows (nail fin)", "es": "Ventanas de construcción nueva (nail fin)" }
           ]
         },
         "flashing": {
@@ -3719,70 +4359,101 @@
           "multi": true,
           "system": true,
           "opts": [
-            { "pt": "Fita de flashing nas janelas", "en": "Window flashing tape" }, "Z-flashing / drip cap", "Kick-out flashing", "Step flashing",
-            { "pt": "Head flashing de portas", "en": "Door head flashing" }, "Sill pan"
+            { "pt": "Fita de flashing nas janelas", "en": "Window flashing tape", "es": "Cinta de flashing para ventanas" }, "Z-flashing / drip cap",
+            "Kick-out flashing", "Step flashing", { "pt": "Head flashing de portas", "en": "Door head flashing", "es": "Flashing superior de puertas" },
+            "Sill pan"
           ]
         },
         "finishType": {
-          "label": { "pt": "Acabamento / cor", "en": "Finish / color" },
+          "label": { "pt": "Acabamento / cor", "en": "Finish / color", "es": "Acabado / color" },
           "opts": [
-            { "pt": "Cor de fábrica (vinil)", "en": "Factory color (vinyl)" },
-            { "pt": "Pré-pintado de fábrica (ColorPlus)", "en": "Factory prefinished (ColorPlus)" },
-            { "pt": "Primed — pintar no local", "en": "Primed — field paint" }, { "pt": "Cedar natural / stain", "en": "Natural cedar / stain" },
-            { "pt": "Pintura por outros", "en": "Painting by others" }
+            { "pt": "Cor de fábrica (vinil)", "en": "Factory color (vinyl)", "es": "Color de fábrica (vinilo)" },
+            { "pt": "Pré-pintado de fábrica (ColorPlus)", "en": "Factory prefinished (ColorPlus)", "es": "Prefinished de fábrica (ColorPlus)" },
+            { "pt": "Primed — pintar no local", "en": "Primed — field paint", "es": "Con primer — pintar en obra" },
+            { "pt": "Cedar natural / stain", "en": "Natural cedar / stain", "es": "Cedro natural / tinte" },
+            { "pt": "Pintura por outros", "en": "Painting by others", "es": "Pintura por otros" }
           ]
         },
         "leadAge": {
-          "label": { "pt": "Ano da casa (chumbo)", "en": "Year built (lead)" },
+          "label": { "pt": "Ano da casa (chumbo)", "en": "Year built (lead)", "es": "Año de construcción (plomo)" },
           "opts": [
-            { "pt": "Antes de 1978 (RRP lead-safe)", "en": "Before 1978 (RRP lead-safe)" }, { "pt": "1978 ou depois", "en": "1978 or later" },
-            { "pt": "Não sei (testar)", "en": "Unknown (test)" }
+            { "pt": "Antes de 1978 (RRP lead-safe)", "en": "Before 1978 (RRP lead-safe)", "es": "Antes de 1978 (RRP, seguro contra plomo)" },
+            { "pt": "1978 ou depois", "en": "1978 or later", "es": "1978 o después" },
+            { "pt": "Não sei (testar)", "en": "Unknown (test)", "es": "Desconocido (hacer prueba)" }
           ]
         }
       },
       text: [
-        { "key": "wallArea", "label": { "pt": "Área de parede (squares)", "en": "Wall area (squares)" }, "unit": "sq", "type": "number" },
-        { "key": "trimLf", "label": { "pt": "Trim e cantos (linear ft)", "en": "Trim & corners (linear ft)" }, "unit": "lf", "type": "number" },
-        { "key": "openings", "label": { "pt": "Janelas e portas (quantidade)", "en": "Windows & doors (count)" }, "unit": "ea", "type": "number" },
-        { "key": "productColor", "label": { "pt": "Produto / cor (ex.: Hardie Arctic White)", "en": "Product / color (e.g. Hardie Arctic White)" } }
+        { "key": "wallArea", "label": { "pt": "Área de parede (squares)", "en": "Wall area (squares)", "es": "Área de paredes (squares)" }, "unit": "sq", "type": "number" },
+        {
+          "key": "trimLf",
+          "label": { "pt": "Trim e cantos (linear ft)", "en": "Trim & corners (linear ft)", "es": "Molduras y esquinas (pies lineales)" },
+          "unit": "lf",
+          "type": "number"
+        },
+        {
+          "key": "openings",
+          "label": { "pt": "Janelas e portas (quantidade)", "en": "Windows & doors (count)", "es": "Ventanas y puertas (cantidad)" },
+          "unit": "ea",
+          "type": "number"
+        },
+        {
+          "key": "productColor",
+          "label": { "pt": "Produto / cor (ex.: Hardie Arctic White)", "en": "Product / color (e.g. Hardie Arctic White)", "es": "Producto / color (ej.: Hardie Arctic White)" }
+        }
       ],
       units: [
-        { "id": "sq", "label": { "pt": "square (100 sq ft)", "en": "square (100 sq ft)" } }, { "id": "sqft", "label": "sq ft" },
-        { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft" } }, { "id": "ea", "label": { "pt": "un", "en": "ea" } },
-        { "id": "pc", "label": { "pt": "peça", "en": "piece" } }, { "id": "box", "label": { "pt": "caixa", "en": "box" } },
-        { "id": "roll", "label": { "pt": "rolo", "en": "roll" } }, { "id": "bundle", "label": { "pt": "fardo (bundle)", "en": "bundle" } }
+        { "id": "sq", "label": { "pt": "square (100 sq ft)", "en": "square (100 sq ft)", "es": "square (100 sq ft)" } }, { "id": "sqft", "label": "sq ft" },
+        { "id": "lf", "label": { "pt": "pés lineares (lf)", "en": "linear ft", "es": "pie lineal" } },
+        { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } }, { "id": "pc", "label": { "pt": "peça", "en": "piece", "es": "pieza" } },
+        { "id": "box", "label": { "pt": "caixa", "en": "box", "es": "caja" } }, { "id": "roll", "label": { "pt": "rolo", "en": "roll", "es": "rollo" } },
+        { "id": "bundle", "label": { "pt": "fardo (bundle)", "en": "bundle", "es": "paquete" } }
       ],
       tasks: {
         "Preparação": [
-          { "pt": "Proteção de paisagismo, janelas e AC", "en": "Protect landscaping, windows & AC unit" },
-          { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)" },
-          { "pt": "Remover calhas, luzes e obstáculos", "en": "Remove gutters, lights & obstructions" },
-          { "pt": "Staging / andaime", "en": "Staging / scaffolding" }
+          { "pt": "Proteção de paisagismo, janelas e AC", "en": "Protect landscaping, windows & AC unit", "es": "Proteger jardines, ventanas y la unidad de AC" },
+          { "pt": "Contenção lead-safe (RRP)", "en": "Lead-safe containment (RRP)", "es": "Contención segura contra plomo (RRP)" },
+          { "pt": "Remover calhas, luzes e obstáculos", "en": "Remove gutters, lights & obstructions", "es": "Quitar canaletas, lámparas y obstáculos" },
+          { "pt": "Staging / andaime", "en": "Staging / scaffolding", "es": "Andamios" }
         ],
         "Remoção e sheathing": [
-          { "pt": "Remover siding existente", "en": "Remove existing siding" }, { "pt": "Descarte / dumpster", "en": "Disposal / dumpster" },
-          { "pt": "Inspecionar sheathing", "en": "Inspect sheathing" }, { "pt": "Trocar / instalar sheathing", "en": "Replace / install sheathing" },
-          { "pt": "Isolamento rígido contínuo", "en": "Continuous rigid insulation" }
+          { "pt": "Remover siding existente", "en": "Remove existing siding", "es": "Quitar el siding existente" },
+          { "pt": "Descarte / dumpster", "en": "Disposal / dumpster", "es": "Desecho / dumpster" },
+          { "pt": "Inspecionar sheathing", "en": "Inspect sheathing", "es": "Inspeccionar el sheathing" },
+          { "pt": "Trocar / instalar sheathing", "en": "Replace / install sheathing", "es": "Cambiar / instalar sheathing" },
+          { "pt": "Isolamento rígido contínuo", "en": "Continuous rigid insulation", "es": "Aislamiento rígido continuo" }
         ],
-        "Barreira e flashing": ["House wrap / WRB", { "pt": "Flashing de janelas e portas", "en": "Window & door flashing" }, "Kick-out flashing", "Z-flashing / drip cap", "Starter strip"],
+        "Barreira e flashing": [
+          "House wrap / WRB", { "pt": "Flashing de janelas e portas", "en": "Window & door flashing", "es": "Flashing de ventanas y puertas" },
+          "Kick-out flashing", "Z-flashing / drip cap", "Starter strip"
+        ],
         "Instalação": [
-          { "pt": "Cantos (outside / inside corners)", "en": "Outside / inside corners" }, { "pt": "Trim de janelas e portas", "en": "Window & door trim" },
-          { "pt": "Instalar siding", "en": "Install siding" }, "Soffit", "Fascia",
-          { "pt": "Mounting blocks (luzes, tomadas, torneiras)", "en": "Mounting blocks (lights, outlets, hose bibs)" },
-          { "pt": "Trocar janelas / portas", "en": "Replace windows / doors" }
+          { "pt": "Cantos (outside / inside corners)", "en": "Outside / inside corners", "es": "Esquinas exteriores / interiores" },
+          { "pt": "Trim de janelas e portas", "en": "Window & door trim", "es": "Molduras de ventanas y puertas" },
+          { "pt": "Instalar siding", "en": "Install siding", "es": "Instalar el siding" },
+          "Soffit",
+          "Fascia",
+          {
+            "pt": "Mounting blocks (luzes, tomadas, torneiras)",
+            "en": "Mounting blocks (lights, outlets, hose bibs)",
+            "es": "Bloques de montaje (lámparas, tomacorrientes, llaves de manguera)"
+          },
+          { "pt": "Trocar janelas / portas", "en": "Replace windows / doors", "es": "Cambiar ventanas / puertas" }
         ],
         "Acabamento": [
-          { "pt": "Calafetar juntas (caulk)", "en": "Caulk joints" },
-          { "pt": "Pintura / retoque de corte (fiber cement)", "en": "Paint / touch up cut edges (fiber cement)" },
-          { "pt": "Recolocar calhas, luzes e itens", "en": "Reinstall gutters, lights & fixtures" }, { "pt": "Calhas novas (gutters)", "en": "New gutters" },
-          { "pt": "Limpeza (ímã de pregos)", "en": "Cleanup (magnetic nail sweep)" },
-          { "pt": "Punch list com o cliente", "en": "Punch list walkthrough with owner" }
+          { "pt": "Calafetar juntas (caulk)", "en": "Caulk joints", "es": "Calafatear juntas" },
+          { "pt": "Pintura / retoque de corte (fiber cement)", "en": "Paint / touch up cut edges (fiber cement)", "es": "Pintar / retocar los cortes (fibrocemento)" },
+          { "pt": "Recolocar calhas, luzes e itens", "en": "Reinstall gutters, lights & fixtures", "es": "Reinstalar canaletas, lámparas y accesorios" },
+          { "pt": "Calhas novas (gutters)", "en": "New gutters", "es": "Canaletas nuevas" },
+          { "pt": "Limpeza (ímã de pregos)", "en": "Cleanup (magnetic nail sweep)", "es": "Limpieza (barrido magnético de clavos)" },
+          { "pt": "Punch list com o cliente", "en": "Punch list walkthrough with owner", "es": "Recorrido de punch list con el dueño" }
         ],
         "Inspeções": [
-          { "pt": "Permit de building", "en": "Building permit" },
-          { "pt": "Teste de chumbo / asbesto (casa antiga)", "en": "Lead / asbestos test (older home)" },
-          { "pt": "Inspeção de house wrap / flashing", "en": "House wrap / flashing inspection" },
-          { "pt": "Verificação de limpeza RRP", "en": "RRP cleaning verification" }, { "pt": "Inspeção final", "en": "Final inspection" }
+          { "pt": "Permit de building", "en": "Building permit", "es": "Permiso de construcción" },
+          { "pt": "Teste de chumbo / asbesto (casa antiga)", "en": "Lead / asbestos test (older home)", "es": "Prueba de plomo / asbesto (casa antigua)" },
+          { "pt": "Inspeção de house wrap / flashing", "en": "House wrap / flashing inspection", "es": "Inspección de house wrap / flashing" },
+          { "pt": "Verificação de limpeza RRP", "en": "RRP cleaning verification", "es": "Verificación de limpieza RRP" },
+          { "pt": "Inspeção final", "en": "Final inspection", "es": "Inspección final" }
         ]
       },
       suggest: {
@@ -3869,44 +4540,61 @@
       },
       inspections: [
         {
-          "label": { "pt": "Permit de building", "en": "Building permit" },
+          "label": { "pt": "Permit de building", "en": "Building permit", "es": "Permiso de construcción" },
           "authority": {
             "pt": "Building department (780 CMR) — em MA, siding exige CSL + HIC + permit; em NH, a prefeitura local",
-            "en": "Building department (780 CMR) — in MA siding requires CSL + HIC + permit; in NH, the local town"
+            "en": "Building department (780 CMR) — in MA siding requires CSL + HIC + permit; in NH, the local town",
+            "es": "Departamento de construcción (780 CMR) — en MA el siding exige CSL + HIC + permiso; en NH, el municipio"
           },
           "when": {
             "pt": "Antes de começar; o permit em MA pede onde o entulho será descartado (debris affidavit)",
-            "en": "Before starting; MA permits ask where debris will be disposed of (debris affidavit)"
+            "en": "Before starting; MA permits ask where debris will be disposed of (debris affidavit)",
+            "es": "Antes de empezar; los permisos de MA preguntan dónde se van a desechar los escombros (debris affidavit)"
           }
         },
         {
-          "label": { "pt": "Teste de chumbo / asbesto (casa antiga)", "en": "Lead / asbestos test (older home)" },
+          "label": { "pt": "Teste de chumbo / asbesto (casa antiga)", "en": "Lead / asbestos test (older home)", "es": "Prueba de plomo / asbesto (casa antigua)" },
           "authority": {
             "pt": "Chumbo: EPA RRP / DLS 454 CMR 22. Asbesto-cimento (transite): MassDEP — notificação ANF-001 10 dias úteis antes da remoção",
-            "en": "Lead: EPA RRP / DLS 454 CMR 22. Asbestos-cement (transite): MassDEP — ANF-001 notification 10 working days before removal"
+            "en": "Lead: EPA RRP / DLS 454 CMR 22. Asbestos-cement (transite): MassDEP — ANF-001 notification 10 working days before removal",
+            "es": "Plomo: EPA RRP / DLS 454 CMR 22. Asbesto-cemento (transite): MassDEP — notificación ANF-001 10 días hábiles antes del retiro"
           },
           "when": {
             "pt": "Antes de orçar a remoção em casa pré-1978 ou com shingle de transite",
-            "en": "Before pricing removal on a pre-1978 home or one with transite shingles"
+            "en": "Before pricing removal on a pre-1978 home or one with transite shingles",
+            "es": "Antes de cotizar el retiro en una casa de antes de 1978 o con shingles de transite"
           }
         },
         {
-          "label": { "pt": "Inspeção de house wrap / flashing", "en": "House wrap / flashing inspection" },
-          "authority": { "pt": "Building inspector (alguns municípios pedem antes de cobrir)", "en": "Building inspector (some towns require it before cover-up)" },
-          "when": { "pt": "Wrap e flashing instalados, antes do siding", "en": "Wrap and flashing installed, before siding" }
+          "label": { "pt": "Inspeção de house wrap / flashing", "en": "House wrap / flashing inspection", "es": "Inspección de house wrap / flashing" },
+          "authority": {
+            "pt": "Building inspector (alguns municípios pedem antes de cobrir)",
+            "en": "Building inspector (some towns require it before cover-up)",
+            "es": "Inspector de construcción (algunos municipios lo exigen antes de cubrir)"
+          },
+          "when": {
+            "pt": "Wrap e flashing instalados, antes do siding",
+            "en": "Wrap and flashing installed, before siding",
+            "es": "Wrap y flashing instalados, antes del siding"
+          }
         },
         {
-          "label": { "pt": "Verificação de limpeza RRP", "en": "RRP cleaning verification" },
-          "authority": { "pt": "Certified renovator da empresa", "en": "Firm's certified renovator" },
+          "label": { "pt": "Verificação de limpeza RRP", "en": "RRP cleaning verification", "es": "Verificación de limpieza RRP" },
+          "authority": { "pt": "Certified renovator da empresa", "en": "Firm's certified renovator", "es": "Renovador certificado de la empresa" },
           "when": {
             "pt": "Fim da obra em casa pré-1978 (mais de 20 sq ft de exterior perturbado)",
-            "en": "End of job on a pre-1978 home (more than 20 sq ft of exterior disturbed)"
+            "en": "End of job on a pre-1978 home (more than 20 sq ft of exterior disturbed)",
+            "es": "Final de la obra en casa de antes de 1978 (más de 20 sq ft de exterior alterado)"
           }
         },
         {
-          "label": { "pt": "Inspeção final", "en": "Final inspection" },
-          "authority": { "pt": "Building inspector", "en": "Building inspector" },
-          "when": { "pt": "Siding, trim, flashing e calhas concluídos", "en": "Siding, trim, flashing, and gutters complete" }
+          "label": { "pt": "Inspeção final", "en": "Final inspection", "es": "Inspección final" },
+          "authority": { "pt": "Building inspector", "en": "Building inspector", "es": "Inspector de construcción" },
+          "when": {
+            "pt": "Siding, trim, flashing e calhas concluídos",
+            "en": "Siding, trim, flashing, and gutters complete",
+            "es": "Siding, molduras, flashing y canaletas completos"
+          }
         }
       ],
       proposal: {
@@ -3977,7 +4665,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Tirar o vinil velho da casa toda, umas 22 squares, Tyvek novo, flashing nas janelas, Hardie Plank ColorPlus cor Arctic White, trim de AZEK, soffit ventilado e fascia de alumínio. Casa de 1965. Preço 48 mil, 30/40/30.”",
-          "en": "e.g. “Tear off the old vinyl on the whole house, about 22 squares, new Tyvek, window flashing, Hardie Plank ColorPlus in Arctic White, AZEK trim, vented soffit and aluminum fascia. House from 1965. Price 48,000, 30/40/30.”"
+          "en": "e.g. “Tear off the old vinyl on the whole house, about 22 squares, new Tyvek, window flashing, Hardie Plank ColorPlus in Arctic White, AZEK trim, vented soffit and aluminum fascia. House from 1965. Price 48,000, 30/40/30.”",
+          "es": "ej.: “Quitar el vinilo viejo de toda la casa, unos 22 squares, Tyvek nuevo, flashing en las ventanas, Hardie Plank ColorPlus color Arctic White, molduras AZEK, soffit ventilado y fascia de aluminio. Casa de 1965. Precio 48,000, 30/40/30.”"
         },
         "aiRules": "Trade: SIDING / exterior envelope contractor (vinyl, fiber cement, engineered wood, cedar, PVC trim, soffit / fascia, windows and flashing, house wrap, gutters).\nCodes: 780 CMR in MA (IRC Ch. 7 — WRB and flashing at openings; kick-out flashing at roof-wall intersections), ASTM D4756 / VSI manual for vinyl, James Hardie HZ5 for fiber cement, ASTM E2112 for windows; EPA RRP for pre-1978 homes. In MA siding requires a building permit, CSL, and HIC.\nTypical sections: \"Site Protection & Staging\", \"Removal of Existing Siding\", \"Weather-Resistive Barrier & Flashing\", \"Siding Installation\", \"Trim, Corners & Window Casings\", \"Soffit & Fascia\", \"Windows & Doors\", \"Caulking, Paint & Gutters\", \"Permit, Inspections & Cleanup\".\nQuantities: wall area in squares (1 square = 100 sq ft) — e.g. \"approx. 22 squares\"; trim, corners, fascia, and gutters in linear feet; windows and doors each. Never show a waste percentage in the client document.\nState product, profile / exposure, color, and trim material exactly as spoken; never invent a brand or color.\nAlways add a hidden-conditions clause: rotted sheathing priced per sheet (4x8) and framing / trim per linear foot, or as a change order.\nAsbestos-cement (transite) siding: never include removal unless spoken; it needs a licensed contractor and MassDEP notification.\nAlways exclude: electrical (moving lights, receptacles, meter), utility coordination, painting of primed products unless listed, gutters unless listed, window replacement unless listed, interior repairs.\nMA owner-occupied 1–4 family homes (HIC law, M.G.L. c.142A): deposit max one-third of the price unless for special-order materials — prefer 30/40/30 or thirds.\nSpeech terms: \"réidi / hardi\" = James Hardie fiber cement, \"taivéc\" = Tyvek house wrap, \"sófit\" = soffit, \"fáscia\" = fascia, \"capeamento / coil\" = aluminum coil capping, \"jota\" = J-channel, \"canto\" = corner post, \"calha\" = gutter, \"beiral\" = eave, \"square / quadrado\" = 100 sq ft, \"chapa / compensado\" = sheathing.\nPayment milestones: Deposit / Tear-Off & Wrap / Final (never 'Rough-In'). Cite the CSL / HIC requirement and MassDEP only for Massachusetts companies. When the product is James Hardie ColorPlus, mention the 15-year ColorPlus finish warranty.",
         "facts": {
@@ -4017,39 +4706,92 @@
         "clientRole": "Homeowner",
         "adjustExample": {
           "pt": "Ex.: “Tira os gutters, muda o preço para 45 mil e acrescenta trocar 3 janelas.”",
-          "en": "e.g. “Remove the gutters, change the price to 45K and add 3 window replacements.”"
+          "en": "e.g. “Remove the gutters, change the price to 45K and add 3 window replacements.”",
+          "es": "ej.: “Quita las canaletas, cambia el precio a 45 mil y agrega 3 ventanas de reemplazo.”"
         }
       },
       prices: {
         "stores": ["abcsupply", { "id": "beacon", "name": "Beacon (QXO)", "short": "Beacon", "search": "site:becn.com" }, "homedepot", "lowes", "lumberyard"],
         "basic": [
-          [{ "pt": "Siding vinil D4 (square)", "en": "Vinyl siding D4 (square)" }, "Siding", "square"],
-          [{ "pt": "Hardie Plank lap 8,25\" x 12 ft (primed)", "en": "Hardie Plank lap 8.25\" x 12 ft (primed)" }, "Siding", { "pt": "peça", "en": "piece" }],
-          [{ "pt": "Hardie Plank ColorPlus 8,25\" x 12 ft", "en": "Hardie Plank ColorPlus 8.25\" x 12 ft" }, "Siding", { "pt": "peça", "en": "piece" }],
-          ["LP SmartSide lap 8\" x 16 ft", "Siding", { "pt": "peça", "en": "piece" }],
-          [{ "pt": "Cedar shingles (fardo)", "en": "Cedar shingles (bundle)" }, "Siding", { "pt": "fardo", "en": "bundle" }],
-          ["House wrap Tyvek 9 x 150 ft", { "pt": "Barreira e flashing", "en": "WRB & flashing" }, { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Fita de flashing 6\" (rolo)", "en": "Flashing tape 6\" (roll)" }, { "pt": "Barreira e flashing", "en": "WRB & flashing" }, { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Fita de costura do house wrap", "en": "House wrap seam tape" }, { "pt": "Barreira e flashing", "en": "WRB & flashing" }, { "pt": "rolo", "en": "roll" }],
-          ["Kick-out flashing", { "pt": "Barreira e flashing", "en": "WRB & flashing" }, { "pt": "un", "en": "ea" }],
-          ["Z-flashing / drip cap 10 ft", { "pt": "Barreira e flashing", "en": "WRB & flashing" }, { "pt": "peça", "en": "piece" }],
-          [{ "pt": "Starter strip 12 ft", "en": "Starter strip 12 ft" }, { "pt": "Acessórios", "en": "Accessories" }, { "pt": "peça", "en": "piece" }],
-          [{ "pt": "Outside corner post (vinil)", "en": "Outside corner post (vinyl)" }, { "pt": "Acessórios", "en": "Accessories" }, { "pt": "peça", "en": "piece" }],
-          [{ "pt": "J-channel 12,5 ft", "en": "J-channel 12.5 ft" }, { "pt": "Acessórios", "en": "Accessories" }, { "pt": "peça", "en": "piece" }],
-          [{ "pt": "Mounting block", "en": "Mounting block" }, { "pt": "Acessórios", "en": "Accessories" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Trim PVC 1x4 — 18 ft (AZEK)", "en": "PVC trim 1x4 — 18 ft (AZEK)" }, "Trim", { "pt": "peça", "en": "piece" }],
-          [{ "pt": "Coil de alumínio 24\" x 50 ft", "en": "Aluminum trim coil 24\" x 50 ft" }, "Trim", { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Soffit vinil ventilado 12 ft", "en": "Vented vinyl soffit 12 ft" }, { "pt": "Soffit / fascia", "en": "Soffit / fascia" }, { "pt": "peça", "en": "piece" }],
-          [{ "pt": "OSB 7/16\" 4x8 (sheathing)", "en": "OSB 7/16\" 4x8 (sheathing)" }, "Sheathing", { "pt": "folha", "en": "sheet" }],
+          [{ "pt": "Siding vinil D4 (square)", "en": "Vinyl siding D4 (square)", "es": "Siding de vinilo D4 (square)" }, "Siding", "square"],
           [
-            { "pt": "Pregos de siding galvanizados / inox (caixa)", "en": "Galvanized / stainless siding nails (box)" }, { "pt": "Fixação", "en": "Fasteners" },
-            { "pt": "caixa", "en": "box" }
+            {
+              "pt": "Hardie Plank lap 8,25\" x 12 ft (primed)",
+              "en": "Hardie Plank lap 8.25\" x 12 ft (primed)",
+              "es": "Hardie Plank lap 8.25\" x 12 ft (con primer)"
+            },
+            "Siding",
+            { "pt": "peça", "en": "piece", "es": "pieza" }
           ],
-          [{ "pt": "Selante para siding (tubo)", "en": "Siding sealant (tube)" }, { "pt": "Acabamento", "en": "Finish" }, { "pt": "tubo", "en": "tube" }]
+          [
+            { "pt": "Hardie Plank ColorPlus 8,25\" x 12 ft", "en": "Hardie Plank ColorPlus 8.25\" x 12 ft", "es": "Hardie Plank ColorPlus 8.25\" x 12 ft" },
+            "Siding", { "pt": "peça", "en": "piece", "es": "pieza" }
+          ],
+          ["LP SmartSide lap 8\" x 16 ft", "Siding", { "pt": "peça", "en": "piece", "es": "pieza" }],
+          [
+            { "pt": "Cedar shingles (fardo)", "en": "Cedar shingles (bundle)", "es": "Shingles de cedro (paquete)" }, "Siding",
+            { "pt": "fardo", "en": "bundle", "es": "paquete" }
+          ],
+          ["House wrap Tyvek 9 x 150 ft", { "pt": "Barreira e flashing", "en": "WRB & flashing", "es": "WRB y flashing" }, { "pt": "rolo", "en": "roll", "es": "rollo" }],
+          [
+            { "pt": "Fita de flashing 6\" (rolo)", "en": "Flashing tape 6\" (roll)", "es": "Cinta de flashing 6\" (rollo)" },
+            { "pt": "Barreira e flashing", "en": "WRB & flashing", "es": "WRB y flashing" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Fita de costura do house wrap", "en": "House wrap seam tape", "es": "Cinta para uniones de house wrap" },
+            { "pt": "Barreira e flashing", "en": "WRB & flashing", "es": "WRB y flashing" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          ["Kick-out flashing", { "pt": "Barreira e flashing", "en": "WRB & flashing", "es": "WRB y flashing" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          ["Z-flashing / drip cap 10 ft", { "pt": "Barreira e flashing", "en": "WRB & flashing", "es": "WRB y flashing" }, { "pt": "peça", "en": "piece", "es": "pieza" }],
+          [
+            { "pt": "Starter strip 12 ft", "en": "Starter strip 12 ft", "es": "Tira de arranque 12 ft" },
+            { "pt": "Acessórios", "en": "Accessories", "es": "Accesorios" }, { "pt": "peça", "en": "piece", "es": "pieza" }
+          ],
+          [
+            { "pt": "Outside corner post (vinil)", "en": "Outside corner post (vinyl)", "es": "Poste de esquina exterior (vinilo)" },
+            { "pt": "Acessórios", "en": "Accessories", "es": "Accesorios" }, { "pt": "peça", "en": "piece", "es": "pieza" }
+          ],
+          [
+            { "pt": "J-channel 12,5 ft", "en": "J-channel 12.5 ft", "es": "J-channel 12.5 ft" }, { "pt": "Acessórios", "en": "Accessories", "es": "Accesorios" },
+            { "pt": "peça", "en": "piece", "es": "pieza" }
+          ],
+          [
+            { "pt": "Mounting block", "en": "Mounting block", "es": "Bloque de montaje" }, { "pt": "Acessórios", "en": "Accessories", "es": "Accesorios" },
+            { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Trim PVC 1x4 — 18 ft (AZEK)", "en": "PVC trim 1x4 — 18 ft (AZEK)", "es": "Moldura de PVC 1x4 — 18 ft (AZEK)" }, "Trim",
+            { "pt": "peça", "en": "piece", "es": "pieza" }
+          ],
+          [
+            { "pt": "Coil de alumínio 24\" x 50 ft", "en": "Aluminum trim coil 24\" x 50 ft", "es": "Rollo de aluminio para molduras 24\" x 50 ft" }, "Trim",
+            { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Soffit vinil ventilado 12 ft", "en": "Vented vinyl soffit 12 ft", "es": "Soffit de vinilo ventilado 12 ft" },
+            { "pt": "Soffit / fascia", "en": "Soffit / fascia", "es": "Soffit / fascia" }, { "pt": "peça", "en": "piece", "es": "pieza" }
+          ],
+          [
+            { "pt": "OSB 7/16\" 4x8 (sheathing)", "en": "OSB 7/16\" 4x8 (sheathing)", "es": "OSB 7/16\" 4x8 (sheathing)" },
+            { "pt": "Sheathing", "en": "Sheathing", "es": "Sheathing (forro)" }, { "pt": "folha", "en": "sheet", "es": "hoja" }
+          ],
+          [
+            {
+              "pt": "Pregos de siding galvanizados / inox (caixa)",
+              "en": "Galvanized / stainless siding nails (box)",
+              "es": "Clavos para siding galvanizados / inoxidables (caja)"
+            },
+            { "pt": "Fixação", "en": "Fasteners", "es": "Fijaciones" },
+            { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [
+            { "pt": "Selante para siding (tubo)", "en": "Siding sealant (tube)", "es": "Sellador para siding (tubo)" },
+            { "pt": "Acabamento", "en": "Finish", "es": "Acabado" }, { "pt": "tubo", "en": "tube", "es": "tubo" }
+          ]
         ],
-        "basicOffer": [{ "list": "siding", "label": { "pt": "Adicionar lista básica de siding", "en": "Add basic siding list" } }],
+        "basicOffer": [{ "list": "siding", "label": { "pt": "Adicionar lista básica de siding", "en": "Add basic siding list", "es": "Agregar lista básica de siding" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: Hardie Plank, Tyvek, AZEK", "en": "e.g. Hardie Plank, Tyvek, AZEK" }
+        "searchExample": { "pt": "ex.: Hardie Plank, Tyvek, AZEK", "en": "e.g. Hardie Plank, Tyvek, AZEK", "es": "ej.: Hardie Plank, Tyvek, AZEK" }
       },
       groupsI18n: {
         "en": {
@@ -4059,6 +4801,14 @@
           "Instalação": "Installation",
           "Acabamento": "Finish",
           "Inspeções": "Inspections"
+        },
+        "es": {
+          "Preparação": "Preparación",
+          "Remoção e sheathing": "Retiro y sheathing",
+          "Barreira e flashing": "Barrera y flashing",
+          "Instalação": "Instalación",
+          "Acabamento": "Acabado",
+          "Inspeções": "Inspecciones"
         }
       }
     },
@@ -4067,92 +4817,114 @@
       aliases: [],
       order: 85,
       category: "envelope",
-      label: { "pt": "Telhado (roofing)", "en": "Roofing" },
+      label: { "pt": "Telhado (roofing)", "en": "Roofing", "es": "Techos" },
       companySuffix: "Roofing",
-      onboarding: { "label": { "pt": "Telhado (roofing)", "en": "Roofing" }, "desc": { "pt": "Shingle, membrana, metal, gutters", "en": "Shingles, membrane, metal, gutters" } },
+      onboarding: {
+        "label": { "pt": "Telhado (roofing)", "en": "Roofing", "es": "Techos" },
+        "desc": { "pt": "Shingle, membrana, metal, gutters", "en": "Shingles, membrane, metal, gutters", "es": "Shingles, membrana, metal, canaletas" }
+      },
       icon: { "svg": "<path d=\"M2 13 12 5l10 8\"/><path d=\"M5.5 10.5V20h13v-9.5\"/><path d=\"M8.5 14h7M8.5 17h7\"/>" },
-      kind: { "pt": "trabalho de telhado", "en": "roofing job" },
-      stepName: { "pt": "Telhado", "en": "Roofing" },
-      group: { "label": { "pt": "Telhado", "en": "Roof" }, "icon": "trade-roofing" },
+      kind: { "pt": "trabalho de telhado", "en": "roofing job", "es": "trabajo de techo" },
+      stepName: { "pt": "Telhado", "en": "Roofing", "es": "Techos" },
+      group: { "label": { "pt": "Telhado", "en": "Roof", "es": "Techo" }, "icon": "trade-roofing" },
       workType: [
-        { "pt": "Telhado novo (new construction)", "en": "New construction roof" },
-        { "pt": "Troca completa (tear-off e re-roof)", "en": "Full tear-off & re-roof" }, { "pt": "Overlay (camada por cima)", "en": "Roof-over (overlay)" },
-        { "pt": "Reparo / vazamento", "en": "Repair / leak" }, { "pt": "Telhado plano (membrana)", "en": "Flat / low-slope roof (membrane)" },
-        { "pt": "Metal standing seam", "en": "Standing seam metal" }, { "pt": "Cedar / slate (telhado especial)", "en": "Cedar / slate (specialty roof)" },
-        { "pt": "Gutters (calhas)", "en": "Gutters" }, { "pt": "Comercial", "en": "Commercial" }
+        { "pt": "Telhado novo (new construction)", "en": "New construction roof", "es": "Techo de construcción nueva" },
+        { "pt": "Troca completa (tear-off e re-roof)", "en": "Full tear-off & re-roof", "es": "Retiro completo y techo nuevo" },
+        { "pt": "Overlay (camada por cima)", "en": "Roof-over (overlay)", "es": "Techo encima del existente (overlay)" },
+        { "pt": "Reparo / vazamento", "en": "Repair / leak", "es": "Reparación / filtración" },
+        { "pt": "Telhado plano (membrana)", "en": "Flat / low-slope roof (membrane)", "es": "Techo plano / de poca pendiente (membrana)" },
+        { "pt": "Metal standing seam", "en": "Standing seam metal", "es": "Metal standing seam" },
+        { "pt": "Cedar / slate (telhado especial)", "en": "Cedar / slate (specialty roof)", "es": "Cedro / pizarra (techo especial)" },
+        { "pt": "Gutters (calhas)", "en": "Gutters", "es": "Canaletas" }, { "pt": "Comercial", "en": "Commercial", "es": "Comercial" }
       ],
       fields: {
         "roofType": {
-          "label": { "pt": "Tipo de telhado", "en": "Roof type" },
+          "label": { "pt": "Tipo de telhado", "en": "Roof type", "es": "Tipo de techo" },
           "multi": true,
           "opts": [
-            { "pt": "Shingle arquitetônico (asfalto)", "en": "Architectural asphalt shingles" }, { "pt": "Shingle 3-tab", "en": "3-tab shingles" },
-            { "pt": "EPDM (borracha)", "en": "EPDM (rubber)" }, "TPO", "PVC", "Modified bitumen", { "pt": "Metal standing seam", "en": "Standing seam metal" },
-            { "pt": "Metal exposed fastener", "en": "Exposed-fastener metal" }, "Cedar shingles / shakes", { "pt": "Slate (ardósia)", "en": "Slate" },
-            { "pt": "Telha sintética", "en": "Synthetic shingles" }
+            { "pt": "Shingle arquitetônico (asfalto)", "en": "Architectural asphalt shingles", "es": "Shingles de asfalto arquitectónicos" },
+            { "pt": "Shingle 3-tab", "en": "3-tab shingles", "es": "Shingles 3-tab" }, { "pt": "EPDM (borracha)", "en": "EPDM (rubber)", "es": "EPDM (caucho)" },
+            "TPO", "PVC", "Modified bitumen", { "pt": "Metal standing seam", "en": "Standing seam metal", "es": "Metal standing seam" },
+            { "pt": "Metal exposed fastener", "en": "Exposed-fastener metal", "es": "Metal de tornillo expuesto" }, "Cedar shingles / shakes",
+            { "pt": "Slate (ardósia)", "en": "Slate", "es": "Pizarra" }, { "pt": "Telha sintética", "en": "Synthetic shingles", "es": "Shingles sintéticos" }
           ]
         },
         "pitch": {
-          "label": { "pt": "Inclinação (pitch)", "en": "Pitch" },
+          "label": { "pt": "Inclinação (pitch)", "en": "Pitch", "es": "Pendiente" },
           "opts": [
-            { "pt": "Plano (até 2/12)", "en": "Flat (up to 2/12)" }, { "pt": "Baixo (2/12 a 4/12)", "en": "Low (2/12 to 4/12)" },
-            { "pt": "Médio (4/12 a 8/12)", "en": "Medium (4/12 to 8/12)" }, { "pt": "Íngreme (8/12 a 12/12)", "en": "Steep (8/12 to 12/12)" },
-            { "pt": "Muito íngreme (acima de 12/12)", "en": "Very steep (over 12/12)" }
+            { "pt": "Plano (até 2/12)", "en": "Flat (up to 2/12)", "es": "Plano (hasta 2/12)" },
+            { "pt": "Baixo (2/12 a 4/12)", "en": "Low (2/12 to 4/12)", "es": "Baja (2/12 a 4/12)" },
+            { "pt": "Médio (4/12 a 8/12)", "en": "Medium (4/12 to 8/12)", "es": "Media (4/12 a 8/12)" },
+            { "pt": "Íngreme (8/12 a 12/12)", "en": "Steep (8/12 to 12/12)", "es": "Empinada (8/12 a 12/12)" },
+            { "pt": "Muito íngreme (acima de 12/12)", "en": "Very steep (over 12/12)", "es": "Muy empinada (más de 12/12)" }
           ]
         },
         "stories": {
-          "label": { "pt": "Andares / altura do beiral", "en": "Stories / eave height" },
+          "label": { "pt": "Andares / altura do beiral", "en": "Stories / eave height", "es": "Pisos / altura del alero" },
           "opts": [
-            { "pt": "1 andar", "en": "1 story" }, { "pt": "2 andares", "en": "2 stories" }, { "pt": "3 andares ou mais", "en": "3+ stories" },
-            { "pt": "Garagem / anexo baixo", "en": "Garage / low addition" }
+            { "pt": "1 andar", "en": "1 story", "es": "1 piso" }, { "pt": "2 andares", "en": "2 stories", "es": "2 pisos" },
+            { "pt": "3 andares ou mais", "en": "3+ stories", "es": "3+ pisos" },
+            { "pt": "Garagem / anexo baixo", "en": "Garage / low addition", "es": "Garaje / ampliación baja" }
           ]
         },
         "chimney": {
-          "label": { "pt": "Chaminé / paredes (step flashing)", "en": "Chimney / sidewalls (step flashing)" },
+          "label": { "pt": "Chaminé / paredes (step flashing)", "en": "Chimney / sidewalls (step flashing)", "es": "Chimenea / paredes laterales (step flashing)" },
           "multi": true,
           "opts": [
-            { "pt": "Sem chaminé", "en": "No chimney" }, { "pt": "Chaminé — reflash (step + counter)", "en": "Chimney — reflash (step + counter)" },
-            { "pt": "Chaminé larga — cricket", "en": "Wide chimney — cricket" }, { "pt": "Parede lateral (step flashing)", "en": "Sidewall (step flashing)" },
-            { "pt": "Parede frontal (headwall)", "en": "Headwall flashing" }
+            { "pt": "Sem chaminé", "en": "No chimney", "es": "Sin chimenea" },
+            { "pt": "Chaminé — reflash (step + counter)", "en": "Chimney — reflash (step + counter)", "es": "Chimenea — rehacer el flashing (step + counter)" },
+            { "pt": "Chaminé larga — cricket", "en": "Wide chimney — cricket", "es": "Chimenea ancha — cricket" },
+            { "pt": "Parede lateral (step flashing)", "en": "Sidewall (step flashing)", "es": "Pared lateral (step flashing)" },
+            { "pt": "Parede frontal (headwall)", "en": "Headwall flashing", "es": "Flashing de pared frontal (headwall)" }
           ]
         },
         "layers": {
-          "label": { "pt": "Camadas a remover", "en": "Layers to remove" },
+          "label": { "pt": "Camadas a remover", "en": "Layers to remove", "es": "Capas a quitar" },
           "opts": [
-            { "pt": "Nenhuma (telhado novo)", "en": "None (new roof)" }, { "pt": "1 camada", "en": "1 layer" }, { "pt": "2 camadas", "en": "2 layers" },
-            { "pt": "3 ou mais camadas", "en": "3 or more layers" }, { "pt": "Overlay (sem remoção)", "en": "Overlay (no tear-off)" }
+            { "pt": "Nenhuma (telhado novo)", "en": "None (new roof)", "es": "Ninguna (techo nuevo)" }, { "pt": "1 camada", "en": "1 layer", "es": "1 capa" },
+            { "pt": "2 camadas", "en": "2 layers", "es": "2 capas" }, { "pt": "3 ou mais camadas", "en": "3 or more layers", "es": "3 o más capas" },
+            { "pt": "Overlay (sem remoção)", "en": "Overlay (no tear-off)", "es": "Overlay (sin retiro)" }
           ]
         },
         "deck": {
-          "label": { "pt": "Deck (sheathing)", "en": "Roof deck (sheathing)" },
+          "label": { "pt": "Deck (sheathing)", "en": "Roof deck (sheathing)", "es": "Deck del techo (sheathing)" },
           "opts": [
-            { "pt": "Deck bom (só inspecionar)", "en": "Sound deck (inspect only)" }, { "pt": "Trocar algumas folhas", "en": "Replace some sheets" },
-            { "pt": "Trocar deck inteiro", "en": "Replace entire deck" }, { "pt": "Tábuas (plank / skip sheathing)", "en": "Plank / skip sheathing" },
-            { "pt": "Só se sabe depois do tear-off", "en": "Unknown until tear-off" }
+            { "pt": "Deck bom (só inspecionar)", "en": "Sound deck (inspect only)", "es": "Deck sano (solo inspeccionar)" },
+            { "pt": "Trocar algumas folhas", "en": "Replace some sheets", "es": "Cambiar algunas hojas" },
+            { "pt": "Trocar deck inteiro", "en": "Replace entire deck", "es": "Cambiar todo el deck" },
+            { "pt": "Tábuas (plank / skip sheathing)", "en": "Plank / skip sheathing", "es": "Tablas / skip sheathing" },
+            { "pt": "Só se sabe depois do tear-off", "en": "Unknown until tear-off", "es": "No se sabe hasta el retiro" }
           ]
         },
         "iceWater": {
           "label": "Ice & water shield",
           "opts": [
-            { "pt": "Padrão (beirais + valleys + penetrações)", "en": "Code minimum (eaves + valleys + penetrations)" },
-            { "pt": "Telhado inteiro", "en": "Full roof" }, { "pt": "Só beirais", "en": "Eaves only" },
-            { "pt": "Não se aplica (membrana / plano)", "en": "N/A (membrane / flat)" }
+            {
+              "pt": "Padrão (beirais + valleys + penetrações)",
+              "en": "Code minimum (eaves + valleys + penetrations)",
+              "es": "Mínimo del código (aleros + valleys + penetraciones)"
+            },
+            { "pt": "Telhado inteiro", "en": "Full roof", "es": "Todo el techo" },
+            { "pt": "Só beirais", "en": "Eaves only", "es": "Solo los aleros" },
+            { "pt": "Não se aplica (membrana / plano)", "en": "N/A (membrane / flat)", "es": "N/A (membrana / plano)" }
           ]
         },
         "underlayment": {
           "label": "Underlayment",
           "opts": [
-            { "pt": "Sintético", "en": "Synthetic" }, { "pt": "Feltro #15", "en": "#15 felt" }, { "pt": "Feltro #30", "en": "#30 felt" },
-            { "pt": "Isolamento + cover board (plano)", "en": "Insulation + cover board (low-slope)" }
+            { "pt": "Sintético", "en": "Synthetic", "es": "Sintético" }, { "pt": "Feltro #15", "en": "#15 felt", "es": "Fieltro #15" },
+            { "pt": "Feltro #30", "en": "#30 felt", "es": "Fieltro #30" },
+            { "pt": "Isolamento + cover board (plano)", "en": "Insulation + cover board (low-slope)", "es": "Aislamiento + cover board (poca pendiente)" }
           ]
         },
         "ventilation": {
-          "label": { "pt": "Ventilação", "en": "Ventilation" },
+          "label": { "pt": "Ventilação", "en": "Ventilation", "es": "Ventilación" },
           "multi": true,
           "system": true,
           "opts": [
-            "Ridge vent", { "pt": "Soffit vents (entrada de ar)", "en": "Soffit vents (intake)" }, "Box vents", "Gable vents", "Power vent / attic fan",
-            { "pt": "Sem ventilação (cathedral / unvented)", "en": "Unvented (cathedral / spray foam)" }
+            "Ridge vent", { "pt": "Soffit vents (entrada de ar)", "en": "Soffit vents (intake)", "es": "Ventilas del soffit (entrada)" }, "Box vents",
+            "Gable vents", "Power vent / attic fan",
+            { "pt": "Sem ventilação (cathedral / unvented)", "en": "Unvented (cathedral / spray foam)", "es": "Sin ventilación (catedral / spray foam)" }
           ]
         },
         "flashing": {
@@ -4160,98 +4932,130 @@
           "multi": true,
           "system": true,
           "opts": [
-            "Drip edge", { "pt": "Step flashing nas paredes", "en": "Step flashing at walls" },
-            { "pt": "Chaminé (step + counter / cricket)", "en": "Chimney (step + counter / cricket)" }, "Valleys", "Pipe boots", "Skylights"
+            "Drip edge", { "pt": "Step flashing nas paredes", "en": "Step flashing at walls", "es": "Step flashing en las paredes" },
+            { "pt": "Chaminé (step + counter / cricket)", "en": "Chimney (step + counter / cricket)", "es": "Chimenea (step + counter / cricket)" }, "Valleys",
+            "Pipe boots", "Skylights"
           ]
         },
         "skylights": {
           "label": "Skylights",
           "opts": [
-            { "pt": "Não tem", "en": "None" }, { "pt": "Reflash dos existentes", "en": "Reflash existing" },
-            { "pt": "Trocar skylights", "en": "Replace skylights" }, { "pt": "Skylights novos", "en": "New skylights" }
+            { "pt": "Não tem", "en": "None", "es": "Ninguno" },
+            { "pt": "Reflash dos existentes", "en": "Reflash existing", "es": "Rehacer el flashing existente" },
+            { "pt": "Trocar skylights", "en": "Replace skylights", "es": "Cambiar los tragaluces" },
+            { "pt": "Skylights novos", "en": "New skylights", "es": "Tragaluces nuevos" }
           ]
         },
         "gutters": {
-          "label": { "pt": "Gutters (calhas)", "en": "Gutters" },
+          "label": { "pt": "Gutters (calhas)", "en": "Gutters", "es": "Canaletas" },
           "system": true,
           "opts": [
-            { "pt": "Sem mudança", "en": "No change" }, { "pt": "Novos alumínio 5\"", "en": "New 5\" aluminum" },
-            { "pt": "Novos alumínio 6\"", "en": "New 6\" aluminum" }, { "pt": "Cobre", "en": "Copper" },
-            { "pt": "Só limpar / reparar", "en": "Clean / repair only" }
+            { "pt": "Sem mudança", "en": "No change", "es": "Sin cambio" },
+            { "pt": "Novos alumínio 5\"", "en": "New 5\" aluminum", "es": "Aluminio nuevo de 5\"" },
+            { "pt": "Novos alumínio 6\"", "en": "New 6\" aluminum", "es": "Aluminio nuevo de 6\"" }, { "pt": "Cobre", "en": "Copper", "es": "Cobre" },
+            { "pt": "Só limpar / reparar", "en": "Clean / repair only", "es": "Solo limpiar / reparar" }
           ]
         },
         "manufacturer": {
-          "label": { "pt": "Fabricante", "en": "Manufacturer" },
-          "opts": ["GAF", "CertainTeed", "Owens Corning", "IKO", "Carlisle", "Holcim Elevate (Firestone)", "Johns Manville", { "pt": "Outro", "en": "Other" }]
+          "label": { "pt": "Fabricante", "en": "Manufacturer", "es": "Fabricante" },
+          "opts": ["GAF", "CertainTeed", "Owens Corning", "IKO", "Carlisle", "Holcim Elevate (Firestone)", "Johns Manville", { "pt": "Outro", "en": "Other", "es": "Otra" }]
         },
         "warranty": {
-          "label": { "pt": "Garantia do fabricante", "en": "Manufacturer warranty" },
+          "label": { "pt": "Garantia do fabricante", "en": "Manufacturer warranty", "es": "Garantía del fabricante" },
           "system": true,
           "opts": [
-            { "pt": "Padrão do fabricante", "en": "Standard manufacturer warranty" },
-            { "pt": "Garantia de sistema estendida (contratante certificado)", "en": "Enhanced system warranty (certified contractor)" },
-            { "pt": "Sem garantia do fabricante (reparo)", "en": "No manufacturer warranty (repair)" }
+            { "pt": "Padrão do fabricante", "en": "Standard manufacturer warranty", "es": "Garantía estándar del fabricante" },
+            {
+              "pt": "Garantia de sistema estendida (contratante certificado)",
+              "en": "Enhanced system warranty (certified contractor)",
+              "es": "Garantía extendida del sistema (contratista certificado)"
+            },
+            { "pt": "Sem garantia do fabricante (reparo)", "en": "No manufacturer warranty (repair)", "es": "Sin garantía del fabricante (reparación)" }
           ]
         },
         "roofAccess": {
-          "label": { "pt": "Acesso / segurança", "en": "Access / safety" },
+          "label": { "pt": "Acesso / segurança", "en": "Access / safety", "es": "Acceso / seguridad" },
           "opts": [
-            { "pt": "Escada + ancoragens (harness)", "en": "Ladder + roof anchors (harness)" }, { "pt": "Andaime / pump jacks", "en": "Staging / pump jacks" },
-            { "pt": "Elevador de material (ladder lift / boom)", "en": "Material hoist (ladder lift / boom)" },
-            { "pt": "Guarda-corpo / warning line (plano)", "en": "Guardrail / warning line (low-slope)" }
+            { "pt": "Escada + ancoragens (harness)", "en": "Ladder + roof anchors (harness)", "es": "Escalera + anclajes de techo (arnés)" },
+            { "pt": "Andaime / pump jacks", "en": "Staging / pump jacks", "es": "Andamios / pump jacks" },
+            { "pt": "Elevador de material (ladder lift / boom)", "en": "Material hoist (ladder lift / boom)", "es": "Elevador de material (ladder lift / grúa)" },
+            { "pt": "Guarda-corpo / warning line (plano)", "en": "Guardrail / warning line (low-slope)", "es": "Baranda / línea de advertencia (poca pendiente)" }
           ]
         },
         "debris": {
-          "label": { "pt": "Entulho", "en": "Debris" },
-          "opts": ["Dumpster", { "pt": "Trailer / caminhão próprio", "en": "Own dump trailer / truck" }, { "pt": "Pouco (reparo)", "en": "Minimal (repair)" }]
+          "label": { "pt": "Entulho", "en": "Debris", "es": "Escombros" },
+          "opts": [
+            "Dumpster", { "pt": "Trailer / caminhão próprio", "en": "Own dump trailer / truck", "es": "Tráiler / camión de volteo propio" },
+            { "pt": "Pouco (reparo)", "en": "Minimal (repair)", "es": "Mínimo (reparación)" }
+          ]
         }
       },
       text: [
-        { "key": "squares", "label": { "pt": "Área (squares)", "en": "Area (squares)" }, "unit": "sq", "type": "number" },
-        { "key": "ridgeLength", "label": { "pt": "Cumeeira / ridge (linear ft)", "en": "Ridge (linear ft)" }, "unit": "lf", "type": "number" },
-        { "key": "eaveLength", "label": { "pt": "Beirais / eaves (linear ft)", "en": "Eaves (linear ft)" }, "unit": "lf", "type": "number" },
-        { "key": "deckSheets", "label": { "pt": "Folhas de deck incluídas", "en": "Deck sheets included" }, "unit": "sheet", "type": "number" },
-        { "key": "shingleLine", "label": { "pt": "Linha / cor do material", "en": "Product line / color" } }
+        { "key": "squares", "label": { "pt": "Área (squares)", "en": "Area (squares)", "es": "Área (squares)" }, "unit": "sq", "type": "number" },
+        { "key": "ridgeLength", "label": { "pt": "Cumeeira / ridge (linear ft)", "en": "Ridge (linear ft)", "es": "Cumbrera (pies lineales)" }, "unit": "lf", "type": "number" },
+        { "key": "eaveLength", "label": { "pt": "Beirais / eaves (linear ft)", "en": "Eaves (linear ft)", "es": "Aleros (pies lineales)" }, "unit": "lf", "type": "number" },
+        { "key": "deckSheets", "label": { "pt": "Folhas de deck incluídas", "en": "Deck sheets included", "es": "Hojas de deck incluidas" }, "unit": "sheet", "type": "number" },
+        { "key": "shingleLine", "label": { "pt": "Linha / cor do material", "en": "Product line / color", "es": "Línea de producto / color" } }
       ],
       units: [
-        { "id": "sq", "label": { "pt": "squares", "en": "squares" } }, { "id": "sqft", "label": "sq ft" }, { "id": "lf", "label": "linear ft" },
-        { "id": "bundle", "label": "bundle" }, { "id": "roll", "label": { "pt": "rolo", "en": "roll" } },
-        { "id": "sheet", "label": { "pt": "folha 4x8", "en": "sheet (4x8)" } }, { "id": "ea", "label": { "pt": "un", "en": "ea" } }
+        { "id": "sq", "label": { "pt": "squares", "en": "squares", "es": "squares" } }, { "id": "sqft", "label": "sq ft" },
+        { "id": "lf", "label": { "pt": "linear ft", "en": "linear ft", "es": "pie lineal" } },
+        { "id": "bundle", "label": { "pt": "bundle", "en": "bundle", "es": "paquete" } },
+        { "id": "roll", "label": { "pt": "rolo", "en": "roll", "es": "rollo" } },
+        { "id": "sheet", "label": { "pt": "folha 4x8", "en": "sheet (4x8)", "es": "hoja (4x8)" } },
+        { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } }
       ],
       tasks: {
         "Pré-obra e segurança": [
-          { "pt": "Permit de building (re-roof)", "en": "Building permit (re-roof)" },
-          { "pt": "Confirmar material e cor com o cliente", "en": "Confirm product and color with the client" },
-          { "pt": "Entrega do material (no telhado)", "en": "Material delivery (rooftop)" },
-          { "pt": "Proteção do local (lonas, plywood, arbustos)", "en": "Site protection (tarps, plywood, shrubs)" },
-          { "pt": "Proteção contra queda (ancoragens / harness / guarda-corpo)", "en": "Fall protection (anchors / harness / guardrail)" },
-          { "pt": "Dumpster / entulho", "en": "Dumpster / debris" }
+          { "pt": "Permit de building (re-roof)", "en": "Building permit (re-roof)", "es": "Permiso de construcción (techo nuevo)" },
+          { "pt": "Confirmar material e cor com o cliente", "en": "Confirm product and color with the client", "es": "Confirmar producto y color con el cliente" },
+          { "pt": "Entrega do material (no telhado)", "en": "Material delivery (rooftop)", "es": "Entrega del material (en el techo)" },
+          {
+            "pt": "Proteção do local (lonas, plywood, arbustos)",
+            "en": "Site protection (tarps, plywood, shrubs)",
+            "es": "Protección del lugar (lonas, plywood, arbustos)"
+          },
+          {
+            "pt": "Proteção contra queda (ancoragens / harness / guarda-corpo)",
+            "en": "Fall protection (anchors / harness / guardrail)",
+            "es": "Protección contra caídas (anclajes / arnés / baranda)"
+          },
+          { "pt": "Dumpster / entulho", "en": "Dumpster / debris", "es": "Dumpster / escombros" }
         ],
         "Remoção e deck": [
-          { "pt": "Tear-off (remover camadas)", "en": "Tear-off (remove layers)" }, { "pt": "Inspecionar o deck", "en": "Inspect the deck" },
-          { "pt": "Trocar deck danificado (folhas)", "en": "Replace damaged sheathing" },
-          { "pt": "Cobrir no fim do dia (dry-in)", "en": "Dry-in at end of day" }
+          { "pt": "Tear-off (remover camadas)", "en": "Tear-off (remove layers)", "es": "Retiro (quitar las capas)" },
+          { "pt": "Inspecionar o deck", "en": "Inspect the deck", "es": "Inspeccionar el deck" },
+          { "pt": "Trocar deck danificado (folhas)", "en": "Replace damaged sheathing", "es": "Cambiar el sheathing dañado" },
+          { "pt": "Cobrir no fim do dia (dry-in)", "en": "Dry-in at end of day", "es": "Dejar seco (dry-in) al final del día" }
         ],
         "Underlayment e flashing": [
           "Drip edge", "Ice & water shield", "Underlayment", "Valleys", "Step flashing / counterflashing",
-          { "pt": "Flashing da chaminé (cricket)", "en": "Chimney flashing (cricket)" }, "Pipe boots",
-          { "pt": "Flashing / troca de skylights", "en": "Skylight flashing / replacement" }
+          { "pt": "Flashing da chaminé (cricket)", "en": "Chimney flashing (cricket)", "es": "Flashing de la chimenea (cricket)" }, "Pipe boots",
+          { "pt": "Flashing / troca de skylights", "en": "Skylight flashing / replacement", "es": "Flashing / cambio de tragaluces" }
         ],
         "Cobertura": [
-          "Starter strip", { "pt": "Instalar shingles", "en": "Install shingles" },
-          { "pt": "Instalar membrana (EPDM / TPO / PVC)", "en": "Install membrane (EPDM / TPO / PVC)" },
-          { "pt": "Instalar painéis de metal", "en": "Install metal panels" }, "Ridge vent", { "pt": "Ridge cap / hip", "en": "Ridge / hip cap" },
-          { "pt": "Ventilação (soffit / box vents)", "en": "Ventilation (soffit / box vents)" }
+          "Starter strip", { "pt": "Instalar shingles", "en": "Install shingles", "es": "Instalar los shingles" },
+          { "pt": "Instalar membrana (EPDM / TPO / PVC)", "en": "Install membrane (EPDM / TPO / PVC)", "es": "Instalar la membrana (EPDM / TPO / PVC)" },
+          { "pt": "Instalar painéis de metal", "en": "Install metal panels", "es": "Instalar los paneles de metal" }, "Ridge vent",
+          { "pt": "Ridge cap / hip", "en": "Ridge / hip cap", "es": "Cumbrera / cap de hip" },
+          { "pt": "Ventilação (soffit / box vents)", "en": "Ventilation (soffit / box vents)", "es": "Ventilación (soffit / box vents)" }
         ],
         "Gutters e acabamento": [
-          { "pt": "Gutters e downspouts", "en": "Gutters and downspouts" }, { "pt": "Fascia / trim (alumínio)", "en": "Fascia / aluminum trim" },
-          { "pt": "Selar penetrações", "en": "Seal penetrations" }
+          { "pt": "Gutters e downspouts", "en": "Gutters and downspouts", "es": "Canaletas y bajantes" },
+          { "pt": "Fascia / trim (alumínio)", "en": "Fascia / aluminum trim", "es": "Fascia / moldura de aluminio" },
+          { "pt": "Selar penetrações", "en": "Seal penetrations", "es": "Sellar las penetraciones" }
         ],
         "Inspeções e entrega": [
-          { "pt": "Inspeção do ice & water (se o município exigir)", "en": "Ice & water shield inspection (where required)" },
-          { "pt": "Inspeção final", "en": "Final inspection" }, { "pt": "Limpeza e ímã para pregos (magnet sweep)", "en": "Cleanup and magnetic nail sweep" },
-          "Punch list", { "pt": "Fotos antes / depois", "en": "Before / after photos" },
-          { "pt": "Registrar a garantia do fabricante", "en": "Register manufacturer warranty" }
+          {
+            "pt": "Inspeção do ice & water (se o município exigir)",
+            "en": "Ice & water shield inspection (where required)",
+            "es": "Inspección del ice & water shield (donde se exija)"
+          },
+          { "pt": "Inspeção final", "en": "Final inspection", "es": "Inspección final" },
+          { "pt": "Limpeza e ímã para pregos (magnet sweep)", "en": "Cleanup and magnetic nail sweep", "es": "Limpieza y barrido magnético de clavos" },
+          "Punch list",
+          { "pt": "Fotos antes / depois", "en": "Before / after photos", "es": "Fotos de antes / después" },
+          { "pt": "Registrar a garantia do fabricante", "en": "Register manufacturer warranty", "es": "Registrar la garantía del fabricante" }
         ]
       },
       groupsI18n: {
@@ -4262,6 +5066,14 @@
           "Cobertura": "Roof covering",
           "Gutters e acabamento": "Gutters & trim",
           "Inspeções e entrega": "Inspections & closeout"
+        },
+        "es": {
+          "Pré-obra e segurança": "Preobra y seguridad",
+          "Remoção e deck": "Retiro y deck",
+          "Underlayment e flashing": "Underlayment y flashing",
+          "Cobertura": "Cubierta del techo",
+          "Gutters e acabamento": "Canaletas y molduras",
+          "Inspeções e entrega": "Inspecciones y entrega"
         }
       },
       suggest: {
@@ -4337,24 +5149,40 @@
       },
       inspections: [
         {
-          "label": { "pt": "Permit de building (re-roof)", "en": "Building permit (re-roof)" },
-          "authority": { "pt": "Building department (780 CMR; CSL Roof Covering + HIC)", "en": "Building department (780 CMR; CSL Roof Covering + HIC)" },
-          "when": { "pt": "Antes de começar", "en": "Before starting" }
+          "label": { "pt": "Permit de building (re-roof)", "en": "Building permit (re-roof)", "es": "Permiso de construcción (techo nuevo)" },
+          "authority": {
+            "pt": "Building department (780 CMR; CSL Roof Covering + HIC)",
+            "en": "Building department (780 CMR; CSL Roof Covering + HIC)",
+            "es": "Departamento de construcción (780 CMR; CSL Roof Covering + HIC)"
+          },
+          "when": { "pt": "Antes de começar", "en": "Before starting", "es": "Antes de empezar" }
         },
         {
-          "label": { "pt": "Inspeção do ice & water (se o município exigir)", "en": "Ice & water shield inspection (where required)" },
-          "authority": { "pt": "Building inspector (780 CMR R905.1.2)", "en": "Building inspector (780 CMR R905.1.2)" },
-          "when": { "pt": "Depois do ice & water, antes de cobrir", "en": "After ice & water shield, before covering" }
+          "label": {
+            "pt": "Inspeção do ice & water (se o município exigir)",
+            "en": "Ice & water shield inspection (where required)",
+            "es": "Inspección del ice & water shield (donde se exija)"
+          },
+          "authority": { "pt": "Building inspector (780 CMR R905.1.2)", "en": "Building inspector (780 CMR R905.1.2)", "es": "Inspector de construcción (780 CMR R905.1.2)" },
+          "when": {
+            "pt": "Depois do ice & water, antes de cobrir",
+            "en": "After ice & water shield, before covering",
+            "es": "Después del ice & water shield, antes de cubrir"
+          }
         },
         {
-          "label": { "pt": "Inspeção final", "en": "Final inspection" },
-          "authority": { "pt": "Building department", "en": "Building department" },
-          "when": { "pt": "Telhado pronto e limpo", "en": "Roof complete and cleaned up" }
+          "label": { "pt": "Inspeção final", "en": "Final inspection", "es": "Inspección final" },
+          "authority": { "pt": "Building department", "en": "Building department", "es": "Departamento de construcción" },
+          "when": { "pt": "Telhado pronto e limpo", "en": "Roof complete and cleaned up", "es": "Techo completo y limpio" }
         },
         {
-          "label": { "pt": "Proteção contra queda (ancoragens / harness / guarda-corpo)", "en": "Fall protection (anchors / harness / guardrail)" },
-          "authority": { "pt": "OSHA 29 CFR 1926.501(b)(13) / (b)(10)", "en": "OSHA 29 CFR 1926.501(b)(13) / (b)(10)" },
-          "when": { "pt": "Todo dia, a partir de 6 ft", "en": "Every day, at 6 ft or more" }
+          "label": {
+            "pt": "Proteção contra queda (ancoragens / harness / guarda-corpo)",
+            "en": "Fall protection (anchors / harness / guardrail)",
+            "es": "Protección contra caídas (anclajes / arnés / baranda)"
+          },
+          "authority": { "pt": "OSHA 29 CFR 1926.501(b)(13) / (b)(10)", "en": "OSHA 29 CFR 1926.501(b)(13) / (b)(10)", "es": "OSHA 29 CFR 1926.501(b)(13) / (b)(10)" },
+          "when": { "pt": "Todo dia, a partir de 6 ft", "en": "Every day, at 6 ft or more", "es": "Todos los días, a 6 ft o más" }
         }
       ],
       proposal: {
@@ -4442,7 +5270,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Casa de dois andares, 28 squares. Tirar duas camadas de shingle, trocar até 3 folhas de deck, ice and water nos beirais e valleys, sintético no resto, shingle GAF Timberline cor Charcoal, ridge vent e gutters novos de 5 polegadas. Preço 24.500, 30/40/30.”",
-          "en": "e.g. “Two-story house, 28 squares. Tear off two layers, replace up to 3 deck sheets, ice and water at eaves and valleys, synthetic elsewhere, GAF Timberline in Charcoal, ridge vent and new 5-inch gutters. Price 24,500, 30/40/30.”"
+          "en": "e.g. “Two-story house, 28 squares. Tear off two layers, replace up to 3 deck sheets, ice and water at eaves and valleys, synthetic elsewhere, GAF Timberline in Charcoal, ridge vent and new 5-inch gutters. Price 24,500, 30/40/30.”",
+          "es": "ej.: “Casa de dos pisos, 28 squares. Quitar dos capas de shingle, cambiar hasta 3 hojas de deck, ice and water en los aleros y valleys, sintético en el resto, GAF Timberline color Charcoal, ridge vent y canaletas nuevas de 5 pulgadas. Precio 24,500, 30/40/30.”"
         },
         "aiRules": "Trade: ROOFING contractor (MA/NH). Speech mixes Portuguese and English roofing terms: 'ice and water' = ice & water shield, 'quadrado'/'squares' = roofing squares (100 sq ft), 'beiral' = eave, 'cumeeira' = ridge, 'calha' = gutter, 'chaminé' = chimney, 'deck'/'compensado' = sheathing.\nState quantities in roofing units: area in **squares**, ridge/eaves/gutters/drip edge in **linear feet**, deck in **sheets**. Never convert squares to sq ft unless asked.\nAlways say how many layers are removed (tear-off) or that it is a roof-over; never propose an overlay over two existing layers (code allows max two layers) — add a note in notes_pt if the speaker asks for it.\nName the product line and color only if spoken (e.g. GAF Timberline HDZ, CertainTeed Landmark, Owens Corning Duration); otherwise write 'manufacturer, line and color selected by Owner'.\nDeck replacement: include the quantity of sheets in the price and put a per-sheet unit price for extra sheets; if no unit price was said, mention it in notes_pt.\nIce & water shield: in MA cite 780 CMR R905.1.2 (eaves to 24\" inside the exterior wall); valleys and penetrations always.\nLow-slope roofs: specify membrane type and thickness (e.g. 60-mil EPDM / TPO), attachment (fully adhered / mechanically attached), insulation / cover board, and edge metal. Metal roofs: panel profile (standing seam, snap-lock / mechanical seam), gauge (24/26 ga), finish, and underlayment rated for metal (high-temp).\nTypical sections: Tear-Off & Disposal, Roof Deck, Ice & Water Shield & Underlayment, Flashing & Drip Edge, Roofing System, Ventilation, Gutters & Downspouts, Permit, Inspections & Cleanup.\nNot included typically: extra sheathing beyond allowance, structural/rafter repairs, chimney masonry, asbestos roofing removal, interior repairs, solar panel removal, attic insulation. Repairs ('reparo'/'vazamento'): a short 'Leak Repair' section only — no drip edge at all eaves, no full tear-off — and a one-year workmanship warranty on the repaired area. Payment milestones: Deposit / Tear-Off & Dry-In / Final (never 'Rough-In'). Pitfalls: do not include gutters, skylights, or chimney work unless mentioned; 'reparo'/'vazamento' = repair proposal (no manufacturer warranty, short workmanship warranty).\nWarranty: workmanship years as spoken (default 5) plus manufacturer warranty; never promise a manufacturer's enhanced warranty unless the speaker says the company is certified.",
         "facts": {
@@ -4512,7 +5341,8 @@
         "clientRole": "Homeowner",
         "adjustExample": {
           "pt": "Ex.: “Tira os gutters, muda o preço para 22 mil e acrescenta 5 folhas de deck.”",
-          "en": "e.g. “Remove the gutters, change the price to 22K and add 5 deck sheets.”"
+          "en": "e.g. “Remove the gutters, change the price to 22K and add 5 deck sheets.”",
+          "es": "ej.: “Quita las canaletas, cambia el precio a 22 mil y agrega 5 hojas de deck.”"
         }
       },
       prices: {
@@ -4521,29 +5351,77 @@
           { "id": "srs", "name": "SRS Distribution", "short": "SRS", "search": "SRS Distribution roofing" }, "homedepot", "lowes"
         ],
         "basic": [
-          [{ "pt": "Shingle arquitetônico (bundle)", "en": "Architectural shingles (bundle)" }, { "pt": "Cobertura", "en": "Roof covering" }, "bundle"],
-          ["Starter strip (bundle)", { "pt": "Cobertura", "en": "Roof covering" }, "bundle"],
-          ["Hip & ridge cap (bundle)", { "pt": "Cobertura", "en": "Roof covering" }, "bundle"],
-          [{ "pt": "Ice & water shield (rolo 2 sq)", "en": "Ice & water shield (2-sq roll)" }, "Underlayment", { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Underlayment sintético (rolo 10 sq)", "en": "Synthetic underlayment (10-sq roll)" }, "Underlayment", { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Drip edge alumínio — 10 ft", "en": "Aluminum drip edge — 10 ft" }, "Flashing", { "pt": "peça", "en": "each" }],
-          [{ "pt": "Step flashing (caixa 100)", "en": "Step flashing (box of 100)" }, "Flashing", { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Pipe boot 1-1/2\" a 3\"", "en": "Pipe boot 1-1/2\" to 3\"" }, "Flashing", { "pt": "un", "en": "ea" }],
-          ["Ridge vent — 4 ft", { "pt": "Ventilação", "en": "Ventilation" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Prego coil 1-1/4\" (caixa)", "en": "Coil roofing nails 1-1/4\" (box)" }, { "pt": "Fixação", "en": "Fasteners" }, { "pt": "caixa", "en": "box" }],
-          ["OSB 7/16\" 4x8", "Deck", { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Compensado 1/2\" CDX 4x8", "en": "1/2\" CDX plywood 4x8" }, "Deck", { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Membrana EPDM 60 mil (sq ft)", "en": "60-mil EPDM membrane (sq ft)" }, { "pt": "Membrana", "en": "Membrane" }, "sq ft"],
-          [{ "pt": "Membrana TPO 60 mil (rolo)", "en": "60-mil TPO membrane (roll)" }, { "pt": "Membrana", "en": "Membrane" }, { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Adesivo de membrana (balde 5 gal)", "en": "Membrane bonding adhesive (5 gal)" }, { "pt": "Membrana", "en": "Membrane" }, { "pt": "balde", "en": "bucket" }],
-          [{ "pt": "Selante de telhado (tubo)", "en": "Roof sealant (tube)" }, { "pt": "Consumíveis", "en": "Consumables" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Gutter alumínio 5\" K-style (linear ft)", "en": "5\" K-style aluminum gutter (linear ft)" }, "Gutters", "linear ft"],
-          [{ "pt": "Downspout 2x3 — 10 ft", "en": "2x3 downspout — 10 ft" }, "Gutters", { "pt": "peça", "en": "each" }],
-          [{ "pt": "Coil de alumínio para trim (rolo)", "en": "Aluminum trim coil (roll)" }, { "pt": "Acabamento", "en": "Trim" }, { "pt": "rolo", "en": "roll" }]
+          [
+            { "pt": "Shingle arquitetônico (bundle)", "en": "Architectural shingles (bundle)", "es": "Shingles arquitectónicos (paquete)" },
+            { "pt": "Cobertura", "en": "Roof covering", "es": "Cubierta del techo" }, { "pt": "bundle", "en": "bundle", "es": "paquete" }
+          ],
+          ["Starter strip (bundle)", { "pt": "Cobertura", "en": "Roof covering", "es": "Cubierta del techo" }, { "pt": "bundle", "en": "bundle", "es": "paquete" }],
+          ["Hip & ridge cap (bundle)", { "pt": "Cobertura", "en": "Roof covering", "es": "Cubierta del techo" }, { "pt": "bundle", "en": "bundle", "es": "paquete" }],
+          [
+            { "pt": "Ice & water shield (rolo 2 sq)", "en": "Ice & water shield (2-sq roll)", "es": "Ice & water shield (rollo de 2 squares)" }, "Underlayment",
+            { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Underlayment sintético (rolo 10 sq)", "en": "Synthetic underlayment (10-sq roll)", "es": "Underlayment sintético (rollo de 10 squares)" },
+            "Underlayment", { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Drip edge alumínio — 10 ft", "en": "Aluminum drip edge — 10 ft", "es": "Drip edge de aluminio — 10 ft" }, "Flashing",
+            { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Step flashing (caixa 100)", "en": "Step flashing (box of 100)", "es": "Step flashing (caja de 100)" }, "Flashing",
+            { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [{ "pt": "Pipe boot 1-1/2\" a 3\"", "en": "Pipe boot 1-1/2\" to 3\"", "es": "Bota para tubo de 1-1/2\" a 3\"" }, "Flashing", { "pt": "un", "en": "ea", "es": "c/u" }],
+          ["Ridge vent — 4 ft", { "pt": "Ventilação", "en": "Ventilation", "es": "Ventilación" }, { "pt": "peça", "en": "each", "es": "c/u" }],
+          [
+            { "pt": "Prego coil 1-1/4\" (caixa)", "en": "Coil roofing nails 1-1/4\" (box)", "es": "Clavos de techo en rollo 1-1/4\" (caja)" },
+            { "pt": "Fixação", "en": "Fasteners", "es": "Fijaciones" }, { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          ["OSB 7/16\" 4x8", "Deck", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          [{ "pt": "Compensado 1/2\" CDX 4x8", "en": "1/2\" CDX plywood 4x8", "es": "Plywood CDX 1/2\" 4x8" }, "Deck", { "pt": "folha", "en": "sheet", "es": "hoja" }],
+          [
+            { "pt": "Membrana EPDM 60 mil (sq ft)", "en": "60-mil EPDM membrane (sq ft)", "es": "Membrana EPDM de 60 mil (sq ft)" },
+            { "pt": "Membrana", "en": "Membrane", "es": "Membrana" }, "sq ft"
+          ],
+          [
+            { "pt": "Membrana TPO 60 mil (rolo)", "en": "60-mil TPO membrane (roll)", "es": "Membrana TPO de 60 mil (rollo)" },
+            { "pt": "Membrana", "en": "Membrane", "es": "Membrana" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Adesivo de membrana (balde 5 gal)", "en": "Membrane bonding adhesive (5 gal)", "es": "Adhesivo para membrana (5 gal)" },
+            { "pt": "Membrana", "en": "Membrane", "es": "Membrana" }, { "pt": "balde", "en": "bucket", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Selante de telhado (tubo)", "en": "Roof sealant (tube)", "es": "Sellador para techo (tubo)" },
+            { "pt": "Consumíveis", "en": "Consumables", "es": "Consumibles" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            {
+              "pt": "Gutter alumínio 5\" K-style (linear ft)",
+              "en": "5\" K-style aluminum gutter (linear ft)",
+              "es": "Canaleta de aluminio K-style de 5\" (pie lineal)"
+            },
+            { "pt": "Gutters", "en": "Gutters", "es": "Canaletas" },
+            { "pt": "linear ft", "en": "linear ft", "es": "pie lineal" }
+          ],
+          [
+            { "pt": "Downspout 2x3 — 10 ft", "en": "2x3 downspout — 10 ft", "es": "Bajante 2x3 — 10 ft" },
+            { "pt": "Gutters", "en": "Gutters", "es": "Canaletas" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Coil de alumínio para trim (rolo)", "en": "Aluminum trim coil (roll)", "es": "Rollo de aluminio para molduras" },
+            { "pt": "Acabamento", "en": "Trim", "es": "Molduras" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ]
         ],
-        "basicOffer": [{ "list": "roofing", "label": { "pt": "Adicionar lista básica de telhado", "en": "Add basic roofing list" } }],
+        "basicOffer": [{ "list": "roofing", "label": { "pt": "Adicionar lista básica de telhado", "en": "Add basic roofing list", "es": "Agregar lista básica de techos" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: shingle Timberline, ice & water, drip edge", "en": "e.g. Timberline shingles, ice & water, drip edge" }
+        "searchExample": {
+          "pt": "ex.: shingle Timberline, ice & water, drip edge",
+          "en": "e.g. Timberline shingles, ice & water, drip edge",
+          "es": "ej.: shingles Timberline, ice & water, drip edge"
+        }
       }
     },
     {
@@ -4551,177 +5429,247 @@
       aliases: [],
       order: 90,
       category: "structure",
-      label: { "pt": "Fundação e escavação", "en": "Foundation & excavation" },
+      label: { "pt": "Fundação e escavação", "en": "Foundation & excavation", "es": "Cimientos y excavación" },
       companySuffix: "Foundations",
       onboarding: {
-        "label": { "pt": "Fundação e escavação", "en": "Foundation & excavation" },
-        "desc": { "pt": "Escavação, footing, paredes, slab, drenagem", "en": "Excavation, footings, walls, slabs, drainage" }
+        "label": { "pt": "Fundação e escavação", "en": "Foundation & excavation", "es": "Cimientos y excavación" },
+        "desc": {
+          "pt": "Escavação, footing, paredes, slab, drenagem",
+          "en": "Excavation, footings, walls, slabs, drainage",
+          "es": "Excavación, zapatas, muros, losas, drenaje"
+        }
       },
       icon: { "svg": "<path d=\"M3 20h18\"/><path d=\"M5 20v-6h14v6\"/><path d=\"M9.5 14v6M14.5 14v6\"/><path d=\"M12 3v7M9 7.5l3 3 3-3\"/>" },
-      kind: { "pt": "trabalho de fundação", "en": "foundation job" },
-      stepName: { "pt": "Fundação", "en": "Foundation" },
-      group: { "label": { "pt": "Fundação e escavação", "en": "Foundation & excavation" }, "icon": "trade-foundation" },
+      kind: { "pt": "trabalho de fundação", "en": "foundation job", "es": "trabajo de cimientos" },
+      stepName: { "pt": "Fundação", "en": "Foundation", "es": "Cimientos" },
+      group: { "label": { "pt": "Fundação e escavação", "en": "Foundation & excavation", "es": "Cimientos y excavación" }, "icon": "trade-foundation" },
       workType: [
-        { "pt": "Fundação de casa nova", "en": "New home foundation" }, { "pt": "Addition (ampliação)", "en": "Addition" },
-        { "pt": "Garagem / slab", "en": "Garage / slab" },
-        { "pt": "Waterproofing / drenagem de porão existente", "en": "Existing basement waterproofing / drainage" },
-        { "pt": "Escavação e sitework (utilities, grading)", "en": "Excavation & sitework (utilities, grading)" },
-        { "pt": "Muro de arrimo (retaining wall)", "en": "Retaining wall" }, { "pt": "Underpinning / reforço", "en": "Underpinning / repair" },
-        { "pt": "Multifamily / comercial", "en": "Multifamily / commercial" }
+        { "pt": "Fundação de casa nova", "en": "New home foundation", "es": "Cimientos de casa nueva" },
+        { "pt": "Addition (ampliação)", "en": "Addition", "es": "Ampliación (addition)" },
+        { "pt": "Garagem / slab", "en": "Garage / slab", "es": "Garaje / losa" },
+        {
+          "pt": "Waterproofing / drenagem de porão existente",
+          "en": "Existing basement waterproofing / drainage",
+          "es": "Impermeabilización / drenaje de sótano existente"
+        },
+        {
+          "pt": "Escavação e sitework (utilities, grading)",
+          "en": "Excavation & sitework (utilities, grading)",
+          "es": "Excavación y trabajo de sitio (servicios, nivelación)"
+        },
+        { "pt": "Muro de arrimo (retaining wall)", "en": "Retaining wall", "es": "Muro de contención" },
+        { "pt": "Underpinning / reforço", "en": "Underpinning / repair", "es": "Recalce (underpinning) / reparación" },
+        { "pt": "Multifamily / comercial", "en": "Multifamily / commercial", "es": "Multifamiliar / comercial" }
       ],
       fields: {
         "foundationType": {
-          "label": { "pt": "Tipo de fundação", "en": "Foundation type" },
+          "label": { "pt": "Tipo de fundação", "en": "Foundation type", "es": "Tipo de cimiento" },
           "opts": [
-            { "pt": "Porão completo (full basement)", "en": "Full basement" }, "Crawl space", "Frost wall + slab",
-            { "pt": "Slab-on-grade (monolítico)", "en": "Monolithic slab-on-grade" }, "Piers / sonotubes"
+            { "pt": "Porão completo (full basement)", "en": "Full basement", "es": "Sótano completo" }, "Crawl space", "Frost wall + slab",
+            { "pt": "Slab-on-grade (monolítico)", "en": "Monolithic slab-on-grade", "es": "Losa monolítica a nivel del suelo" }, "Piers / sonotubes"
           ]
         },
         "wallSystem": {
-          "label": { "pt": "Paredes", "en": "Wall system" },
+          "label": { "pt": "Paredes", "en": "Wall system", "es": "Sistema de muros" },
           "opts": [
-            { "pt": "Concreto moldado (poured)", "en": "Poured concrete" }, "ICF", { "pt": "Bloco de concreto (CMU)", "en": "Concrete block (CMU)" },
-            { "pt": "Pré-moldado (precast)", "en": "Precast" }, { "pt": "Não se aplica", "en": "N/A" }
+            { "pt": "Concreto moldado (poured)", "en": "Poured concrete", "es": "Concreto vaciado" }, "ICF",
+            { "pt": "Bloco de concreto (CMU)", "en": "Concrete block (CMU)", "es": "Bloque de concreto (CMU)" },
+            { "pt": "Pré-moldado (precast)", "en": "Precast", "es": "Prefabricado" }, { "pt": "Não se aplica", "en": "N/A", "es": "N/A" }
           ]
         },
-        "wallHeight": { "label": { "pt": "Altura da parede", "en": "Wall height" }, "opts": ["4 ft (frost wall)", "8 ft", "9 ft", "10 ft", { "pt": "Outra", "en": "Other" }] },
+        "wallHeight": {
+          "label": { "pt": "Altura da parede", "en": "Wall height", "es": "Altura del muro" },
+          "opts": ["4 ft (frost wall)", "8 ft", "9 ft", "10 ft", { "pt": "Outra", "en": "Other", "es": "Otra" }]
+        },
         "soil": {
-          "label": { "pt": "Solo", "en": "Soil" },
+          "label": { "pt": "Solo", "en": "Soil", "es": "Suelo" },
           "opts": [
-            { "pt": "Areia / cascalho", "en": "Sand / gravel" }, { "pt": "Argila (clay)", "en": "Clay" },
-            { "pt": "Lençol alto (água no buraco)", "en": "High water table" }, { "pt": "Desconhecido (fazer test pit)", "en": "Unknown (test pit)" }
+            { "pt": "Areia / cascalho", "en": "Sand / gravel", "es": "Arena / grava" }, { "pt": "Argila (clay)", "en": "Clay", "es": "Arcilla" },
+            { "pt": "Lençol alto (água no buraco)", "en": "High water table", "es": "Nivel freático alto" },
+            { "pt": "Desconhecido (fazer test pit)", "en": "Unknown (test pit)", "es": "Desconocido (calicata)" }
           ]
         },
         "ledge": {
-          "label": { "pt": "Ledge / rocha", "en": "Ledge / rock" },
+          "label": { "pt": "Ledge / rocha", "en": "Ledge / rock", "es": "Roca (ledge)" },
           "opts": [
-            { "pt": "Não", "en": "No" }, { "pt": "Possível — preço por cubic yard", "en": "Possible — priced per cubic yard" },
-            { "pt": "Sim — rompedor (hammer)", "en": "Yes — hydraulic hammer" },
-            { "pt": "Sim — explosivo (blasting, por licenciado)", "en": "Yes — blasting (by licensed blaster)" }
+            { "pt": "Não", "en": "No", "es": "No" },
+            { "pt": "Possível — preço por cubic yard", "en": "Possible — priced per cubic yard", "es": "Posible — se cobra por yarda cúbica" },
+            { "pt": "Sim — rompedor (hammer)", "en": "Yes — hydraulic hammer", "es": "Sí — martillo hidráulico" },
+            {
+              "pt": "Sim — explosivo (blasting, por licenciado)",
+              "en": "Yes — blasting (by licensed blaster)",
+              "es": "Sí — voladura (por un dinamitero con licencia)"
+            }
           ]
         },
         "excavationScope": {
-          "label": { "pt": "Escavação inclui", "en": "Excavation includes" },
+          "label": { "pt": "Escavação inclui", "en": "Excavation includes", "es": "La excavación incluye" },
           "multi": true,
           "system": true,
           "opts": [
-            { "pt": "Limpar terreno (árvores / tocos)", "en": "Clearing (trees / stumps)" }, { "pt": "Escavação da fundação", "en": "Foundation excavation" },
-            { "pt": "Tirar terra (export)", "en": "Export excess material" }, { "pt": "Trazer material (fill / gravel)", "en": "Import fill / gravel" },
-            { "pt": "Trincheira de utilities (água / esgoto / elétrica)", "en": "Utility trenches (water / sewer / electric)" },
-            { "pt": "Base de driveway", "en": "Driveway base" }, { "pt": "Grading final", "en": "Final grading" }
+            { "pt": "Limpar terreno (árvores / tocos)", "en": "Clearing (trees / stumps)", "es": "Desmonte (árboles / tocones)" },
+            { "pt": "Escavação da fundação", "en": "Foundation excavation", "es": "Excavación de los cimientos" },
+            { "pt": "Tirar terra (export)", "en": "Export excess material", "es": "Sacar el material sobrante" },
+            { "pt": "Trazer material (fill / gravel)", "en": "Import fill / gravel", "es": "Traer relleno / grava" },
+            {
+              "pt": "Trincheira de utilities (água / esgoto / elétrica)",
+              "en": "Utility trenches (water / sewer / electric)",
+              "es": "Zanjas de servicios (agua / alcantarillado / electricidad)"
+            },
+            { "pt": "Base de driveway", "en": "Driveway base", "es": "Base de la entrada de autos" },
+            { "pt": "Grading final", "en": "Final grading", "es": "Nivelación final" }
           ]
         },
         "waterproofing": {
-          "label": { "pt": "Impermeabilização", "en": "Waterproofing" },
+          "label": { "pt": "Impermeabilização", "en": "Waterproofing", "es": "Impermeabilización" },
           "opts": [
-            { "pt": "Damp-proofing (asfalto spray)", "en": "Damp-proofing (spray asphalt)" },
-            { "pt": "Waterproofing (membrana)", "en": "Waterproofing membrane" }, { "pt": "Membrana + drainage board", "en": "Membrane + drainage board" },
-            { "pt": "Não", "en": "No" }
+            { "pt": "Damp-proofing (asfalto spray)", "en": "Damp-proofing (spray asphalt)", "es": "Damp-proofing (asfalto en spray)" },
+            { "pt": "Waterproofing (membrana)", "en": "Waterproofing membrane", "es": "Membrana impermeabilizante" },
+            { "pt": "Membrana + drainage board", "en": "Membrane + drainage board", "es": "Membrana + placa de drenaje" },
+            { "pt": "Não", "en": "No", "es": "No" }
           ]
         },
         "drainage": {
-          "label": { "pt": "Drenagem", "en": "Drainage" },
+          "label": { "pt": "Drenagem", "en": "Drainage", "es": "Drenaje" },
           "multi": true,
           "system": true,
           "opts": [
-            { "pt": "Perimeter drain para daylight", "en": "Perimeter drain to daylight" },
-            { "pt": "Perimeter drain para sump pit", "en": "Perimeter drain to sump pit" },
-            { "pt": "Drenagem interna (porão existente)", "en": "Interior drain (existing basement)" },
-            { "pt": "Drywell / infiltração", "en": "Drywell / infiltration" }, { "pt": "Sem drenagem", "en": "No drainage" }
+            { "pt": "Perimeter drain para daylight", "en": "Perimeter drain to daylight", "es": "Drenaje perimetral con salida libre" },
+            { "pt": "Perimeter drain para sump pit", "en": "Perimeter drain to sump pit", "es": "Drenaje perimetral al pozo de bomba (sump)" },
+            { "pt": "Drenagem interna (porão existente)", "en": "Interior drain (existing basement)", "es": "Drenaje interior (sótano existente)" },
+            { "pt": "Drywell / infiltração", "en": "Drywell / infiltration", "es": "Pozo seco / infiltración" },
+            { "pt": "Sem drenagem", "en": "No drainage", "es": "Sin drenaje" }
           ]
         },
         "insulation": {
-          "label": { "pt": "Isolamento", "en": "Insulation" },
+          "label": { "pt": "Isolamento", "en": "Insulation", "es": "Aislamiento" },
           "system": true,
           "opts": [
-            { "pt": "Por outros / não incluso", "en": "By others / not included" },
-            { "pt": "Rigid foam por fora (XPS / EPS)", "en": "Exterior rigid foam (XPS / EPS)" }, { "pt": "Foam embaixo do slab", "en": "Under-slab foam" },
-            { "pt": "ICF (já isolado)", "en": "ICF (insulated)" }
+            { "pt": "Por outros / não incluso", "en": "By others / not included", "es": "Por otros / no incluido" },
+            { "pt": "Rigid foam por fora (XPS / EPS)", "en": "Exterior rigid foam (XPS / EPS)", "es": "Espuma rígida exterior (XPS / EPS)" },
+            { "pt": "Foam embaixo do slab", "en": "Under-slab foam", "es": "Espuma bajo la losa" },
+            { "pt": "ICF (já isolado)", "en": "ICF (insulated)", "es": "ICF (aislado)" }
           ]
         },
         "slab": {
-          "label": { "pt": "Slab (laje de piso)", "en": "Slab" },
+          "label": { "pt": "Slab (laje de piso)", "en": "Slab", "es": "Losa" },
           "opts": [
-            { "pt": "Sem slab", "en": "No slab" }, { "pt": "Slab do porão 4\"", "en": "4\" basement slab" }, { "pt": "Slab de garagem", "en": "Garage slab" },
-            { "pt": "Slab estrutural / engenheiro", "en": "Structural slab (engineered)" },
-            { "pt": "Slab com radiant (tubos por outros)", "en": "Radiant slab (tubing by others)" }
+            { "pt": "Sem slab", "en": "No slab", "es": "Sin losa" }, { "pt": "Slab do porão 4\"", "en": "4\" basement slab", "es": "Losa de sótano de 4\"" },
+            { "pt": "Slab de garagem", "en": "Garage slab", "es": "Losa del garaje" },
+            { "pt": "Slab estrutural / engenheiro", "en": "Structural slab (engineered)", "es": "Losa estructural (con ingeniería)" },
+            { "pt": "Slab com radiant (tubos por outros)", "en": "Radiant slab (tubing by others)", "es": "Losa radiante (tubería por otros)" }
           ]
         },
         "reinforcement": {
-          "label": { "pt": "Armação", "en": "Reinforcement" },
+          "label": { "pt": "Armação", "en": "Reinforcement", "es": "Refuerzo" },
           "opts": [
-            { "pt": "Rebar conforme projeto", "en": "Rebar per drawings" }, { "pt": "Rebar mínimo do código (#4)", "en": "Code-minimum rebar (#4)" },
-            { "pt": "Tela / fibra (slab)", "en": "Mesh / fiber (slab)" }
+            { "pt": "Rebar conforme projeto", "en": "Rebar per drawings", "es": "Varilla según los planos" },
+            { "pt": "Rebar mínimo do código (#4)", "en": "Code-minimum rebar (#4)", "es": "Varilla mínima del código (#4)" },
+            { "pt": "Tela / fibra (slab)", "en": "Mesh / fiber (slab)", "es": "Malla / fibra (losa)" }
           ]
         },
         "pump": {
-          "label": { "pt": "Concretagem", "en": "Concrete placement" },
+          "label": { "pt": "Concretagem", "en": "Concrete placement", "es": "Colocación del concreto" },
           "opts": [
-            { "pt": "Direto da bica (chute)", "en": "Direct chute" }, { "pt": "Bomba de linha (line pump)", "en": "Line pump" },
-            { "pt": "Bomba de lança (boom pump)", "en": "Boom pump" }
+            { "pt": "Direto da bica (chute)", "en": "Direct chute", "es": "Canal directo" },
+            { "pt": "Bomba de linha (line pump)", "en": "Line pump", "es": "Bomba de línea" },
+            { "pt": "Bomba de lança (boom pump)", "en": "Boom pump", "es": "Bomba pluma (boom)" }
           ]
         },
         "digSafe": {
           "label": "Dig Safe (811)",
           "system": true,
           "opts": [
-            { "pt": "A pedir", "en": "To be requested" }, { "pt": "Ticket ativo", "en": "Active ticket" },
-            { "pt": "Linhas particulares (marcar por conta)", "en": "Private lines (locate privately)" }
+            { "pt": "A pedir", "en": "To be requested", "es": "Por pedir" }, { "pt": "Ticket ativo", "en": "Active ticket", "es": "Ticket activo" },
+            { "pt": "Linhas particulares (marcar por conta)", "en": "Private lines (locate privately)", "es": "Líneas privadas (localizar por cuenta privada)" }
           ]
         },
         "asBuilt": {
           "label": "As-built / plot plan",
           "system": true,
-          "opts": [{ "pt": "Precisa (agrimensor)", "en": "Required (surveyor)" }, { "pt": "Não precisa", "en": "Not required" }]
+          "opts": [
+            { "pt": "Precisa (agrimensor)", "en": "Required (surveyor)", "es": "Obligatorio (agrimensor)" },
+            { "pt": "Não precisa", "en": "Not required", "es": "No hace falta" }
+          ]
         }
       },
       text: [
-        { "key": "footprint", "label": { "pt": "Área da fundação (sq ft)", "en": "Footprint (sq ft)" }, "unit": "sqft", "type": "number" },
-        { "key": "perimeter", "label": { "pt": "Perímetro (linear ft)", "en": "Perimeter (linear ft)" }, "unit": "lf", "type": "number" },
-        { "key": "concreteYards", "label": { "pt": "Concreto estimado (cubic yards)", "en": "Concrete (cubic yards)" }, "unit": "cy", "type": "number" },
-        { "key": "footingSize", "label": { "pt": "Footing / parede (dimensões)", "en": "Footing / wall size" } },
-        { "key": "engineer", "label": { "pt": "Engenheiro / plantas estruturais", "en": "Engineer / structural drawings" } }
+        { "key": "footprint", "label": { "pt": "Área da fundação (sq ft)", "en": "Footprint (sq ft)", "es": "Huella (sq ft)" }, "unit": "sqft", "type": "number" },
+        { "key": "perimeter", "label": { "pt": "Perímetro (linear ft)", "en": "Perimeter (linear ft)", "es": "Perímetro (pies lineales)" }, "unit": "lf", "type": "number" },
+        {
+          "key": "concreteYards",
+          "label": { "pt": "Concreto estimado (cubic yards)", "en": "Concrete (cubic yards)", "es": "Concreto (yardas cúbicas)" },
+          "unit": "cy",
+          "type": "number"
+        },
+        { "key": "footingSize", "label": { "pt": "Footing / parede (dimensões)", "en": "Footing / wall size", "es": "Tamaño de zapata / muro" } },
+        { "key": "engineer", "label": { "pt": "Engenheiro / plantas estruturais", "en": "Engineer / structural drawings", "es": "Ingeniero / planos estructurales" } }
       ],
       units: [
-        { "id": "cy", "label": { "pt": "cubic yards", "en": "cubic yards" } }, { "id": "lf", "label": "linear ft" }, { "id": "sqft", "label": "sq ft" },
-        { "id": "ton", "label": { "pt": "tonelada", "en": "ton" } }, { "id": "hr", "label": { "pt": "hora de máquina", "en": "machine hour" } },
-        { "id": "ea", "label": { "pt": "un", "en": "ea" } }
+        { "id": "cy", "label": { "pt": "cubic yards", "en": "cubic yards", "es": "yardas cúbicas" } },
+        { "id": "lf", "label": { "pt": "linear ft", "en": "linear ft", "es": "pie lineal" } }, { "id": "sqft", "label": "sq ft" },
+        { "id": "ton", "label": { "pt": "tonelada", "en": "ton", "es": "tonelada" } },
+        { "id": "hr", "label": { "pt": "hora de máquina", "en": "machine hour", "es": "hora de máquina" } },
+        { "id": "ea", "label": { "pt": "un", "en": "ea", "es": "c/u" } }
       ],
       tasks: {
         "Pré-obra e segurança": [
-          { "pt": "Permit de building / fundação", "en": "Building / foundation permit" },
-          { "pt": "Dig Safe (811) — pré-marcar em branco e ticket", "en": "Dig Safe (811) — white premark and ticket" },
-          { "pt": "Trench permit (trincheira com mais de 3 ft)", "en": "Trench permit (trench over 3 ft)" },
-          { "pt": "Stakeout da casa (agrimensor)", "en": "House stakeout (surveyor)" },
-          { "pt": "Controle de erosão (silt fence / hay bales)", "en": "Erosion control (silt fence / hay bales)" },
-          { "pt": "Proteção da escavação (talude / trench box / cerca)", "en": "Excavation protection (sloping / trench box / fencing)" }
+          { "pt": "Permit de building / fundação", "en": "Building / foundation permit", "es": "Permiso de construcción / de cimientos" },
+          {
+            "pt": "Dig Safe (811) — pré-marcar em branco e ticket",
+            "en": "Dig Safe (811) — white premark and ticket",
+            "es": "Dig Safe (811) — marcado previo en blanco y ticket"
+          },
+          { "pt": "Trench permit (trincheira com mais de 3 ft)", "en": "Trench permit (trench over 3 ft)", "es": "Permiso de zanja (zanja de más de 3 ft)" },
+          { "pt": "Stakeout da casa (agrimensor)", "en": "House stakeout (surveyor)", "es": "Replanteo de la casa (agrimensor)" },
+          {
+            "pt": "Controle de erosão (silt fence / hay bales)",
+            "en": "Erosion control (silt fence / hay bales)",
+            "es": "Control de erosión (silt fence / pacas de heno)"
+          },
+          {
+            "pt": "Proteção da escavação (talude / trench box / cerca)",
+            "en": "Excavation protection (sloping / trench box / fencing)",
+            "es": "Protección de la excavación (talud / trench box / cerca)"
+          }
         ],
         "Escavação": [
-          { "pt": "Limpar terreno (árvores / tocos)", "en": "Clearing (trees / stumps)" }, { "pt": "Escavação da fundação", "en": "Foundation excavation" },
-          { "pt": "Remover ledge / rocha", "en": "Ledge / rock removal" }, { "pt": "Trincheiras de utilities", "en": "Utility trenches" },
-          { "pt": "Estocar / tirar terra", "en": "Stockpile / export soil" }
+          { "pt": "Limpar terreno (árvores / tocos)", "en": "Clearing (trees / stumps)", "es": "Desmonte (árboles / tocones)" },
+          { "pt": "Escavação da fundação", "en": "Foundation excavation", "es": "Excavación de los cimientos" },
+          { "pt": "Remover ledge / rocha", "en": "Ledge / rock removal", "es": "Retiro de roca (ledge)" },
+          { "pt": "Trincheiras de utilities", "en": "Utility trenches", "es": "Zanjas de servicios" },
+          { "pt": "Estocar / tirar terra", "en": "Stockpile / export soil", "es": "Acopiar / sacar la tierra" }
         ],
         "Footings": [
-          { "pt": "Formas e rebar dos footings", "en": "Footing forms and rebar" },
-          { "pt": "Inspeção de footing (antes do concreto)", "en": "Footing inspection (before pour)" }, { "pt": "Concretar footings", "en": "Pour footings" },
-          "Keyway / dowels"
+          { "pt": "Formas e rebar dos footings", "en": "Footing forms and rebar", "es": "Formaletas y varilla de las zapatas" },
+          { "pt": "Inspeção de footing (antes do concreto)", "en": "Footing inspection (before pour)", "es": "Inspección de zapatas (antes de vaciar)" },
+          { "pt": "Concretar footings", "en": "Pour footings", "es": "Vaciar las zapatas" }, "Keyway / dowels"
         ],
         "Paredes": [
-          { "pt": "Formar paredes / montar ICF", "en": "Set wall forms / stack ICF" }, { "pt": "Rebar e anchor bolts", "en": "Rebar and anchor bolts" },
-          { "pt": "Concretar paredes", "en": "Pour walls" }, { "pt": "Desformar e quebrar ties", "en": "Strip forms and snap ties" },
-          { "pt": "As-built / plot plan da fundação", "en": "Foundation as-built / plot plan" }
+          { "pt": "Formar paredes / montar ICF", "en": "Set wall forms / stack ICF", "es": "Armar formaletas de muro / apilar ICF" },
+          { "pt": "Rebar e anchor bolts", "en": "Rebar and anchor bolts", "es": "Varilla y pernos de anclaje" },
+          { "pt": "Concretar paredes", "en": "Pour walls", "es": "Vaciar los muros" },
+          { "pt": "Desformar e quebrar ties", "en": "Strip forms and snap ties", "es": "Quitar formaletas y snap ties" },
+          { "pt": "As-built / plot plan da fundação", "en": "Foundation as-built / plot plan", "es": "As-built del cimiento / plot plan" }
         ],
         "Impermeabilização e drenagem": [
-          "Damp-proofing / waterproofing", { "pt": "Isolamento rígido por fora", "en": "Exterior rigid insulation" },
-          { "pt": "Perimeter drain (tubo, pedra e tecido)", "en": "Perimeter drain (pipe, stone, fabric)" }, "Sump pit",
-          { "pt": "Inspeção da fundação (antes do backfill)", "en": "Foundation inspection (before backfill)" },
-          { "pt": "Backfill e compactação", "en": "Backfill and compaction" }
+          "Damp-proofing / waterproofing", { "pt": "Isolamento rígido por fora", "en": "Exterior rigid insulation", "es": "Aislamiento rígido exterior" },
+          { "pt": "Perimeter drain (tubo, pedra e tecido)", "en": "Perimeter drain (pipe, stone, fabric)", "es": "Drenaje perimetral (tubo, piedra, tela)" },
+          "Sump pit",
+          { "pt": "Inspeção da fundação (antes do backfill)", "en": "Foundation inspection (before backfill)", "es": "Inspección de cimientos (antes de rellenar)" },
+          { "pt": "Backfill e compactação", "en": "Backfill and compaction", "es": "Relleno y compactación" }
         ],
         "Slab e entrega": [
-          { "pt": "Base de pedra compactada", "en": "Compacted stone base" },
-          { "pt": "Vapor barrier (10 mil) e foam embaixo do slab", "en": "Vapor barrier (10 mil) and under-slab foam" },
-          { "pt": "Concretar slab", "en": "Pour slab" }, { "pt": "Grading final", "en": "Final grading" },
-          { "pt": "Limpeza e retirada de material", "en": "Cleanup and material removal" }, "Punch list"
+          { "pt": "Base de pedra compactada", "en": "Compacted stone base", "es": "Base de piedra compactada" },
+          {
+            "pt": "Vapor barrier (10 mil) e foam embaixo do slab",
+            "en": "Vapor barrier (10 mil) and under-slab foam",
+            "es": "Barrera de vapor (10 mil) y espuma bajo la losa"
+          },
+          { "pt": "Concretar slab", "en": "Pour slab", "es": "Vaciar la losa" },
+          { "pt": "Grading final", "en": "Final grading", "es": "Nivelación final" },
+          { "pt": "Limpeza e retirada de material", "en": "Cleanup and material removal", "es": "Limpieza y retiro de material" },
+          "Punch list"
         ]
       },
       groupsI18n: {
@@ -4732,6 +5680,14 @@
           "Impermeabilização e drenagem": "Waterproofing & drainage",
           "Slab e entrega": "Slab & closeout",
           "Footings": "Footings"
+        },
+        "es": {
+          "Pré-obra e segurança": "Preobra y seguridad",
+          "Escavação": "Excavación",
+          "Paredes": "Muros",
+          "Impermeabilização e drenagem": "Impermeabilización y drenaje",
+          "Slab e entrega": "Losa y entrega",
+          "Footings": "Zapatas (footings)"
         }
       },
       suggest: {
@@ -4798,29 +5754,53 @@
       },
       inspections: [
         {
-          "label": { "pt": "Dig Safe (811) — pré-marcar em branco e ticket", "en": "Dig Safe (811) — white premark and ticket" },
-          "authority": { "pt": "Dig Safe — MA: DPU (M.G.L. c.82 §40, 220 CMR 99); NH: RSA 374:51", "en": "Dig Safe — MA: DPU (M.G.L. c.82 §40, 220 CMR 99); NH: RSA 374:51" },
-          "when": { "pt": "72 h úteis antes de escavar; ticket vale 30 dias", "en": "72 business hours before digging; ticket valid 30 days" }
+          "label": {
+            "pt": "Dig Safe (811) — pré-marcar em branco e ticket",
+            "en": "Dig Safe (811) — white premark and ticket",
+            "es": "Dig Safe (811) — marcado previo en blanco y ticket"
+          },
+          "authority": {
+            "pt": "Dig Safe — MA: DPU (M.G.L. c.82 §40, 220 CMR 99); NH: RSA 374:51",
+            "en": "Dig Safe — MA: DPU (M.G.L. c.82 §40, 220 CMR 99); NH: RSA 374:51",
+            "es": "Dig Safe — MA: DPU (M.G.L. c.82 §40, 220 CMR 99); NH: RSA 374:51"
+          },
+          "when": {
+            "pt": "72 h úteis antes de escavar; ticket vale 30 dias",
+            "en": "72 business hours before digging; ticket valid 30 days",
+            "es": "72 horas hábiles antes de excavar; el ticket vale 30 días"
+          }
         },
         {
-          "label": { "pt": "Trench permit (trincheira com mais de 3 ft)", "en": "Trench permit (trench over 3 ft)" },
-          "authority": { "pt": "Município (M.G.L. c.82A / 520 CMR 14.00)", "en": "Municipality (M.G.L. c.82A / 520 CMR 14.00)" },
-          "when": { "pt": "Antes de abrir trincheira > 3 ft", "en": "Before opening a trench deeper than 3 ft" }
+          "label": { "pt": "Trench permit (trincheira com mais de 3 ft)", "en": "Trench permit (trench over 3 ft)", "es": "Permiso de zanja (zanja de más de 3 ft)" },
+          "authority": { "pt": "Município (M.G.L. c.82A / 520 CMR 14.00)", "en": "Municipality (M.G.L. c.82A / 520 CMR 14.00)", "es": "Municipio (M.G.L. c.82A / 520 CMR 14.00)" },
+          "when": {
+            "pt": "Antes de abrir trincheira > 3 ft",
+            "en": "Before opening a trench deeper than 3 ft",
+            "es": "Antes de abrir una zanja de más de 3 ft de profundidad"
+          }
         },
         {
-          "label": { "pt": "Inspeção de footing (antes do concreto)", "en": "Footing inspection (before pour)" },
-          "authority": { "pt": "Building inspector (780 CMR R110.3.1)", "en": "Building inspector (780 CMR R110.3.1)" },
-          "when": { "pt": "Formas e rebar prontos, antes de concretar", "en": "Forms and rebar set, before the pour" }
+          "label": { "pt": "Inspeção de footing (antes do concreto)", "en": "Footing inspection (before pour)", "es": "Inspección de zapatas (antes de vaciar)" },
+          "authority": { "pt": "Building inspector (780 CMR R110.3.1)", "en": "Building inspector (780 CMR R110.3.1)", "es": "Inspector de construcción (780 CMR R110.3.1)" },
+          "when": { "pt": "Formas e rebar prontos, antes de concretar", "en": "Forms and rebar set, before the pour", "es": "Formaletas y varilla puestas, antes de vaciar" }
         },
         {
-          "label": { "pt": "Inspeção da fundação (antes do backfill)", "en": "Foundation inspection (before backfill)" },
-          "authority": { "pt": "Building inspector (780 CMR R110.3.1)", "en": "Building inspector (780 CMR R110.3.1)" },
-          "when": { "pt": "Depois do damp-proofing e do dreno", "en": "After damp-proofing and drain" }
+          "label": { "pt": "Inspeção da fundação (antes do backfill)", "en": "Foundation inspection (before backfill)", "es": "Inspección de cimientos (antes de rellenar)" },
+          "authority": { "pt": "Building inspector (780 CMR R110.3.1)", "en": "Building inspector (780 CMR R110.3.1)", "es": "Inspector de construcción (780 CMR R110.3.1)" },
+          "when": { "pt": "Depois do damp-proofing e do dreno", "en": "After damp-proofing and drain", "es": "Después del damp-proofing y el drenaje" }
         },
         {
-          "label": { "pt": "As-built / plot plan da fundação", "en": "Foundation as-built / plot plan" },
-          "authority": { "pt": "Agrimensor licenciado → building department", "en": "Licensed surveyor → building department" },
-          "when": { "pt": "Antes do framing ou do CO (varia por município)", "en": "Before framing or CO (varies by town)" }
+          "label": { "pt": "As-built / plot plan da fundação", "en": "Foundation as-built / plot plan", "es": "As-built del cimiento / plot plan" },
+          "authority": {
+            "pt": "Agrimensor licenciado → building department",
+            "en": "Licensed surveyor → building department",
+            "es": "Agrimensor con licencia → departamento de construcción"
+          },
+          "when": {
+            "pt": "Antes do framing ou do CO (varia por município)",
+            "en": "Before framing or CO (varies by town)",
+            "es": "Antes del framing o del CO (varía según el municipio)"
+          }
         }
       ],
       proposal: {
@@ -4892,7 +5872,8 @@
         },
         "speechExample": {
           "pt": "Ex.: “Fundação de casa nova, porão completo de 28 por 40. Escavação, footing 20 por 10, parede de 8 polegadas por 8 pés, damp-proofing, dreno perimetral para o sump, backfill e slab de 4 polegadas. Se der ledge, cobro 185 por jarda. Preço 48 mil, 30/40/30.”",
-          "en": "e.g. “New home foundation, full basement 28 by 40. Excavation, 20 by 10 footing, 8-inch by 8-foot walls, damp-proofing, perimeter drain to sump, backfill and 4-inch slab. Ledge at 185 per yard. Price 48K, 30/40/30.”"
+          "en": "e.g. “New home foundation, full basement 28 by 40. Excavation, 20 by 10 footing, 8-inch by 8-foot walls, damp-proofing, perimeter drain to sump, backfill and 4-inch slab. Ledge at 185 per yard. Price 48K, 30/40/30.”",
+          "es": "ej.: “Cimientos de casa nueva, sótano completo de 28 por 40. Excavación, zapata de 20 por 10, muros de 8 pulgadas por 8 pies, damp-proofing, drenaje perimetral al sump, relleno y losa de 4 pulgadas. Roca a 185 por yarda. Precio 48 mil, 30/40/30.”"
         },
         "aiRules": "Trade: FOUNDATION & EXCAVATION / sitework contractor (MA/NH). Speech mixes Portuguese and English: 'sapata'/'footing' = footing, 'parede' = foundation wall, 'jarda' = cubic yard, 'laje'/'slab' = slab, 'dreno' = perimeter drain, 'reaterro'/'backfill' = backfill, 'ledge'/'rocha' = ledge.\nQuantities: concrete and excavation in **cubic yards**, footings / walls / drains / trenches in **linear feet**, slabs and waterproofing in **square feet**, stone in **tons**; footing and wall sizes as width x depth / thickness x height (e.g. 20\" x 10\" footing, 8\" x 8' wall).\nSpecify concrete strength: 3,000 PSI for foundation walls and basement slabs; garage slabs, porches, steps, and any concrete exposed to weather: 3,500 PSI air-entrained (5–7% air) per IRC Table R402.2 (MA / NH = severe weathering) — flag in notes_pt if not said, rebar size and count, anchor bolt size, spacing, and minimum 7\" embedment (IRC R403.1.6).\nAlways include Dig Safe (811) notification before excavation; in MA mention trench permit (520 CMR 14.00) when there are trenches over 3 ft.\nAlways state that the footing inspection happens BEFORE the concrete pour, and the foundation / damp-proofing inspection before backfill where required.\nLedge: never include unlimited ledge removal in a lump sum — use an allowance or a unit price per cubic yard; if the speaker gave none, add a note in notes_pt.\nDistinguish damp-proofing (coating) from waterproofing (membrane); do not call damp-proofing 'waterproof'.\nSeptic systems (Title 5), blasting, engineering, surveying / as-built, dewatering, and winter concrete protection are excluded unless the speaker includes them.\nTypical sections: Site Preparation & Erosion Control, Excavation, Ledge & Rock, Footings, Foundation Walls, Damp-Proofing / Waterproofing & Drainage, Backfill & Compaction, Concrete Slab, Permit, Inspections & Layout.\nPayment default for foundations: deposit / after footings / after walls and backfill, unless spoken otherwise. Pitfalls: frost depth is set by the local building department (commonly 48\" in MA/NH) — write 'per local frost depth' if unsure; ICF walls need bracing and a specific pour sequence; do not promise crack-free concrete.",
         "facts": {
@@ -4935,21 +5916,22 @@
         "clientRole": "",
         "adjustExample": {
           "pt": "Ex.: “Tira o slab, muda o preço para 44 mil e acrescenta 60 pés de dreno.”",
-          "en": "e.g. “Remove the slab, change the price to 44K and add 60 ft of drain.”"
+          "en": "e.g. “Remove the slab, change the price to 44K and add 60 ft of drain.”",
+          "es": "ej.: “Quita la losa, cambia el precio a 44 mil y agrega 60 pies de drenaje.”"
         }
       },
       prices: {
         "stores": [
           {
             "id": "readymix",
-            "name": { "pt": "Concreteira local (ready-mix)", "en": "Local ready-mix concrete supplier" },
-            "short": "Concreteira",
+            "name": { "pt": "Concreteira local (ready-mix)", "en": "Local ready-mix concrete supplier", "es": "Proveedor local de concreto premezclado" },
+            "short": { "pt": "Concreteira", "en": "Ready-mix", "es": "Concretera" },
             "search": "ready mix concrete"
           },
           {
             "id": "gravelpit",
-            "name": { "pt": "Pedreira / cascalho local", "en": "Local quarry / gravel supplier" },
-            "short": "Pedreira",
+            "name": { "pt": "Pedreira / cascalho local", "en": "Local quarry / gravel supplier", "es": "Cantera / proveedor local de grava" },
+            "short": { "pt": "Pedreira", "en": "Quarry", "es": "Cantera" },
             "search": "gravel crushed stone supplier"
           },
           { "id": "whitecap", "name": "White Cap", "short": "White Cap", "search": "site:whitecap.com" },
@@ -4957,40 +5939,87 @@
           "lowes"
         ],
         "basic": [
-          [{ "pt": "Concreto 3000 psi (cubic yard)", "en": "3000 psi concrete (cubic yard)" }, { "pt": "Concreto", "en": "Concrete" }, "cubic yard"],
+          [
+            { "pt": "Concreto 3000 psi (cubic yard)", "en": "3000 psi concrete (cubic yard)", "es": "Concreto de 3000 psi (yarda cúbica)" },
+            { "pt": "Concreto", "en": "Concrete", "es": "Concreto" }, "cubic yard"
+          ],
           [
             {
               "pt": "Concreto 3500 psi com ar incorporado (cubic yard) — slab de garagem / externo",
-              "en": "3500 psi air-entrained concrete (cubic yard) — garage / exterior slab"
+              "en": "3500 psi air-entrained concrete (cubic yard) — garage / exterior slab",
+              "es": "Concreto de 3500 psi con aire incluido (yarda cúbica) — garaje / losa exterior"
             },
-            { "pt": "Concreto", "en": "Concrete" },
+            { "pt": "Concreto", "en": "Concrete", "es": "Concreto" },
             "cubic yard"
           ],
-          [{ "pt": "Concreto 4000 psi (cubic yard)", "en": "4000 psi concrete (cubic yard)" }, { "pt": "Concreto", "en": "Concrete" }, "cubic yard"],
-          [{ "pt": "Bomba de concreto (por concretagem)", "en": "Concrete pump (per pour)" }, { "pt": "Concreto", "en": "Concrete" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Rebar #4 — 20 ft", "en": "#4 rebar — 20 ft" }, { "pt": "Armação", "en": "Reinforcement" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Rebar #5 — 20 ft", "en": "#5 rebar — 20 ft" }, { "pt": "Armação", "en": "Reinforcement" }, { "pt": "peça", "en": "each" }],
-          ["Anchor bolt 1/2\" x 10\"", { "pt": "Armação", "en": "Reinforcement" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Form ties (caixa)", "en": "Form ties (box)" }, { "pt": "Formas", "en": "Forming" }, { "pt": "caixa", "en": "box" }],
-          [{ "pt": "Bloco ICF", "en": "ICF block" }, { "pt": "Formas", "en": "Forming" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Damp-proofing (balde 5 gal)", "en": "Damp-proofing (5 gal)" }, { "pt": "Impermeabilização", "en": "Waterproofing" }, { "pt": "balde", "en": "bucket" }],
           [
-            { "pt": "Membrana waterproofing (rolo)", "en": "Waterproofing membrane (roll)" }, { "pt": "Impermeabilização", "en": "Waterproofing" },
-            { "pt": "rolo", "en": "roll" }
+            { "pt": "Concreto 4000 psi (cubic yard)", "en": "4000 psi concrete (cubic yard)", "es": "Concreto de 4000 psi (yarda cúbica)" },
+            { "pt": "Concreto", "en": "Concrete", "es": "Concreto" }, "cubic yard"
           ],
-          [{ "pt": "Tubo perfurado 4\" (10 ft)", "en": "4\" perforated pipe (10 ft)" }, { "pt": "Drenagem", "en": "Drainage" }, { "pt": "peça", "en": "each" }],
-          [{ "pt": "Tecido filtrante (rolo)", "en": "Filter fabric (roll)" }, { "pt": "Drenagem", "en": "Drainage" }, { "pt": "rolo", "en": "roll" }],
-          ["Sump pit / basin", { "pt": "Drenagem", "en": "Drainage" }, { "pt": "un", "en": "ea" }],
-          [{ "pt": "Pedra britada 3/4\" (ton)", "en": "3/4\" crushed stone (ton)" }, { "pt": "Agregados", "en": "Aggregates" }, "ton"],
-          [{ "pt": "Gravel / processed (ton)", "en": "Processed gravel (ton)" }, { "pt": "Agregados", "en": "Aggregates" }, "ton"],
-          [{ "pt": "Foam rígido XPS 2\" 4x8", "en": "2\" XPS rigid foam 4x8" }, { "pt": "Isolamento", "en": "Insulation" }, { "pt": "folha", "en": "sheet" }],
-          [{ "pt": "Vapor barrier 10 mil (rolo)", "en": "10-mil vapor barrier (roll)" }, "Slab", { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Silt fence (rolo)", "en": "Silt fence (roll)" }, "Sitework", { "pt": "rolo", "en": "roll" }],
-          [{ "pt": "Aluguel de escavadeira (dia)", "en": "Excavator rental (day)" }, { "pt": "Equipamento", "en": "Equipment" }, { "pt": "dia", "en": "day" }]
+          [
+            { "pt": "Bomba de concreto (por concretagem)", "en": "Concrete pump (per pour)", "es": "Bomba de concreto (por vaciado)" },
+            { "pt": "Concreto", "en": "Concrete", "es": "Concreto" }, { "pt": "un", "en": "ea", "es": "c/u" }
+          ],
+          [
+            { "pt": "Rebar #4 — 20 ft", "en": "#4 rebar — 20 ft", "es": "Varilla #4 — 20 ft" }, { "pt": "Armação", "en": "Reinforcement", "es": "Refuerzo" },
+            { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Rebar #5 — 20 ft", "en": "#5 rebar — 20 ft", "es": "Varilla #5 — 20 ft" }, { "pt": "Armação", "en": "Reinforcement", "es": "Refuerzo" },
+            { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          ["Anchor bolt 1/2\" x 10\"", { "pt": "Armação", "en": "Reinforcement", "es": "Refuerzo" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          [
+            { "pt": "Form ties (caixa)", "en": "Form ties (box)", "es": "Amarres de formaleta (caja)" }, { "pt": "Formas", "en": "Forming", "es": "Formaletas" },
+            { "pt": "caixa", "en": "box", "es": "caja" }
+          ],
+          [{ "pt": "Bloco ICF", "en": "ICF block", "es": "Bloque ICF" }, { "pt": "Formas", "en": "Forming", "es": "Formaletas" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          [
+            { "pt": "Damp-proofing (balde 5 gal)", "en": "Damp-proofing (5 gal)", "es": "Damp-proofing (5 gal)" },
+            { "pt": "Impermeabilização", "en": "Waterproofing", "es": "Impermeabilización" }, { "pt": "balde", "en": "bucket", "es": "cubeta" }
+          ],
+          [
+            { "pt": "Membrana waterproofing (rolo)", "en": "Waterproofing membrane (roll)", "es": "Membrana impermeabilizante (rollo)" },
+            { "pt": "Impermeabilização", "en": "Waterproofing", "es": "Impermeabilización" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [
+            { "pt": "Tubo perfurado 4\" (10 ft)", "en": "4\" perforated pipe (10 ft)", "es": "Tubo perforado de 4\" (10 ft)" },
+            { "pt": "Drenagem", "en": "Drainage", "es": "Drenaje" }, { "pt": "peça", "en": "each", "es": "c/u" }
+          ],
+          [
+            { "pt": "Tecido filtrante (rolo)", "en": "Filter fabric (roll)", "es": "Tela filtrante (rollo)" },
+            { "pt": "Drenagem", "en": "Drainage", "es": "Drenaje" }, { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          ["Sump pit / basin", { "pt": "Drenagem", "en": "Drainage", "es": "Drenaje" }, { "pt": "un", "en": "ea", "es": "c/u" }],
+          [
+            { "pt": "Pedra britada 3/4\" (ton)", "en": "3/4\" crushed stone (ton)", "es": "Piedra triturada de 3/4\" (tonelada)" },
+            { "pt": "Agregados", "en": "Aggregates", "es": "Agregados" }, "ton"
+          ],
+          [
+            { "pt": "Gravel / processed (ton)", "en": "Processed gravel (ton)", "es": "Grava procesada (tonelada)" },
+            { "pt": "Agregados", "en": "Aggregates", "es": "Agregados" }, "ton"
+          ],
+          [
+            { "pt": "Foam rígido XPS 2\" 4x8", "en": "2\" XPS rigid foam 4x8", "es": "Espuma rígida XPS de 2\" 4x8" },
+            { "pt": "Isolamento", "en": "Insulation", "es": "Aislamiento" }, { "pt": "folha", "en": "sheet", "es": "hoja" }
+          ],
+          [
+            { "pt": "Vapor barrier 10 mil (rolo)", "en": "10-mil vapor barrier (roll)", "es": "Barrera de vapor de 10 mil (rollo)" }, "Slab",
+            { "pt": "rolo", "en": "roll", "es": "rollo" }
+          ],
+          [{ "pt": "Silt fence (rolo)", "en": "Silt fence (roll)", "es": "Silt fence (rollo)" }, "Sitework", { "pt": "rolo", "en": "roll", "es": "rollo" }],
+          [
+            { "pt": "Aluguel de escavadeira (dia)", "en": "Excavator rental (day)", "es": "Alquiler de excavadora (día)" },
+            { "pt": "Equipamento", "en": "Equipment", "es": "Equipo" }, { "pt": "dia", "en": "day", "es": "día" }
+          ]
         ],
-        "basicOffer": [{ "list": "foundation", "label": { "pt": "Adicionar lista básica de fundação", "en": "Add basic foundation list" } }],
+        "basicOffer": [{ "list": "foundation", "label": { "pt": "Adicionar lista básica de fundação", "en": "Add basic foundation list", "es": "Agregar lista básica de cimientos" } }],
         "promos": false,
-        "searchExample": { "pt": "ex.: concreto 3500 psi, rebar #4, anchor bolt", "en": "e.g. 3500 psi concrete, #4 rebar, anchor bolt" }
+        "searchExample": {
+          "pt": "ex.: concreto 3500 psi, rebar #4, anchor bolt",
+          "en": "e.g. 3500 psi concrete, #4 rebar, anchor bolt",
+          "es": "ej.: concreto de 3500 psi, varilla #4, perno de anclaje"
+        }
       }
     }
     // ═══ fim dos ramos gerados ═══

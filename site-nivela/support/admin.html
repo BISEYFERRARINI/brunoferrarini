@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
-<title>Nivela Assist · Painel</title>
+<title>Bisey Assist · Painel</title>
+<link rel="icon" href="/app/brand/favicon.svg" type="image/svg+xml">
 <style>
-  :root { --bg: #F3F5F4; --surface: #fff; --ink: #102421; --muted: #566663; --line: #DCE3E1; --brand: #0B7B6A; --brand-ink: #fff; --strong: #0D2B27; --warn: #9A5B00; --good: #2E7D4F; color-scheme: light dark; }
-  @media (prefers-color-scheme: dark) { :root { --bg: #06110F; --surface: #0F1E1B; --ink: #E6EFEC; --muted: #9DB3AE; --line: #24403A; --brand: #2CC4A7; --brand-ink: #06110F; --strong: #0D2B27; --warn: #F2B233; --good: #6FD39A; } }
+  :root { --bg: #F7F9FE; --surface: #fff; --ink: #0A1433; --muted: #5F6472; --line: #D8DCE6; --brand: #2A5BFF; --brand-ink: #fff; --strong: #0A1433; --warn: #864B03; --good: #006F36; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #070C1D; --surface: #0E1530; --ink: #E7EAF4; --muted: #9AA4C3; --line: #1F2948; --brand: #6390FE; --brand-ink: #04091E; --strong: #050A19; --warn: #FFB36F; --good: #89DCA0; } }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   header { background: var(--strong); color: #fff; padding: 14px 16px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
@@ -35,14 +36,18 @@
   .err { color: #B3261E; font-weight: 600; }
   :focus-visible { outline: 3px solid color-mix(in srgb, var(--brand) 55%, transparent); outline-offset: 2px; }
 </style>
+<script>
+  /* migração única do nome antigo (antes chamado Nivela): copia chaves nivela_* / nivela-* do localStorage e do sessionStorage para bisey_* / bisey-* (sem sobrescrever) e apaga as antigas */
+  (function () { var O = "nivela", N = "bisey"; ["localStorage", "sessionStorage"].forEach(function (n) { try { var s = window[n], ks = [], i, k; for (i = 0; i < s.length; i++) { k = s.key(i); if (k && k.indexOf(O) === 0 && /[_-]/.test(k.charAt(O.length))) ks.push(k); } ks.forEach(function (k) { try { var nk = N + k.slice(O.length), v = s.getItem(k); if (v !== null && s.getItem(nk) === null) s.setItem(nk, v.split(O + "_demo_org_").join(N + "_demo_org_")); s.removeItem(k); } catch (e) {} }); } catch (e) {} }); })();
+</script>
 </head>
 <body>
-<header><h1>Nivela Assist · Painel do atendimento</h1><button type="button" id="out" hidden>Sair</button></header>
+<header><h1>Bisey Assist · Painel do atendimento</h1><button type="button" id="out" hidden>Sair</button></header>
 <main id="main"></main>
 <script>
 (function () {
   "use strict";
-  var API = "/api/assist/admin/", KEY = "nivela_support_secret", main = document.getElementById("main"), tab = "metrics", tStatus = "open";
+  var API = "/api/assist/admin/", KEY = "bisey_support_secret", main = document.getElementById("main"), tab = "metrics", tStatus = "open";
   function secret(v) { try { if (v === undefined) return sessionStorage.getItem(KEY) || ""; if (v === null) sessionStorage.removeItem(KEY); else sessionStorage.setItem(KEY, v); } catch (e) { return ""; } }
   function el(tag, attrs, kids) {
     var e = document.createElement(tag);
@@ -80,15 +85,15 @@
     var fail = function (e) { if (e.message !== "auth") done(el("p", { "class": "err", text: "Erro: " + e.message })); };
     if (tab === "metrics") call("metrics?days=7").then(function (m) {
       var g = el("div", { "class": "grid" }, [kpi(m.conversations, "conversas (7 dias)"), kpi(m.resolvedWithoutHumanPct == null ? null : m.resolvedWithoutHumanPct + "%", "resolvidas sem pessoa"), kpi(m.handoffs, "pedidos para pessoa"), kpi(m.openTickets, "tickets abertos"),
-        kpi(m.thumbsUp + " / " + m.thumbsDown, "👍 / 👎"), kpi(m.leads, "leads (teste guiado)"), kpi(money(m.costUsd), "custo estimado (7 dias)"), kpi(money(m.todaySpendUsd) + " de " + m.dailyBudgetUsd, "gasto hoje / teto diário")]);
-      var rows = m.perDay.map(function (d) { return el("tr", {}, [d.day, d.conversations || 0, d.messages || 0, d.handoffs || 0, (d.up || 0) + " / " + (d.down || 0), d.guardrail || 0, d.injections || 0, d.rateLimited || 0, money(d.costUsd)].map(function (x) { return el("td", { text: String(x) }); })); });
-      var tbl = el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Dia", "Conversas", "Mensagens", "Pessoa", "👍/👎", "Guardrail", "Injeção", "Limite", "Custo"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])]);
-      done(el("div", {}, [g, tbl, el("p", { "class": "muted small", text: "“Resolvidas sem pessoa” = conversas sem pedido para pessoa ÷ conversas. Custo é estimativa pelos tokens; a fatura oficial está no console da Anthropic." })]));
+        kpi(m.thumbsUp + " / " + m.thumbsDown, "👍 / 👎"), kpi(m.leads, "leads (teste guiado)"), kpi(money(m.costUsd), "custo estimado (7 dias)"), kpi(money(m.todaySpendUsd) + " de " + m.dailyBudgetUsd, "gasto hoje / teto diário"), kpi(m.fallbacks || 0, "respostas pela IA de reserva (OpenAI)")]);
+      var rows = m.perDay.map(function (d) { return el("tr", {}, [d.day, d.conversations || 0, d.messages || 0, d.handoffs || 0, (d.up || 0) + " / " + (d.down || 0), d.guardrail || 0, d.injections || 0, d.rateLimited || 0, d.fallbacks || 0, money(d.costUsd)].map(function (x) { return el("td", { text: String(x) }); })); });
+      var tbl = el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Dia", "Conversas", "Mensagens", "Pessoa", "👍/👎", "Guardrail", "Injeção", "Limite", "Reserva", "Custo"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])]);
+      done(el("div", {}, [g, tbl, el("p", { "class": "muted small", text: "“Resolvidas sem pessoa” = conversas sem pedido para pessoa ÷ conversas. Custo é estimativa pelos tokens; a fatura oficial está no console da Anthropic (e no da OpenAI, se a reserva respondeu). “Reserva” = respostas da OpenAI quando a Anthropic falhou." })]));
     }).catch(fail);
     if (tab === "tickets") call("tickets?full=1&status=" + tStatus).then(function (r) {
       var sw = el("div", { "class": "row" }, [["open", "Abertos"], ["answered", "Respondidos"], ["all", "Todos"]].map(function (x) { return el("button", { type: "button", "class": tStatus === x[0] ? "" : "ghost", text: x[1], on: { click: function () { tStatus = x[0]; show(); } } }); }));
       var list = r.tickets.filter(function (t) { return t.kind !== "lead"; }).map(function (t) {
-        var c = t.contact || {}, subject = "Re: " + (t.question || "Nivela").slice(0, 80);
+        var c = t.contact || {}, subject = "Re: " + (t.question || "Bisey").slice(0, 80);
         var acts = el("div", { "class": "row" }, [
           c.email ? el("a", { "class": "btn", href: "mailto:" + encodeURIComponent(c.email) + "?subject=" + encodeURIComponent(subject), text: "Responder por e-mail" }) : el("span", { "class": "muted small", text: "Sem e-mail do cliente" }),
           t.status === "open" ? el("button", { type: "button", "class": "ghost", text: "Marcar respondido", on: { click: function () { call("tickets/answered", { ids: [t.id] }).then(show); } } }) : el("button", { type: "button", "class": "ghost", text: "Reabrir", on: { click: function () { call("tickets/reopen", { ids: [t.id] }).then(show); } } })

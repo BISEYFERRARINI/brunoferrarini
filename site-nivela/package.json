@@ -1,14 +1,19 @@
 {
-  "name": "nivela",
+  "name": "bisey",
   "private": true,
-  "description": "Nivela — app (PWA em JS puro, sem build) + Nivela Assist (Netlify Functions)",
+  "description": "Bisey — app (PWA em JS puro, sem build) + Bisey Assist (Netlify Functions)",
   "scripts": {
     "build:kb": "node tools/build-kb.js",
     "test:assist": "node tools/build-kb.js && node tests/assist.js",
-    "eval:assist": "node tests/assist-eval.js"
+    "eval:assist": "node tests/assist-eval.js",
+    "test:ai": "node tests/ai-fallback.js",
+    "test:tax": "node tests/tax.js",
+    "test:novidades": "node tests/novidades.js"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

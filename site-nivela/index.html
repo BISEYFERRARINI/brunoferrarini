@@ -3,51 +3,57 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nivela · Job management app for contractors, in English and Portuguese</title>
+<title>Bisey · Job management app for contractors, in English, Portuguese and Spanish</title>
 <meta name="description" content="Run every job from one app. AI writes proposals from your voice, reads receipts and files them on the right job, and your crew clocks in with a selfie and GPS. Built for electrical, HVAC, plumbing, fire sprinkler, GC, drywall, painting, flooring, siding, roofing and foundation contractors. 14-day free trial.">
-<meta name="theme-color" content="#0D2B27">
-<link rel="canonical" href="https://getnivela.com/">
-<link rel="alternate" hreflang="en" href="https://getnivela.com/?lang=en">
-<link rel="alternate" hreflang="pt-BR" href="https://getnivela.com/?lang=pt">
+<meta name="theme-color" content="#0A1433" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#050A19" media="(prefers-color-scheme: dark)">
+<link rel="canonical" href="https://getbisey.com/">
+<link rel="alternate" hreflang="en" href="https://getbisey.com/?lang=en">
+<link rel="alternate" hreflang="pt-BR" href="https://getbisey.com/?lang=pt">
+<link rel="alternate" hreflang="es" href="https://getbisey.com/?lang=es">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Nivela">
-<meta property="og:title" content="Nivela · Run every job from one app">
-<meta property="og:description" content="AI proposals by voice, receipts that file themselves and a selfie + GPS time clock. In English and Portuguese. Built by contractors, for contractors.">
-<meta property="og:image" content="https://getnivela.com/og.png">
+<meta property="og:site_name" content="Bisey">
+<meta property="og:title" content="Bisey · Run every job from one app">
+<meta property="og:description" content="AI proposals by voice, receipts that file themselves and a selfie + GPS time clock. In English, Portuguese and Spanish. Built by contractors, for contractors.">
+<meta property="og:image" content="https://getbisey.com/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="pt_BR">
+<meta property="og:locale:alternate" content="es_US">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://getnivela.com/og.png">
-<link rel="icon" href="/app/brand/favicon-32.png" sizes="32x32">
-<link rel="icon" href="/app/brand/favicon-16.png" sizes="16x16">
+<meta name="twitter:image" content="https://getbisey.com/og.png">
+<link rel="icon" href="/app/brand/favicon.ico" sizes="48x48">
+<link rel="icon" href="/app/brand/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/app/brand/apple-touch-icon-180.png">
 <link rel="preload" href="/app/brand/fonts/inter-display-700.woff" as="font" type="font/woff" crossorigin>
 <link rel="preload" href="/app/brand/fonts/inter-400.woff" as="font" type="font/woff" crossorigin>
 <link rel="stylesheet" href="/app/brand/tokens.css">
 <link rel="stylesheet" href="site.css">
 <script>
+  /* migração única do nome antigo (antes chamado Nivela): copia chaves nivela_* / nivela-* do localStorage e do sessionStorage para bisey_* / bisey-* (sem sobrescrever) e apaga as antigas */
+  (function () { var O = "nivela", N = "bisey"; ["localStorage", "sessionStorage"].forEach(function (n) { try { var s = window[n], ks = [], i, k; for (i = 0; i < s.length; i++) { k = s.key(i); if (k && k.indexOf(O) === 0 && /[_-]/.test(k.charAt(O.length))) ks.push(k); } ks.forEach(function (k) { try { var nk = N + k.slice(O.length), v = s.getItem(k); if (v !== null && s.getItem(nk) === null) s.setItem(nk, v.split(O + "_demo_org_").join(N + "_demo_org_")); s.removeItem(k); } catch (e) {} }); } catch (e) {} }); })();
+
   /* tema e idioma antes de pintar (evita "piscar") */
   (function () {
     var d = document.documentElement, t = null, l = null;
-    try { t = localStorage.getItem('nivela-site-theme'); l = localStorage.getItem('nivela-site-lang'); } catch (e) {}
-    var q = /[?&]lang=(en|pt)/.exec(location.search); if (q) l = q[1];
+    try { t = localStorage.getItem('bisey-site-theme'); l = localStorage.getItem('bisey-site-lang'); } catch (e) {}
+    var q = /[?&]lang=(en|pt|es)/.exec(location.search); if (q) l = q[1];
     if (t === 'light' || t === 'dark') d.setAttribute('data-theme', t);
-    if (l === 'pt') d.setAttribute('data-lang-init', 'pt');
+    if (l === 'pt' || l === 'es') d.setAttribute('data-lang-init', l);
   })();
 </script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <symbol id="nivela-logo" viewBox="0 0 146.14 48"><g><rect width="48" height="48" rx="11" style="fill:var(--logo-tile)"/><g transform="translate(5.28 5.28) scale(0.78)"><path d="M18 39H9V9h30v30" fill="none" style="stroke:var(--logo-stroke)" stroke-width="6.0" stroke-linecap="square" stroke-linejoin="miter"/><path d="M18 42V18a21 21 0 0 1 21 21v3z" style="fill:var(--logo-wedge)"/></g></g><path transform="translate(62.4 35.04)" d="M1.64 0H6.21V-10.24C6.21 -11.19 6.19 -13.07 6.11 -15.38C7.35 -13.14 8.48 -11.23 9.11 -10.22L15.54 0H20.36V-22.08H15.81V-11.16C15.81 -10.22 15.83 -8.4 15.89 -6.7C15.01 -8.28 14.06 -9.96 13.54 -10.79L6.45 -22.08H1.64ZM22.79 0H27.16V-15.65H22.79ZM24.97 -17.62C26.4 -17.62 27.46 -18.61 27.46 -19.95C27.46 -21.28 26.4 -22.27 24.97 -22.27C23.53 -22.27 22.48 -21.28 22.48 -19.95C22.48 -18.61 23.53 -17.62 24.97 -17.62ZM33.91 0H38.77L44.58 -15.65H40.05L37.5 -7.91C37.13 -6.68 36.76 -5.44 36.4 -4.21C36.05 -5.44 35.68 -6.68 35.28 -7.91L32.7 -15.65H28.12ZM52.67 0.36C56.47 0.36 59.49 -1.81 60.07 -4.92H56.08C55.68 -3.7 54.51 -2.92 52.81 -2.92C50.51 -2.92 49.17 -4.42 49.1 -6.73H60.23V-7.9C60.23 -12.67 57.13 -16 52.52 -16C48.03 -16 44.85 -12.58 44.85 -7.81C44.85 -3.05 47.93 0.36 52.67 0.36ZM49.13 -9.51C49.37 -11.47 50.66 -12.68 52.61 -12.68C54.58 -12.68 55.89 -11.47 56.11 -9.51ZM66.18 -22.08H61.81V0H66.18ZM73.29 0.27C75.69 0.27 77.04 -0.68 77.87 -2.21H77.93V0H82.2V-10.61C82.2 -13.96 79.74 -15.97 75.46 -15.97C71.16 -15.97 68.61 -13.93 68.42 -10.7H72.52C72.63 -11.9 73.69 -12.73 75.32 -12.73C76.92 -12.73 77.89 -11.93 77.89 -10.77V-10.67C77.89 -9.66 76.88 -9.53 74.02 -9.25C70.76 -8.95 67.91 -7.94 67.91 -4.42C67.91 -1.29 70.17 0.27 73.29 0.27ZM74.51 -2.77C73.04 -2.77 72.09 -3.42 72.09 -4.53C72.09 -5.78 73.28 -6.36 74.78 -6.58C76.18 -6.8 77.41 -7.01 77.92 -7.29V-5.72C77.92 -4.03 76.61 -2.77 74.51 -2.77Z" fill="currentColor"/></symbol>
+  <symbol id="bisey-logo" viewBox="23.5 6.5 229.646 94.839"><path d="M23.5 13A6.5 6.5 0 0 1 36.5 13L36.5 35.546A29.5 29.5 0 1 1 47.877 89.052A6.5 6.5 0 0 1 50.135 76.249A16.5 16.5 0 1 0 36.5 60A6.5 6.5 0 0 1 23.5 60Z" style="fill:var(--logo-mark)"/><circle cx="35.381" cy="74.784" r="5.4" style="fill:var(--logo-dot)"/><g transform="translate(101.666 88.3)"><path d="M22.12 0.69C30.73 0.69 36.37 -6.18 36.37 -16.5C36.37 -26.61 30.6 -33.63 22.18 -33.63C17.91 -33.63 14.6 -31.94 12.48 -28.39H12.45V-46.48H3.24V0H12.32V-5.05H12.35C14.26 -1.22 17.78 0.69 22.12 0.69Z M19.75 -6.8C15.1 -6.8 12.01 -10.61 12.01 -16.5C12.01 -22.37 15.1 -26.2 19.75 -26.2C24.21 -26.2 27.11 -22.68 27.11 -16.5C27.11 -10.33 24.21 -6.8 19.75 -6.8Z M40.02 0H49.22V-32.94H40.02Z M38.74 -41.99a5.87 5.87 0 1 0 11.74 0a5.87 5.87 0 1 0 -11.74 0z M68.26 0.81C76.87 0.81 82.86 -3.49 82.86 -10.08C82.86 -14.91 79.8 -17.78 73.15 -19.09L66.91 -20.31C64.39 -20.84 62.92 -21.93 62.92 -23.61C62.92 -25.58 64.82 -27.11 67.98 -27.11C71.22 -27.11 73.47 -25.14 73.53 -22.49H82.04C81.86 -29.35 76.24 -33.63 67.73 -33.63C59.15 -33.63 53.75 -29.51 53.75 -23.27C53.75 -18.16 57.15 -14.91 63.55 -13.66L69.32 -12.54C72 -12.01 73.59 -10.98 73.59 -9.23C73.59 -7.21 71.5 -5.77 68.1 -5.77C64.51 -5.77 62.39 -7.49 62.05 -10.36H53C53.56 -3.28 59.71 0.81 68.26 0.81Z M101.41 0.75C109.4 0.75 115.76 -3.81 116.98 -10.36H108.59C107.75 -7.8 105.28 -6.15 101.7 -6.15C96.86 -6.15 94.05 -9.3 93.9 -14.16H117.32V-16.63C117.32 -26.67 110.8 -33.69 101.1 -33.69C91.65 -33.69 84.94 -26.48 84.94 -16.44C84.94 -6.43 91.43 0.75 101.41 0.75Z M93.96 -20.03C94.46 -24.14 97.17 -26.7 101.29 -26.7C105.44 -26.7 108.18 -24.14 108.65 -20.03Z M120.5 13.04H126.59C131.7 13.04 134.88 10.57 136.97 5.08L151.48 -32.94H141.93L136.38 -16.66C135.6 -14.32 134.88 -11.92 134.17 -9.55C133.48 -11.92 132.73 -14.29 131.98 -16.66L126.46 -32.94H116.82L129.49 -0.12L128.58 2.28C127.71 4.8 126.87 5.77 124.68 5.77H120.5Z" style="fill:var(--logo-mark)"/><circle cx="44.607" cy="-41.988" r="5.87" style="fill:var(--logo-dot)"/></g></symbol>
 </svg>
 
 <a class="skip" href="#main" data-i18n="skip">Skip to content</a>
 
 <header class="top" id="top">
   <div class="wrap top-in">
-    <a class="logo" href="#top" aria-label="Nivela"><svg viewBox="0 0 146.14 48" aria-hidden="true"><use href="#nivela-logo"/></svg></a>
+    <a class="logo" href="#top" aria-label="Bisey"><svg viewBox="0 0 229.646 94.839" aria-hidden="true"><use href="#bisey-logo"/></svg></a>
     <nav class="menu" id="menu" aria-label="Main" data-i18n-attr="aria-label:nav_label">
       <a href="#features" data-i18n="nav_features">Features</a>
       <a href="#pricing" data-i18n="nav_pricing">Pricing</a>
@@ -59,6 +65,7 @@
       <div class="seg" role="group" aria-label="Language" data-i18n-attr="aria-label:lang_label">
         <button type="button" data-lang="en" aria-pressed="true" lang="en"><span aria-hidden="true">EN</span><span class="sr">English</span></button>
         <button type="button" data-lang="pt" aria-pressed="false" lang="pt-BR"><span aria-hidden="true">PT</span><span class="sr">Português</span></button>
+        <button type="button" data-lang="es" aria-pressed="false" lang="es"><span aria-hidden="true">ES</span><span class="sr">Español</span></button>
       </div>
       <button type="button" class="icon-btn" id="theme-btn" aria-label="Switch to dark mode" data-i18n-attr="aria-label:theme_to_dark">
         <svg class="ic ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z"/></svg>
@@ -78,8 +85,9 @@
   <section class="hero">
     <div class="wrap hero-in">
       <div class="hero-copy">
-        <p class="eyebrow"><svg class="eb-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 39H9V9h30v30" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="square"/><path d="M18 42V18a21 21 0 0 1 21 21v3z" fill="var(--copper)"/></svg><span data-i18n="eyebrow">Built by contractors, for contractors</span></p>
-        <h1 data-i18n="h1">Run every job from one app. <em>In English or Portuguese.</em></h1>
+        <p class="ref-banner" id="ref-banner" role="status" hidden><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4.5" rx="1"/><path d="M5 12.5v8h14v-8M12 8v12.5"/><path d="M12 8C10.6 5 7 4.4 7 6.6 7 8 9.3 8 12 8zm0 0c1.4-3 5-3.6 5-1.4C17 8 14.7 8 12 8z"/></svg><span data-i18n="ref_banner">A contractor referred you: your first paid month is free.</span></p>
+        <p class="eyebrow"><svg class="eb-mark" viewBox="21.25 6.25 63.5 85.5" aria-hidden="true"><path d="M21.25 15A8.75 8.75 0 0 1 38.75 15L38.75 31.627A31.75 31.75 0 1 1 35.246 86.322A8.75 8.75 0 0 1 45.032 71.814A14.25 14.25 0 1 0 38.75 60A8.75 8.75 0 0 1 21.25 60Z" fill="currentColor"/></svg><span data-i18n="eyebrow">Built by contractors, for contractors</span></p>
+        <h1 data-i18n="h1">Run every job from one app. <em>In English, Portuguese or Spanish.</em></h1>
         <p class="lead" data-i18n="lead">Speak your estimate and AI writes the proposal. Snap a receipt and it lands on the right job. Your crew clocks in with a selfie and GPS.</p>
         <div class="cta-row">
           <a href="/app/index.html?signup=1" class="btn btn-primary btn-lg" data-i18n="cta_trial">Start 14-day free trial</a>
@@ -91,7 +99,7 @@
         <p class="fine" data-i18n="hero_fine">No credit card. A demo company is already loaded so you can click around right away.</p>
       </div>
 
-      <div class="stage" aria-label="Nivela on a laptop and a phone" role="img" data-i18n-attr="aria-label:stage_label">
+      <div class="stage" aria-label="Bisey on a laptop and a phone" role="img" data-i18n-attr="aria-label:stage_label">
         <div class="laptop">
           <div class="laptop-screen">
             <img data-shot="dash" src="img/dash-en-light.jpg" width="1920" height="1200" alt="" fetchpriority="high">
@@ -133,13 +141,13 @@
       <div class="sec-head">
         <p class="kicker" data-i18n="feat_kicker">Everything in one place</p>
         <h2 id="features-t" data-i18n="feat_title">Proposals, costs, crew and profit. Finally in the same app.</h2>
-        <p data-i18n="feat_sub">Stop jumping between spreadsheets, text threads and three different apps. Nivela keeps every job level, from the first estimate to the last invoice.</p>
+        <p data-i18n="feat_sub">Stop jumping between spreadsheets, text threads and three different apps. Bisey keeps every job level, from the first estimate to the last invoice.</p>
       </div>
       <ul class="benefits">
         <li class="benefit">
           <span class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5v3M8.5 20.5h7"/></svg></span>
           <h3 data-i18n="b1_t">Talk, don't type</h3>
-          <p data-i18n="b1_p">Describe the job out loud. Nivela builds a proposal with your logo and prices, and your client accepts it online in minutes.</p>
+          <p data-i18n="b1_p">Describe the job out loud. Bisey builds a proposal with your logo and prices, and your client accepts it online in minutes.</p>
         </li>
         <li class="benefit">
           <span class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3.5h12v17l-2.5-1.5-2 1.5-1.5-1.5-1.5 1.5-2-1.5L6 20.5z"/><path d="M9 8h6M9 11.5h3"/><path d="m11.5 15 1.5 1.5 3-3"/></svg></span>
@@ -163,8 +171,8 @@
         </li>
         <li class="benefit">
           <span class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 5.5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H8l-3 2.5v-2.5a2 2 0 0 1-1.5-2z"/><path d="M17 9.5h1.5a2 2 0 0 1 2 2v4a2 2 0 0 1-1.5 2v2.5l-3-2.5h-4.5a2 2 0 0 1-2-2v-1"/></svg></span>
-          <h3 data-i18n="b6_t">Bilingual by design</h3>
-          <p data-i18n="b6_p">Your crew works in Portuguese, your client reads in English. Every screen, proposal and report, in both.</p>
+          <h3 data-i18n="b6_t">Three languages, for real</h3>
+          <p data-i18n="b6_p">Your crew works in Portuguese or Spanish, your client reads in English. Every screen in English, Portuguese and Spanish; proposals and reports in your client&#39;s language.</p>
         </li>
       </ul>
     </div>
@@ -173,10 +181,10 @@
   <!-- FOUNDER NOTE -->
   <section class="founder" aria-labelledby="founder-t">
     <div class="wrap founder-in">
-      <svg class="founder-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M18 39H9V9h30v30" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="square"/><path d="M18 42V18a21 21 0 0 1 21 21v3z" fill="var(--copper)"/></svg>
+      <svg class="founder-mark" viewBox="23.5 6.5 59 83" aria-hidden="true"><path d="M23.5 13A6.5 6.5 0 0 1 36.5 13L36.5 35.546A29.5 29.5 0 1 1 47.877 89.052A6.5 6.5 0 0 1 50.135 76.249A16.5 16.5 0 1 0 36.5 60A6.5 6.5 0 0 1 23.5 60Z" fill="currentColor"/><circle cx="35.381" cy="74.784" r="5.4" fill="var(--brand)"/></svg>
       <div>
         <h2 id="founder-t" data-i18n="founder_t">Made by a contractor, not a software company</h2>
-        <p data-i18n="founder_p">Nivela started as the app a licensed electrician in Massachusetts built to run his own crews and jobs. Every feature here solved a real problem on a real jobsite before it became part of the product.</p>
+        <p data-i18n="founder_p">Bisey started as the app a licensed electrician in Massachusetts built to run his own crews and jobs. Every feature here solved a real problem on a real jobsite before it became part of the product.</p>
       </div>
     </div>
   </section>
@@ -185,7 +193,7 @@
   <section class="sec" aria-labelledby="diff-t">
     <div class="wrap">
       <div class="sec-head">
-        <p class="kicker" data-i18n="diff_kicker">What makes Nivela different</p>
+        <p class="kicker" data-i18n="diff_kicker">What makes Bisey different</p>
         <h2 id="diff-t" data-i18n="diff_title">Less typing. More building.</h2>
       </div>
 
@@ -193,7 +201,7 @@
         <div class="diff-copy">
           <span class="tag" data-i18n="d1_tag">AI proposals by voice</span>
           <h3 data-i18n="d1_t">Say it out loud. Get a proposal.</h3>
-          <p data-i18n="d1_p">Walk the job, tap the mic and describe the work the way you'd explain it to your foreman. Nivela's AI turns it into a proposal with your logo, your prices and your terms.</p>
+          <p data-i18n="d1_p">Walk the job, tap the mic and describe the work the way you'd explain it to your foreman. Bisey's AI turns it into a proposal with your logo, your prices and your terms.</p>
           <ul class="checks">
             <li data-i18n="d1_l1">Follows your company's standard scope and price list</li>
             <li data-i18n="d1_l2">Your client opens a link and accepts online</li>
@@ -259,7 +267,7 @@
         <div class="diff-copy">
           <span class="tag" data-i18n="d3_tag">Selfie + GPS time clock</span>
           <h3 data-i18n="d3_t">Clock in with a selfie. GPS knows the job.</h3>
-          <p data-i18n="d3_p">Your crew taps one big button. Nivela takes a selfie, checks the location and picks the jobsite on its own. No wrong job codes, no guessing who was where.</p>
+          <p data-i18n="d3_p">Your crew taps one big button. Bisey takes a selfie, checks the location and picks the jobsite on its own. No wrong job codes, no guessing who was where.</p>
           <ul class="checks">
             <li data-i18n="d3_l1">Selfie and location saved with every punch</li>
             <li data-i18n="d3_l2">Weekly timesheets by email every Saturday</li>
@@ -293,17 +301,24 @@
   <section class="sec bi" aria-labelledby="bi-t">
     <div class="wrap bi-in">
       <div class="bi-copy">
-        <p class="kicker" data-i18n="bi_kicker">Bilingual for your whole team</p>
-        <h2 id="bi-t" data-i18n="bi_title">Your crew reads Portuguese. Your client reads English. Same job.</h2>
-        <p data-i18n="bi_p">Each person picks their own language. Proposals and reports go out in your client's language, even when you wrote them in Portuguese. No more translating on WhatsApp at 10 PM.</p>
+        <p class="kicker" data-i18n="bi_kicker">In each person&#39;s language</p>
+        <h2 id="bi-t" data-i18n="bi_title">Your crew reads Portuguese or Spanish. Your client reads English. Same job.</h2>
+        <p data-i18n="bi_p">Each person picks their own language. Proposals and reports go out in your client's language, even when you wrote them in Portuguese or Spanish. No more translating on WhatsApp at 10 PM.</p>
         <ul class="checks">
-          <li data-i18n="bi_l1">Every screen in English and Portuguese</li>
+          <li data-i18n="bi_l1">Every screen in English, Portuguese and Spanish</li>
           <li data-i18n="bi_l2">Language set per person, not per company</li>
-          <li data-i18n="bi_l3">Support in English and Portuguese on Pro and Business</li>
+          <li data-i18n="bi_l3">Support in English, Portuguese and Spanish on Pro and Business</li>
         </ul>
       </div>
       <div class="bi-cards" aria-hidden="true">
-        <div class="card bi-card" lang="pt-BR">
+        <div class="card bi-card" lang="es" data-show="es">
+          <span class="bi-who"><span class="flag">ES</span><span data-i18n="bi_crew">Crew phone</span></span>
+          <b>Nota para la cuadrilla</b>
+          <p>Llave en la caja de seguridad de la puerta de atrás. Inspección de rough programada para el jueves.</p>
+          <div class="bi-task"><span class="cb on"></span>Circuitos AFCI de las habitaciones</div>
+          <div class="bi-task"><span class="cb"></span>Detectores de humo / CO</div>
+        </div>
+        <div class="card bi-card" lang="pt-BR" data-show="pt">
           <span class="bi-who"><span class="flag">PT</span><span data-i18n="bi_crew">Crew phone</span></span>
           <b>Recado para a equipe</b>
           <p>Chave na caixa de segredo da porta dos fundos. Inspeção rough marcada para quinta.</p>
@@ -371,7 +386,7 @@
             <li data-i18n="p2_f6">Store sales and cheapest material list</li>
             <li data-i18n="p2_f7">Automatic daily report and client portal</li>
             <li data-i18n="p2_f8">1 manager role</li>
-            <li data-i18n="p2_f9">Email + WhatsApp support in English and Portuguese</li>
+            <li data-i18n="p2_f9">Email + WhatsApp support in English, Portuguese and Spanish</li>
           </ul>
         </article>
 
@@ -386,7 +401,7 @@
             <li data-i18n="p3_f1"><b>6 office + 40 field</b> users</li>
             <li data-i18n="p3_f2"><b>Up to 3 companies</b> in one account</li>
             <li data-i18n="p3_f3">AI: unlimited (fair use)</li>
-            <li data-i18n="p3_f4">Client pages with only your brand, no “Sent with Nivela”</li>
+            <li data-i18n="p3_f4">Client pages with only your brand, no “Sent with Bisey”</li>
             <li data-i18n="p3_f5">Exportable reports</li>
             <li data-i18n="p3_f6">Unlimited managers</li>
             <li data-i18n="p3_f7">Priority support and guided setup</li>
@@ -397,13 +412,30 @@
     </div>
   </section>
 
+  <!-- INDICAÇÃO -->
+  <section class="sec ref-sec" id="refer" aria-labelledby="refer-t">
+    <div class="wrap ref-in">
+      <div class="sec-head">
+        <p class="kicker" data-i18n="ref_kicker">Refer &amp; earn</p>
+        <h2 id="refer-t" data-i18n="ref_title">Give a month, get a month.</h2>
+        <p data-i18n="ref_sub">Already a customer? Share your link from <b>Account → Refer &amp; earn</b>. Your friend's first paid month is free, and you get a free month for every contractor who becomes a customer.</p>
+      </div>
+      <ol class="ref-steps">
+        <li><b data-i18n="ref_s1t">Share your link</b><span data-i18n="ref_s1">WhatsApp, text or email, straight from the app.</span></li>
+        <li><b data-i18n="ref_s2t">They try it free</b><span data-i18n="ref_s2">14 days with no card, then their first paid month is on us.</span></li>
+        <li><b data-i18n="ref_s3t">You get a month free</b><span data-i18n="ref_s3">After their first payment. Every 3rd paid referral adds a bonus month.</span></li>
+      </ol>
+      <p class="plans-note"><a href="termos.html#referral" data-i18n="ref_terms">Program rules</a></p>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="sec faq-sec" id="faq" aria-labelledby="faq-t">
     <div class="wrap faq-in">
       <div class="sec-head">
         <p class="kicker" data-i18n="faq_kicker">Questions</p>
         <h2 id="faq-t" data-i18n="faq_title">Straight answers</h2>
-        <p data-i18n="faq_sub">Still unsure? Open the demo and click around. It's the fastest way to see if Nivela fits your company.</p>
+        <p data-i18n="faq_sub">Still unsure? Open the demo and click around. It's the fastest way to see if Bisey fits your company.</p>
       </div>
       <div class="faq">
         <details>
@@ -419,8 +451,8 @@
           <p data-i18n="a3">Yes. You get 14 days free, no credit card, with a demo company already loaded so you can test proposals, costs and the time clock right away.</p>
         </details>
         <details>
-          <summary data-i18n="q4">My crew speaks Portuguese and my clients speak English. Does that work?</summary>
-          <p data-i18n="a4">That's exactly what Nivela was built for. Each person chooses their language, and proposals and reports go out in the language of the client who receives them.</p>
+          <summary data-i18n="q4">My crew speaks Portuguese or Spanish and my clients speak English. Does that work?</summary>
+          <p data-i18n="a4">That's exactly what Bisey was built for. Each person chooses their language, and proposals and reports go out in the language of the client who receives them.</p>
         </details>
         <details>
           <summary data-i18n="q5">Will my employees see prices and profit?</summary>
@@ -433,6 +465,10 @@
         <details>
           <summary data-i18n="q7">What counts toward the AI limit?</summary>
           <p data-i18n="a7">Each proposal created by voice and each receipt read by AI counts once. If you reach your plan's limit, you can still enter things by hand or move up a plan.</p>
+        </details>
+        <details>
+          <summary data-i18n="q9">Do you have a referral program?</summary>
+          <p data-i18n="a9">Yes. Customers share a personal link: the new contractor gets their first paid month free, and whoever referred them gets a free month after that first payment (plus a bonus month on every 3rd paid referral, up to 12 months a year). Credits have no cash value.</p>
         </details>
         <details>
           <summary data-i18n="q8">What happens when the trial ends?</summary>
@@ -459,20 +495,20 @@
 <footer class="foot">
   <div class="wrap foot-in">
     <div class="foot-brand">
-      <a class="logo" href="#top" aria-label="Nivela"><svg viewBox="0 0 146.14 48" aria-hidden="true"><use href="#nivela-logo"/></svg></a>
+      <a class="logo" href="#top" aria-label="Bisey"><svg viewBox="0 0 229.646 94.839" aria-hidden="true"><use href="#bisey-logo"/></svg></a>
       <p data-i18n="foot_tag">Built by contractors, for contractors.</p>
     </div>
     <nav class="foot-links" aria-label="Footer" data-i18n-attr="aria-label:foot_label">
       <a href="termos.html" data-i18n="foot_terms">Terms</a>
       <a href="privacidade.html" data-i18n="foot_privacy">Privacy</a>
-      <a href="mailto:hello@getnivela.com" data-i18n="foot_contact">Contact</a>
+      <a href="mailto:hello@getbisey.com" data-i18n="foot_contact">Contact</a>
     </nav>
-    <p class="foot-copy">© 2026 Nivela</p>
+    <p class="foot-copy">© 2026 Bisey</p>
   </div>
 </footer>
 
 <script src="site.js"></script>
-<!-- Nivela Assist: chat de ajuda com IA (carrega depois da página; nada é enviado até a pessoa perguntar) -->
+<!-- Bisey Assist: chat de ajuda com IA (carrega depois da página; nada é enviado até a pessoa perguntar) -->
 <script src="/app/support/assist.js" defer data-channel="site"></script>
 </body>
 </html>
