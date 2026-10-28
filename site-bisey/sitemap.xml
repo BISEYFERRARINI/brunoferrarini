@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://getbisey.com/</loc>
+    <lastmod>2026-10-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://getbisey.com/?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://getbisey.com/?lang=pt"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://getbisey.com/?lang=es"/>
+  </url>
+  <url>
+    <loc>https://getbisey.com/materiais.html</loc>
+    <lastmod>2026-10-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://getbisey.com/materiais.html?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://getbisey.com/materiais.html?lang=pt"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://getbisey.com/materiais.html?lang=es"/>
+  </url>
+  <url>
+    <loc>https://getbisey.com/afiliados.html</loc>
+    <lastmod>2026-10-27</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://getbisey.com/afiliados.html?lang=en"/>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://getbisey.com/afiliados.html?lang=pt"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://getbisey.com/afiliados.html?lang=es"/>
+  </url>
+</urlset>

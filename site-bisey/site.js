@@ -10,7 +10,7 @@
     page_title: 'Bisey · App de gestão de obras para empreiteiros, em português, inglês e espanhol',
     page_desc: 'Toda a sua obra em um app. A IA monta a proposta pela sua voz, lê a nota e lança na obra certa, e a equipe bate o ponto com selfie e GPS. Para elétrica, HVAC, plumbing, sprinkler, GC, drywall, pintura, piso, siding, telhado e fundação. 14 dias grátis.',
     skip: 'Pular para o conteúdo',
-    nav_label: 'Principal', nav_features: 'Recursos', nav_pricing: 'Preços', nav_faq: 'Perguntas', nav_signin: 'Entrar',
+    nav_label: 'Principal', nav_features: 'Recursos', nav_pricing: 'Preços', nav_materials: 'Materiais', nav_faq: 'Perguntas', nav_signin: 'Entrar',
     cta_trial: 'Teste grátis por 14 dias', cta_trial_short: 'Teste grátis', cta_trial_short2: 'Começar teste grátis',
     cta_demo: 'Ver a demonstração',
     lang_label: 'Idioma', theme_to_dark: 'Mudar para o modo escuro', theme_to_light: 'Mudar para o modo claro',
@@ -143,14 +143,15 @@
     final_p: 'Comece hoje o teste grátis de 14 dias. Sem cartão, e com uma empresa de demonstração pronta.',
     foot_tag: 'Feito por empreiteiros, para empreiteiros.',
     doc_back: '← Voltar ao início',
-    foot_label: 'Rodapé', foot_terms: 'Termos', foot_privacy: 'Privacidade', foot_contact: 'Contato'
+    foot_label: 'Rodapé', foot_terms: 'Termos', foot_privacy: 'Privacidade', foot_contact: 'Contato',
+    foot_materials: 'Materiais', foot_affiliate: 'Aviso de afiliados'
   };
 
   var ES = {
     page_title: 'Bisey · App de gestión de obras para contratistas, en español, inglés y portugués',
     page_desc: 'Toda tu obra en una app. La IA arma el estimado con tu voz, lee el recibo y lo registra en la obra correcta, y la cuadrilla marca entrada con selfie y GPS. Para electricidad, HVAC, plomería, rociadores, GC, drywall, pintura, pisos, siding, techos y cimientos. 14 días gratis.',
     skip: 'Saltar al contenido',
-    nav_label: 'Principal', nav_features: 'Funciones', nav_pricing: 'Precios', nav_faq: 'Preguntas', nav_signin: 'Entrar',
+    nav_label: 'Principal', nav_features: 'Funciones', nav_pricing: 'Precios', nav_materials: 'Materiales', nav_faq: 'Preguntas', nav_signin: 'Entrar',
     cta_trial: 'Prueba gratis por 14 días', cta_trial_short: 'Prueba gratis', cta_trial_short2: 'Empezar la prueba gratis',
     cta_demo: 'Ver la demostración',
     lang_label: 'Idioma', theme_to_dark: 'Cambiar al modo oscuro', theme_to_light: 'Cambiar al modo claro',
@@ -283,7 +284,8 @@
     final_p: 'Empieza hoy la prueba gratis de 14 días. Sin tarjeta, y con una empresa de demostración lista.',
     foot_tag: 'Hecho por contratistas, para contratistas.',
     doc_back: '← Volver al inicio',
-    foot_label: 'Pie de página', foot_terms: 'Términos', foot_privacy: 'Privacidad', foot_contact: 'Contacto'
+    foot_label: 'Pie de página', foot_terms: 'Términos', foot_privacy: 'Privacidad', foot_contact: 'Contacto',
+    foot_materials: 'Materiales', foot_affiliate: 'Aviso de afiliados'
   };
 
   // ── guarda o inglês que já está no HTML ──
