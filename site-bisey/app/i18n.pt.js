@@ -1304,6 +1304,7 @@ window.NV.addDict("pt", {
   "youLlGetA": ". Você recebe uma cópia.",
   "nEstimates": "1 proposta|{n} propostas",
   "wonOfSent": "{w} de {s} enviadas",
+  "showMore": "Mostrar mais ({n} de {t})",
   "itemDescPh": "Descrição (primeira linha em negrito no PDF)",
   "qtyPh": "Qtd",
   "notIncludedHead": "NÃO INCLUÍDO",

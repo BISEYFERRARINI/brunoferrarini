@@ -12,12 +12,15 @@
   // ═══════════ helpers ═══════════
   function $(s, r) { return (r || document).querySelector(s); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
-  function money(n, dec) { n = Number(n) || 0; var d = dec === undefined ? (Math.abs(n) >= 10000 ? 0 : 2) : dec; return (n < 0 ? "−$" : "$") + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }); }
+  // formatadores criados uma vez (toLocale*String com opções cria um Intl novo a cada chamada: listas com 1.000 linhas travavam o celular)
+  var FMT = {};
+  function nf(d) { return FMT["n" + d] || (FMT["n" + d] = new Intl.NumberFormat("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })); }
+  function money(n, dec) { n = Number(n) || 0; var d = dec === undefined ? (Math.abs(n) >= 10000 ? 0 : 2) : dec; return (n < 0 ? "−$" : "$") + nf(d).format(Math.abs(n)); }
   function hrs(n) { n = Number(n) || 0; return (n >= 100 ? Math.round(n) : n.toFixed(1)).toLocaleString("en-US") + "h"; }
   function pct(a, b) { return b > 0 ? (a / b) * 100 : 0; }
   function fmtPct(p) { return (p >= 10 || p === 0 ? Math.round(p) : p.toFixed(1)) + "%"; }
-  function fmtDate(d) { if (!d) return "—"; var x = new Date(String(d).length === 10 ? d + "T12:00:00" : d); return isNaN(x) ? String(d) : x.toLocaleDateString(LOCALE, { day: "2-digit", month: "2-digit", year: "2-digit" }); }
-  function fmtTime(d) { if (!d) return "—"; var x = new Date(d); return isNaN(x) ? "—" : x.toLocaleTimeString(LOCALE, { hour: "2-digit", minute: "2-digit" }); }
+  function fmtDate(d) { if (!d) return "—"; var x = new Date(String(d).length === 10 ? d + "T12:00:00" : d); return isNaN(x) ? String(d) : (FMT.d || (FMT.d = new Intl.DateTimeFormat(LOCALE, { day: "2-digit", month: "2-digit", year: "2-digit" }))).format(x); }
+  function fmtTime(d) { if (!d) return "—"; var x = new Date(d); return isNaN(x) ? "—" : (FMT.t || (FMT.t = new Intl.DateTimeFormat(LOCALE, { hour: "2-digit", minute: "2-digit" }))).format(x); }
   function todayISO() { var d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function isoLocal(d) { return new Date(d.getTime() - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); }
   function get(obj, path) { return path.split(".").reduce(function (o, k) { return o == null ? undefined : o[k]; }, obj); }
@@ -2031,6 +2034,12 @@
     var box = el.form && el.form.querySelector(".err");
     if (box) { box.textContent = msg; box.hidden = false; box.setAttribute("role", "alert"); } else toast(msg);
   }, true);
+  // teclado na tela (celular/tablet): com um campo de texto em foco, a barra de baixo, a barra de ações fixa e o botão do assistente
+  // saem do caminho (body.kbd-open) — antes elas ficavam por cima do campo que a pessoa estava digitando
+  var COARSE = !!(window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+  function typingField(el) { return !!el && (el.tagName === "TEXTAREA" || el.isContentEditable || (el.tagName === "INPUT" && !/^(checkbox|radio|button|submit|reset|file|range|color|image|hidden)$/i.test(el.type || ""))); }
+  document.addEventListener("focusin", function (ev) { if (COARSE && typingField(ev.target)) document.body.classList.add("kbd-open"); });
+  document.addEventListener("focusout", function () { if (COARSE) setTimeout(function () { if (!typingField(document.activeElement)) document.body.classList.remove("kbd-open"); }, 0); });
   document.addEventListener("input", function (ev) { if (ev.target && ev.target.getAttribute && ev.target.getAttribute("aria-invalid") === "true") ev.target.removeAttribute("aria-invalid"); }, true);
   document.addEventListener("input", function (ev) { var el = ev.target; if (el.id === "cmdkInput") { S.cmdkSel = 0; cmdkUpdate(); return; } if (S.nota && /^nf/.test(el.id)) notaField(el); for (var ii = 0; ii < EXT.input.length; ii++) { if (EXT.input[ii](el, ev)) return; } if (el.dataset.bind && S.draft && el.tagName !== "SELECT") { set(S.draft, el.dataset.bind, el.value); if (/^(scope|teamNotes)$/.test(el.dataset.bind)) { S.draft._moneyOk = false; var w = $("#scopeWarn"); if (w) w.innerHTML = scopeWarnHtml(S.draft); } } });
   document.addEventListener("submit", function (ev) {

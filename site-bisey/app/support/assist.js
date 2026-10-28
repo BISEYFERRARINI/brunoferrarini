@@ -277,9 +277,13 @@
   }
 
   // ═══════════ rede ═══════════
+  // conexão travada (sinal fraco, rede do cliente, função parada) não pode deixar o "digitando…" para sempre: corta em 25 s e cai na ajuda local
+  var POST_TIMEOUT = 25000;
   function post(path, body) {
-    return fetch(O.api + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "omit" })
-      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { j._status = r.status; return j; }); });
+    var ctl = typeof AbortController === "function" ? new AbortController() : null, timer = ctl ? setTimeout(function () { ctl.abort(); }, POST_TIMEOUT) : null;
+    return fetch(O.api + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), credentials: "omit", signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { j._status = r.status; return j; }); })
+      .then(function (j) { clearTimeout(timer); return j; }, function (e) { clearTimeout(timer); throw e; });
   }
   function typing(on) {
     var x = log().querySelector(".nva-typing");

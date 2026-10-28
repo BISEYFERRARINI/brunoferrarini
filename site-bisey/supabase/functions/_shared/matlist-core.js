@@ -54,7 +54,15 @@
   }
 
   // ═══════════ texto e cruzamento de nomes ═══════════
-  function words(s) {
+  // palavras de um nome, com cache: o cruzamento item × "Meus preços" × promoções chama isto milhares de vezes com os mesmos textos
+  var WCACHE = Object.create(null), WCOUNT = 0;
+  function wordsC(s) {
+    var k = String(s || ""), c = WCACHE[k]; if (c) return c;
+    if (++WCOUNT > 20000) { WCACHE = Object.create(null); WCOUNT = 1; }
+    return (WCACHE[k] = splitWords(k));
+  }
+  function words(s) { return wordsC(s).slice(); } // cópia: quem chama de fora pode mexer no array
+  function splitWords(s) {
     var t = String(s || "").toLowerCase();
     try { t = t.normalize("NFD").replace(/[̀-ͯ]/g, ""); } catch (e) { }
     return t.replace(/(\d)\s*(?:"|''|in\b|inch(?:es)?\b)/g, "$1in").replace(/[^a-z0-9/.]+/g, " ").replace(/(^|\s)\.|\.(\s|$)/g, " ")
@@ -64,7 +72,7 @@
   function isSpec(w) { return /\d/.test(w) && !/%$/.test(w); }
   // pontuação 0–1 entre dois nomes; números que não batem ("12/2" × "14/2", "20a" × "15a", 1/2in × 3/4in) zeram
   function matchScore(a, b) {
-    a = typeof a === "string" ? words(a) : a; b = typeof b === "string" ? words(b) : b;
+    a = typeof a === "string" ? wordsC(a) : a; b = typeof b === "string" ? wordsC(b) : b;
     if (!a.length || !b.length) return 0;
     var hits = a.filter(function (w) { return b.indexOf(w) >= 0; }).length;
     var sc = hits / Math.max(3, Math.min(a.length, b.length));
@@ -77,7 +85,7 @@
     return sc;
   }
   function itemNames(it) { var n = [it.name, it.search].concat(it.alt || []); if (it.spec) n.push(it.name + " " + it.spec); return n.filter(Boolean); }
-  function bestScore(it, name) { var b = words(name); return itemNames(it).reduce(function (m, n) { return Math.max(m, matchScore(words(n), b)); }, 0); }
+  function bestScore(it, name) { var b = wordsC(name); return itemNames(it).reduce(function (m, n) { return Math.max(m, matchScore(wordsC(n), b)); }, 0); }
   // material de "Meus preços" que corresponde ao item (mesma regra de antes: ≥ 0.5; um vínculo manual it.materialId vence)
   function matchMaterial(it, materials, min) {
     materials = materials || [];
@@ -248,7 +256,7 @@
     var tw = words(text), seed = hash(p.id || p.number || "bisey"), f = Math.max(0.6, Math.min(3, (Number(p.total) || 12000) / 12000));
     var hit = [], rest = [];
     (cat.items || []).forEach(function (it, i) {
-      var key = words(pick(it.n, "en") + " " + pick(it.n, "pt")).filter(function (w) { return w.length >= 4 && !/\d/.test(w); });
+      var key = wordsC(pick(it.n, "en") + " " + pick(it.n, "pt")).filter(function (w) { return w.length >= 4 && !/\d/.test(w); });
       (key.some(function (w) { return tw.indexOf(w) >= 0; }) ? hit : rest).push(i);
     });
     var n = Math.min((cat.items || []).length, Math.max(10, Math.min(16, hit.length))), pickI = hit.concat(rest).slice(0, n).sort(function (a, b) { return a - b; });

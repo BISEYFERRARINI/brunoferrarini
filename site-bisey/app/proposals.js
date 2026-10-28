@@ -9,7 +9,8 @@
   function set(o, p, v) { var ks = p.split("."), x = o; for (var i = 0; i < ks.length - 1; i++) { if (x[ks[i]] == null) x[ks[i]] = /^\d+$/.test(ks[i + 1]) ? [] : {}; x = x[ks[i]]; } x[ks[ks.length - 1]] = v; }
   function today() { return E.todayISO(); }
   function longDate(iso) { if (!iso) return ""; var d = new Date(iso + "T12:00:00"); return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }); }
-  function money2(n) { return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  var NF2 = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); // criado uma vez (rápido em listas grandes)
+  function money2(n) { return "$" + NF2.format(Number(n) || 0); }
   function g(q) { return "https://www.google.com/search?q=" + encodeURIComponent(q); }
   function lines(t) { return String(t || "").split("\n").map(function (s) { return s.trim(); }).filter(Boolean); }
   function rich(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>"); }
@@ -148,6 +149,7 @@
     var all = S.proposals.filter(function (p) { return p.companyId === S.company; }), tf = S.pTypeFilter || "all";
     var list = all.filter(function (p) { return !isInv(p); });
     var shown = all.filter(function (p) { return tf === "all" || (tf === "invoice") === isInv(p); });
+    var lim = S.pShow || 100; // listas grandes: 100 linhas por vez (1.000 de uma vez travavam o celular por quase 1 s)
     var sum = function (st) { return list.filter(function (p) { return p.status === st; }).reduce(function (a, p) { return a + (p.total || 0); }, 0); };
     var sent = list.filter(function (p) { return p.status === "Enviada" || p.status === "Aceita" || p.status === "Recusada"; }).length, won = list.filter(function (p) { return p.status === "Aceita"; }).length;
     return t("proposals.estimates", '<div class="page-head"><div><h1>Propostas</h1><p>') + esc(E.companyName(S.company)) + " · " + esc(E.tn("proposals.nEstimates", list.length, "1 proposta", "{n} propostas")) + " · " + esc(E.tn("proposals.nInvoices", all.length - list.length, "1 invoice", "{n} invoices")) + '</p></div><div class="row"><button class="btn ghost" data-act="pNew" data-id="invoice">' + E.ic("plus") + 'Invoice</button><button class="btn" data-act="pNew" data-id="estimate">' + E.ic("mic") + t("proposals.newEstimate", 'Nova proposta</button></div></div>') +
@@ -158,9 +160,10 @@
       kpi(t("proposals.closeRate", "Taxa de fechamento"), (sent ? Math.round(won / sent * 100) : 0) + "%", t("proposals.wonOfSent", "{w} de {s} enviadas", { w: won, s: sent })) + "</div>" +
       '<div class="chips" style="margin-bottom:10px">' + [["all", t("proposals.all", "Todas")], ["estimate", t("proposals.chipEstimates", "Propostas")], ["invoice", "Invoices"]].map(function (x) { return '<button type="button" class="chip' + (tf === x[0] ? " on" : "") + '" data-act="pTypeFilter" data-id="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
       (shown.length ? t("proposals.noCustomerJobDate", '<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Cliente</th><th>Obra</th><th>Data</th><th>Status</th><th class="n">Valor</th></tr></thead><tbody>') +
-        shown.map(function (p) {
+        shown.slice(0, lim).map(function (p) {
           return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + '</b><div class="small muted">' + (isInv(p) ? "Invoice" : esc(t("proposals.rowEstimate", "Proposta"))) + "</div></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + (E.matList ? E.matList.rowBadge(p) : "") + (p.statusByName || p.createdByName ? '<div class="by">' + E.byLine("{n}", p.statusByName || p.createdByName, p.statusAt || p.createdAt) + "</div>" : "") + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
-        }).join("") + "</tbody></table></div>"
+        }).join("") + "</tbody></table></div>" +
+        (shown.length > lim ? '<div class="row" style="justify-content:center;margin-top:12px"><button type="button" class="btn ghost" data-act="pMore">' + esc(t("proposals.showMore", "Mostrar mais ({n} de {t})", { n: lim, t: shown.length })) + "</button></div>" : "")
         : E.emptyState({ icon: "doc", title: t("proposals.noEstimatesYet", "Nenhuma proposta ainda"), text: t("proposals.tapNewEstimateDescribe", "Toque em “Nova proposta”, fale o serviço e a proposta sai pronta."), cta: { act: "pNew", id: "estimate", label: t("proposals.newEstimate2", "Nova proposta"), icon: "mic", primary: true } }));
   };
   // rascunho não salvo guardado no aparelho (ex.: app fechado no meio da proposta)
@@ -689,7 +692,8 @@
   }
   AC.pMic = function () { if (S.pRec) micStop(); else micStart(); };
   AC.pAdv = function () { S.pAdv = !S.pAdv; E.render(); };
-  AC.pTypeFilter = function (el) { S.pTypeFilter = el.dataset.id; E.render(); };
+  AC.pTypeFilter = function (el) { S.pTypeFilter = el.dataset.id; S.pShow = 0; E.render(); };
+  AC.pMore = function () { S.pShow = (S.pShow || 100) + 200; E.render(); };
   AC.pType = function (el) {
     var p = S.pdraft, t = el.dataset.id; if ((p.docType || "estimate") === t) return;
     p.docType = t; p.title = t === "invoice" ? "INVOICE" : coFor(p.companyId, p).title;
@@ -935,7 +939,7 @@
     }
     call({ action: "publicGet", token: token }).then(function (r) {
       if (r && r.ok) return show(r.proposal);
-      app.innerHTML = '<div class="login"><div class="login-card"><div class="brand-name">Online proposal</div><p>' + (r && r.error === "NOT_FOUND" ? "This link is no longer valid." : "We could not load this document right now. Please try again in a moment.") + "</p></div></div>";
+      app.innerHTML = '<main class="pub-msg"><div class="panel"><h1>Online proposal</h1><p>' + (r && r.error === "NOT_FOUND" ? "This link is no longer valid." : "We could not load this document right now. Please try again in a moment.") + "</p></div></main>"; // .login-card não existe mais desde o novo visual da tela de entrar
     });
   })();
 })();

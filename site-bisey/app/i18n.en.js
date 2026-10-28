@@ -1305,6 +1305,7 @@ window.NV.addDict("en", {
   "estimateWord": "estimate",
   "nEstimates": "1 estimate|{n} estimates",
   "wonOfSent": "{w} of {s} sent",
+  "showMore": "Show more ({n} of {t})",
   "itemDescPh": "Description (first line in bold on the PDF)",
   "qtyPh": "Qty",
   "notIncludedHead": "NOT INCLUDED",

@@ -548,7 +548,7 @@ div.empty, .panel.empty { padding: var(--s-8) var(--s-4); text-align: center; co
 .ml-head { display: flex; gap: var(--s-3); align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
 .ml-head h3 { margin: 0 0 2px; }
 .ml-head .row { flex-wrap: wrap; }
-.ml-dd .dd-menu { right: 0; left: auto; }
+.ml-dd .dd-menu { left: 0; right: auto; max-width: calc(100vw - 32px); } /* o botão fica à esquerda do painel: abrir para a direita (antes saía da tela no celular) */
 .ml-dd > summary { cursor: pointer; }
 .ml-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .ml-kpi { box-shadow: none; padding: var(--s-3) var(--s-4); }
@@ -1181,3 +1181,23 @@ td .by, .file .by, .notice .by { margin-top: 3px; }
   .tk-add-row .btn { width: 100%; }
   .tk-sources .btn { margin-left: 0; }
 }
+
+/* teclado na tela aberto (app.js → body.kbd-open, só em toque): nada fixo por cima do campo em foco */
+body.kbd-open .bottom-nav, body.kbd-open .nva-launch, body.kbd-open .asst-fab { display: none; }
+body.kbd-open .sticky-actions, body.kbd-open .wiz-foot { position: static; }
+
+/* toque (celular, tablet — inclusive o iPad deitado, que usa o layout de computador): alvos de no mínimo 40–44 px */
+@media (pointer: coarse) {
+  .btn.sm, .chip, .steps button, .sched-add { min-height: 40px; }
+  .chip { min-width: 40px; justify-content: center; }
+  .nav button { min-height: var(--tap); }
+  .icon-btn.nav-ib { width: 40px; height: 40px; }
+  .lang-sw button { height: 36px; min-width: 40px; }
+  .p-meta a { min-height: 40px; }
+  details > summary.small { padding: 10px 0; }
+}
+
+/* página do cliente: link inválido ou serviço fora do ar */
+.pub-msg { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; padding: var(--s-6) var(--s-4); }
+.pub-msg .panel { max-width: 440px; width: 100%; }
+.pub-msg h1 { font-size: var(--t-xl, 22px); margin: 0 0 var(--s-2); }
