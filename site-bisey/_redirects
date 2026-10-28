@@ -1,5 +1,3 @@
-https://getnivela.com/*      https://getbisey.com/:splat  301!
-https://www.getnivela.com/*  https://getbisey.com/:splat  301!
 https://www.getbisey.com/*   https://getbisey.com/:splat  301!
 /site/*          /:splat      301
 /netlify/*       /404.html    404!
