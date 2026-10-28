@@ -2156,7 +2156,7 @@
   window.EE.NAV.manager = groupsFor("manager");
 
   // boot (o link da proposta para o cliente é tratado em proposals.js)
-  if (/[?&]proposta=/.test(location.search)) return;
+  if (/[?&](proposta|cv)=/.test(location.search)) return; // ?cv=… = página só com o vídeo da empresa (client-video.js)
   $("#app").innerHTML = '<div class="boot" aria-busy="true"><img src="brand/bisey-loading.svg" class="boot-mark" alt="' + PRODUCT + '" width="72" height="95"></div>';
   // marca da empresa vinda do config (opcional): APP_CONFIG.BRAND = { name, logo, accent }
   if (window.APP_CONFIG && window.APP_CONFIG.BRAND) applyBrand(window.APP_CONFIG.BRAND);

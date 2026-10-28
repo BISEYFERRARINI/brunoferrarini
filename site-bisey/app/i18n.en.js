@@ -1483,6 +1483,7 @@ window.NV.addDict("en", {
  "set": {
   "co.hicReg": "HIC registration (MA) — no.",
   "tab.company": "Company",
+  "tab.video": "Video",
   "tab.look": "Appearance",
   "tab.notif": "Notifications",
   "tab.plan": "Plan and billing",
@@ -2125,7 +2126,6 @@ window.NV.addDict("en", {
   "emptyText": "When someone checks off a task, posts a notice, logs a receipt or uploads a file on this job, it shows up here with their name and the time.",
   "invoice": "invoice"
  },
- "matlist": {
  "ptk": {
   "srcProposal": "from the proposal",
   "srcSheet": "from the job sheet",
@@ -2222,6 +2222,7 @@ window.NV.addDict("en", {
   "helpTitle": "Suggestions: missing something you do?",
   "seeList": "See what's been added"
  },
+ "matlist": {
   "readySavings": "Material list ready — estimated savings {v}",
   "ready": "Material list ready.",
   "bannerSub": "Estimate {n} accepted · {c}",
@@ -2568,5 +2569,37 @@ window.NV.addDict("en", {
   "hereText": "This is where it lives in the menu. You're already on this screen.",
   "fab": "Assistant",
   "fabAria": "Open the assistant: get help with this screen"
+ },
+ "cv": {
+  "yourTrades": "Your trades",
+  "otherTrades": "Other trades",
+  "play": "Play",
+  "pause": "Pause",
+  "full": "Full screen",
+  "seek": "Video position",
+  "title": "Company video",
+  "sub": "A video of about a minute and a half that shows your customer how your company works, step by step, from the moment they accept the estimate. The script comes from your trade; only the logo, name and contact change.",
+  "preview": "Video preview",
+  "noLogo": "Without a logo, the video uses your company's initials. Upload your logo in the Company tab.",
+  "trade": "Trade (script)",
+  "lang": "Customer's language",
+  "phone": "Phone at the end of the video",
+  "site": "Website (optional)",
+  "download": "Download video",
+  "copy": "Copy link",
+  "how": "Recording takes as long as the video (about a minute and a half). Keep this screen open. Format in this browser: {f}.",
+  "noRec": "This browser can't record video. Use an up-to-date Chrome, Edge or Safari — the link and the proposal page work in any browser.",
+  "linkNote": "The link opens the video full screen, nothing to download.",
+  "demoLogo": "In demo mode the logo stays on this device only: the link shows the initials.",
+  "dashNote": "The dashboard scene uses sample numbers and shows the “Example · illustrative numbers” label.",
+  "recording": "Recording the video…",
+  "cancel": "Cancel",
+  "ready": "Video ready ({f}, {s} MB).",
+  "saveAgain": "Save again",
+  "share": "Share",
+  "done": "Video downloaded.",
+  "fail": "Couldn't record the video on this device.",
+  "include": "Include company video",
+  "includeSub": "The email gets a “Watch how we work” button and the proposal page shows the video."
  }
 });

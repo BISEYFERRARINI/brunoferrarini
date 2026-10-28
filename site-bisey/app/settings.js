@@ -14,7 +14,7 @@
     { id: "pro", name: "Pro", price: 99, best: true, users: t("plan.pro.u", "3 escritório + 15 campo"), feats: [t("plan.pro.all", "Tudo do Starter, obras ilimitadas"), t("plan.pro.ai", "IA: 100 propostas por voz e 300 notas/mês"), t("plan.pro.sched", "Escala, financeiro completo e alertas"), t("plan.pro.mgr", "1 gerente, relatório diário ao cliente")] },
     { id: "business", name: "Business", price: 199, users: t("plan.biz.u", "6 escritório + 40 campo"), feats: [t("plan.biz.all", "Tudo do Pro, até 3 empresas na conta"), t("plan.biz.ai", "IA com uso justo ilimitado"), t("plan.biz.mgr", "Gerentes ilimitados, relatórios exportáveis"), t("plan.biz.brand", "Página de aceite só com a sua marca")] }
   ];
-  var TABS = [["empresa", t("set.tab.company", "Empresa"), "home"], ["aparencia", t("set.tab.look", "Aparência"), "sun"], ["notificacoes", t("set.tab.notif", "Notificações"), "bell"], ["plano", t("set.tab.plan", "Plano e cobrança"), "card"], ["dados", t("set.tab.data", "Dados"), "download"], ["sobre", t("set.tab.about", "Sobre"), "info"]];
+  var TABS = [["empresa", t("set.tab.company", "Empresa"), "home"], ["aparencia", t("set.tab.look", "Aparência"), "sun"], ["notificacoes", t("set.tab.notif", "Notificações"), "bell"], ["plano", t("set.tab.plan", "Plano e cobrança"), "card"], ["dados", t("set.tab.data", "Dados"), "download"], ["video", t("set.tab.video", "Vídeo"), "play"], ["sobre", t("set.tab.about", "Sobre"), "info"]];
 
   function company() { return API.companies.find(function (c) { return c.id === S.company; }) || API.companies[0] || {}; }
   function draft() {
@@ -122,7 +122,7 @@
   }
 
   EXT.views.settings = function () {
-    var tab = S.setTab || "empresa", body = { empresa: empresaTab, aparencia: aparenciaTab, notificacoes: notifTab, plano: planoTab, dados: dadosTab, sobre: sobreTab }[tab] || empresaTab;
+    var tab = S.setTab || "empresa", body = { empresa: empresaTab, aparencia: aparenciaTab, notificacoes: notifTab, plano: planoTab, dados: dadosTab, sobre: sobreTab, video: E.cvSettingsTab || empresaTab }[tab] || empresaTab; // video: client-video-app.js
     return '<div class="page-head"><div><h1>' + esc(t("set.title", "Configurações")) + "</h1><p>" + esc(t("set.sub", "Empresa, aparência, notificações, plano e dados")) + "</p></div></div>" +
       '<nav class="tabs set-tabs" role="tablist" aria-label="' + esc(t("set.title", "Configurações")) + '">' + TABS.map(function (x) { return '<button type="button" role="tab" aria-selected="' + (tab === x[0]) + '" class="' + (tab === x[0] ? "on" : "") + '" data-act="setTab" data-id="' + x[0] + '">' + esc(x[1]) + "</button>"; }).join("") + "</nav>" +
       '<div role="tabpanel" class="set-body">' + body() + "</div>";

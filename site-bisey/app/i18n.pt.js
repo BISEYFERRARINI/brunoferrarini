@@ -1483,6 +1483,7 @@ window.NV.addDict("pt", {
  "set": {
   "co.hicReg": "Registro HIC (MA) — nº",
   "tab.company": "Empresa",
+  "tab.video": "Vídeo",
   "tab.look": "Aparência",
   "tab.notif": "Notificações",
   "tab.plan": "Plano e cobrança",
@@ -1869,7 +1870,6 @@ window.NV.addDict("pt", {
   "emptyText": "Quando alguém marcar uma tarefa, mandar um aviso, lançar uma nota ou enviar um arquivo nesta obra, aparece aqui com o nome e a hora.",
   "invoice": "o invoice"
  },
- "matlist": {
  "ptk": {
   "srcProposal": "da proposta",
   "srcSheet": "da ficha",
@@ -1966,6 +1966,7 @@ window.NV.addDict("pt", {
   "helpTitle": "Sugestões: falta alguma coisa que você faz?",
   "seeList": "Ver o que já entrou"
  },
+ "matlist": {
   "readySavings": "Lista de material pronta — economia estimada {v}",
   "ready": "Lista de material pronta.",
   "bannerSub": "Proposta {n} aceita · {c}",
@@ -2321,5 +2322,37 @@ window.NV.addDict("pt", {
  },
  "lang": {
   "label": "Idioma"
+ },
+ "cv": {
+  "yourTrades": "Seus ramos",
+  "otherTrades": "Outros ramos",
+  "play": "Tocar",
+  "pause": "Pausar",
+  "full": "Tela cheia",
+  "seek": "Posição do vídeo",
+  "title": "Vídeo da empresa",
+  "sub": "Um vídeo de cerca de 1 minuto e meio que mostra ao cliente como a sua empresa trabalha, etapa por etapa, desde o aceite da proposta. O roteiro é o do ramo; só o logo, o nome e o contato mudam.",
+  "preview": "Prévia do vídeo",
+  "noLogo": "Sem logo, o vídeo usa as iniciais da empresa. Envie o logo na aba Empresa.",
+  "trade": "Ramo (roteiro)",
+  "lang": "Idioma do cliente",
+  "phone": "Telefone no fim do vídeo",
+  "site": "Site (opcional)",
+  "download": "Baixar vídeo",
+  "copy": "Copiar link",
+  "how": "A gravação leva o tempo do vídeo (cerca de 1 min e meio). Deixe esta tela aberta. Formato neste navegador: {f}.",
+  "noRec": "Este navegador não grava vídeo. Use o Chrome, o Edge ou o Safari atualizados — o link e a página da proposta funcionam em qualquer navegador.",
+  "linkNote": "O link abre o vídeo em tela cheia, sem baixar nada.",
+  "demoLogo": "No modo demonstração o logo fica só neste aparelho: o link mostra as iniciais.",
+  "dashNote": "A cena do painel usa números de exemplo e mostra o selo “Exemplo · números ilustrativos”.",
+  "recording": "Gravando o vídeo…",
+  "cancel": "Cancelar",
+  "ready": "Vídeo pronto ({f}, {s} MB).",
+  "saveAgain": "Salvar de novo",
+  "share": "Compartilhar",
+  "done": "Vídeo baixado.",
+  "fail": "Não deu para gravar o vídeo neste aparelho.",
+  "include": "Incluir vídeo da empresa",
+  "includeSub": "O e-mail ganha o botão “Veja como trabalhamos” e a página da proposta mostra o vídeo."
  }
 });

@@ -672,11 +672,11 @@
     var p = S.pdraft, to = String((p.client && p.client.email) || "").trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(to)) { E.toast(t("proposals.addTheCustomerS", "Coloque o e-mail do cliente primeiro.")); var f = document.querySelector('[data-pbind="client.email"]'); if (f) f.focus(); return; }
     if (!built(p) || !p.total) { E.toast(t("proposals.buildTheEstimateAnd", "Monte a proposta e confira o valor antes de enviar.")); return; }
-    S.modal = { type: "confirm", title: t("proposals.sendToCustomer", "Enviar para o cliente"), text: t("proposals.send", "Enviar ") + (isInv(p) ? t("proposals.theInvoice2", "o invoice ") : t("proposals.theEstimate2", "a proposta ")) + (p.number || "") + " (" + money2(p.total) + t("proposals.to", ") para ") + to + t("proposals.theCustomerGetsAn", "? O cliente recebe um e-mail com o link para ver") + (isInv(p) ? "" : t("proposals.downloadThePdfAnd", ", baixar o PDF e aceitar")) + t("proposals.youLlGetA", ". Você recebe uma cópia.") + (API.mode === "demo" ? " " + t("proposals.demoSendNote", "No modo demonstração nada é enviado: a proposta é salva, mas o e-mail não sai (na conta real, sai na hora).") : ""), act: "pSendOk", id: "x", okLabel: t("proposals.send2", "Enviar") };
+    S.modal = { type: E.cv ? "cvSend" : "confirm", title: t("proposals.sendToCustomer", "Enviar para o cliente"), text: t("proposals.send", "Enviar ") + (isInv(p) ? t("proposals.theInvoice2", "o invoice ") : t("proposals.theEstimate2", "a proposta ")) + (p.number || "") + " (" + money2(p.total) + t("proposals.to", ") para ") + to + t("proposals.theCustomerGetsAn", "? O cliente recebe um e-mail com o link para ver") + (isInv(p) ? "" : t("proposals.downloadThePdfAnd", ", baixar o PDF e aceitar")) + t("proposals.youLlGetA", ". Você recebe uma cópia.") + (API.mode === "demo" ? " " + t("proposals.demoSendNote", "No modo demonstração nada é enviado: a proposta é salva, mas o e-mail não sai (na conta real, sai na hora).") : ""), act: "pSendOk", id: "x", okLabel: t("proposals.send2", "Enviar") };
     E.render();
   };
   AC.pSendOk = function () {
-    var p = S.pdraft; S.modal = null; p.total = totalOf(p); E.render(); E.toast(t("proposals.sending", "Enviando…"));
+    var p = S.pdraft; if (E.cv) E.cv.applySend(p); S.modal = null; p.total = totalOf(p); E.render(); E.toast(t("proposals.sending", "Enviando…")); // applySend: p.video (vídeo da empresa)
     API.saveProposal(p).then(function (saved) { p.id = saved.id; if (S.pdraft === p) markClean(); return API.services("sendProposal", { id: saved.id }); })
       .then(function (r) {
         if (r && r.ok) { p.sentTo = r.sent; p.sentAt = new Date().toISOString(); if (p.status === "Rascunho") p.status = "Enviada"; if (S.pdraft === p) markClean(); return reloadExt().then(function () { E.toast(t("proposals.sentTo2", "Enviado para ") + r.sent + "."); }); }
@@ -910,6 +910,7 @@
       if (!root) { root = document.createElement("div"); root.id = "print-root"; document.body.insertBefore(root, after); }
       root.className = "pub"; root.innerHTML = buildDoc(p);
       document.getElementById("pubPdf").onclick = function () { printDoc(p); setTimeout(function () { root.className = "pub"; document.body.style.background = bg; }, 2000); };
+      if (window.BiseyVideo && !inv) window.BiseyVideo.publicSection(p, c, after); // "Watch how we work" (p.video.on — client-video.js)
       if (inv) { after.innerHTML = ""; return; }
       if (p.acceptedAt || p.status === "Aceita") {
         after.innerHTML = '<div class="pub-accept" style="border-color:#2E7D4F"><b style="font-size:18px;color:#2E7D4F">✓ Proposal accepted</b><div>Accepted by <b>' + esc(p.acceptedBy || "") + "</b>" + (p.acceptedAt ? " on " + esc(longDate(String(p.acceptedAt).slice(0, 10))) : "") + ". Thank you! We will contact you shortly to schedule the work.</div></div>";

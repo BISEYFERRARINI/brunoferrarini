@@ -1487,6 +1487,7 @@ window.NV.addDict("es", {
  "set": {
   "co.hicReg": "Registro HIC (MA) — n.º",
   "tab.company": "Empresa",
+  "tab.video": "Video",
   "tab.look": "Apariencia",
   "tab.notif": "Notificaciones",
   "tab.plan": "Plan y cobro",
@@ -2130,7 +2131,6 @@ window.NV.addDict("es", {
   "emptyText": "Cuando alguien marque una tarea, mande un aviso, registre un recibo o suba un archivo en esta obra, aparece aquí con su nombre y la hora.",
   "invoice": "la factura"
  },
- "matlist": {
  "ptk": {
   "srcProposal": "del estimado",
   "srcSheet": "de la ficha",
@@ -2227,6 +2227,7 @@ window.NV.addDict("es", {
   "helpTitle": "Sugerencias: ¿falta algo que haces?",
   "seeList": "Ver lo que ya entró"
  },
+ "matlist": {
   "readySavings": "Lista de material lista — ahorro estimado {v}",
   "ready": "Lista de material lista.",
   "bannerSub": "Estimado {n} aceptado · {c}",
@@ -2573,5 +2574,37 @@ window.NV.addDict("es", {
   "hereText": "Este es el camino en el menú. Ya estás en esta pantalla.",
   "fab": "Asistente",
   "fabAria": "Abrir el asistente: ayuda con esta pantalla"
+ },
+ "cv": {
+  "yourTrades": "Tus oficios",
+  "otherTrades": "Otros oficios",
+  "play": "Reproducir",
+  "pause": "Pausar",
+  "full": "Pantalla completa",
+  "seek": "Posición del video",
+  "title": "Video de la empresa",
+  "sub": "Un video de alrededor de un minuto y medio que le muestra a tu cliente cómo trabaja tu empresa, paso a paso, desde que acepta el estimado. El guion es el de tu oficio; solo cambian el logo, el nombre y el contacto.",
+  "preview": "Vista previa del video",
+  "noLogo": "Sin logo, el video usa las iniciales de la empresa. Sube el logo en la pestaña Empresa.",
+  "trade": "Oficio (guion)",
+  "lang": "Idioma del cliente",
+  "phone": "Teléfono al final del video",
+  "site": "Sitio web (opcional)",
+  "download": "Descargar video",
+  "copy": "Copiar enlace",
+  "how": "La grabación dura lo mismo que el video (alrededor de un minuto y medio). Deja esta pantalla abierta. Formato en este navegador: {f}.",
+  "noRec": "Este navegador no graba video. Usa Chrome, Edge o Safari actualizados — el enlace y la página de la propuesta funcionan en cualquier navegador.",
+  "linkNote": "El enlace abre el video en pantalla completa, sin descargar nada.",
+  "demoLogo": "En modo demostración el logo se queda solo en este dispositivo: el enlace muestra las iniciales.",
+  "dashNote": "La escena del panel usa números de ejemplo y muestra la etiqueta “Ejemplo · números ilustrativos”.",
+  "recording": "Grabando el video…",
+  "cancel": "Cancelar",
+  "ready": "Video listo ({f}, {s} MB).",
+  "saveAgain": "Guardar de nuevo",
+  "share": "Compartir",
+  "done": "Video descargado.",
+  "fail": "No se pudo grabar el video en este dispositivo.",
+  "include": "Incluir video de la empresa",
+  "includeSub": "El correo lleva el botón “Mira cómo trabajamos” y la página de la propuesta muestra el video."
  }
 });
