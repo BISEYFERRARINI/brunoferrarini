@@ -908,6 +908,7 @@
       var inv = p.docType === "invoice", c = coFor(p.companyId, p), bg = c.custom ? "#EEF1F0" : "#EFE8DC";
       document.title = ((inv ? "Invoice " : "Proposal ") + (p.number || "")).trim() + (c.brand ? " · " + c.brand : "");
       document.body.style.background = bg;
+      app.style.minHeight = "0"; // #app tem min-height:100% (styles.css); aqui ele só segura a barra do topo — sem isto a proposta começava abaixo da dobra
       app.innerHTML = '<div class="pub-bar"><div>' + (c.logoSm ? '<img src="' + esc(c.logoSm) + '" alt="' + esc(c.brand || "") + '" style="height:34px;max-width:180px;object-fit:contain;display:block;margin-bottom:2px">' : "") + '<b style="font-size:17px">' + esc(c.brand || (inv ? "Invoice" : "Proposal")) + '</b><div class="small" style="color:#7a6a55">' + (inv ? "Invoice " : "Proposal ") + esc(p.number || "") + "</div></div>" +
         '<button class="btn" id="pubPdf" type="button">Download PDF</button></div>';
       var root = document.getElementById("print-root");
