@@ -150,7 +150,7 @@
       workType: (spec.workType || []).map(val), fields: fields,
       text: (spec.text || []).map(function (x) { var o = { key: x.key, label: withUnit(txt(x.label), x.unit) }; if (x.unit) o.unit = x.unit; if (x.type) o.type = x.type; return o; }),
       units: (spec.units || []).map(function (u) { return { id: u.id, label: units[u.id] }; }),
-      tasks: tasks, suggest: spec.suggest || { rules: [] },
+      tasks: tasks, suggest: spec.suggest || { rules: [] }, taskMatch: spec.taskMatch || [], // taskMatch: proposta → tarefas (tasks-core.js)
       // opções por empresa (Configurações → Empresa), ex.: "Não fazemos gás" no HVAC e no plumbing
       companyFlags: (spec.companyFlags || []).map(function (f) { return { key: f.key, label: txt(f.label), desc: txt(f.desc), aiRule: f.aiRule || "" }; }),
       inspections: (spec.inspections || []).map(function (x) { return { label: val(x.label), authority: txt(x.authority), when: txt(x.when) }; }),
@@ -588,6 +588,40 @@
         ],
         "Inspeções": ["Inspeção de serviço","Inspeção rough","Inspeção final","Inspeção de fire alarm"]
       },
+      // proposta → tarefas (tasks-core.js): linha do escopo/itens (sem acento, minúsculas) → [grupo, tarefa]. ctx = título da seção + linha; not = não casa
+      taskMatch: [
+        { t: ["Serviço", "Upgrade / instalação de serviço"], re: "(service|servico|servicio)\\b.{0,30}(upgrade|entrance|change)|upgrade.{0,40}\\b(service|servico|servicio)\\b|new \\d{2,3} ?a(mp)? service|novo servico|servicio nuevo" },
+        { t: ["Serviço", "Troca de painel"], re: "(?<!sub[- ]?)(panel|painel|load ?center|tablero)|main breaker", not: "label|identif|directory|schedule|rotul|at the panel|no painel|sub[- ]?panel|subpainel|subtablero|fire alarm|facp" },
+        { t: ["Serviço", "Meter socket"], re: "meter (socket|base|pan)|medidor" },
+        { t: ["Serviço", "Aterramento (ground rods / bonding)"], re: "ground(ing)? (rod|electrode)|bonding|aterramento|puesta a tierra|varilla" },
+        { t: ["Serviço", "Coordenação com a concessionária"], re: "utility|eversource|national grid|unitil|concessionaria|compania electrica", not: "utility (room|sink|closet)" },
+        { t: ["Serviço", "Subpainel"], re: "sub[- ]?panel|subpainel|subtablero" },
+        { t: ["Rough-in", "Rough-in elétrico"], re: "rough[- ]?in (wiring|electrical)|complete rough|rough wiring|fiacao|cableado completo" },
+        { t: ["Rough-in", "Circuitos dedicados da cozinha"], re: "dedicated|small[- ]appliance|countertop|dedicad", ctx: "kitchen|cozinha|cocina|refrigerator|dishwasher|disposal|microwave" },
+        { t: ["Rough-in", "Circuito do banheiro (GFCI)"], re: "gfci|dedicated|circuit|dedicad|circuito", ctx: "bath|banheiro|bano" },
+        { t: ["Rough-in", "Circuitos AFCI dos quartos"], re: "afci", ctx: "bedroom|quarto|dormitorio|habitacion", not: "dual function breakers for all" },
+        { t: ["Rough-in", "Detectores de fumaça / CO"], re: "smoke|carbon monoxide|\\bco detector|fumaca|\\bhumo\\b" },
+        { t: ["Rough-in", "Iluminação recessed"], re: "recessed|wafer|downlight|pot ?lights?|can lights?|embutid|empotrad" },
+        { t: ["Rough-in", "Ventilador de teto"], re: "ceiling fan|ventilador de teto|ventilador de techo" },
+        { t: ["Rough-in", "Exaustor de banheiro"], re: "exhaust fan|bath fan|exaustor|extractor" },
+        { t: ["Rough-in", "Circuito da condensadora (HVAC)"], re: "condens|heat pump|mini[- ]?split|\\bhvac\\b|air handler|a/c unit|\\bac unit" },
+        { t: ["Rough-in", "Circuito 240V (secadora / fogão)"], re: "240 ?v|dryer|\\brange\\b|stove|\\boven\\b|cooktop|secadora|fogao|estufa", not: "range hood|hood" },
+        { t: ["Rough-in", "Carregador EV"], re: "\\bev\\b|electric vehicle|ev charger|level 2 charg|carregador|cargador" },
+        { t: ["Rough-in", "Gerador / transfer switch"], re: "generator|transfer switch|interlock|gerador|generador" },
+        { t: ["Rough-in", "Low voltage (dados / TV)"], re: "low[- ]?voltage|\\bdata\\b|cat ?[56]|coax|\\btv\\b|network|baixa tensao|bajo voltaje" },
+        { t: ["Rough-in", "Fire alarm — rough"], re: "fire alarm|alarme de incendio|alarma contra incendio|\\bfacp\\b|pull station|horn|strobe" },
+        { t: ["Acabamento", "Fire alarm — dispositivos e teste"], re: "fire alarm|alarme de incendio|alarma contra incendio", ctx: "device|test|dispositiv|teste|prueba|acceptance" },
+        { t: ["Acabamento", "Instalar tomadas e interruptores"], re: "receptacle|outlet|switch|dimmer|tomada|interruptor|enchufe|tomacorriente", not: "transfer switch|replace|swap|trocar|substituir|reemplazar|cambiar" },
+        { t: ["Acabamento", "Trocar tomadas"], re: "(replace|swap|trocar|substituir|reemplazar|cambiar).{0,50}(receptacle|outlet|device|tomada|enchufe|tomacorriente)" },
+        { t: ["Acabamento", "Trocar interruptores"], re: "(replace|swap|trocar|substituir|reemplazar|cambiar).{0,60}(switch|interruptor)" },
+        { t: ["Acabamento", "Instalar luminárias"], re: "light fixture|fixtures|luminaria|vanity light|pendant|sconce|chandelier|lampara", not: "plumbing fixture|remove|remover|retirar|quitar" },
+        { t: ["Acabamento", "Tampas e placas"], re: "cover ?plates?|wall ?plates?|device plates?|tampas|placas|tapas" },
+        { t: ["Acabamento", "Identificar circuitos do painel"], re: "label|identif|panel directory|panel schedule|rotul" },
+        { t: ["Inspeções", "Inspeção de serviço"], re: "inspect|inspec", ctx: "service|servico|servicio" },
+        { t: ["Inspeções", "Inspeção rough"], re: "rough.{0,20}inspect|inspect.{0,30}rough|inspec\\w* (do |de )?rough|\\binspections\\b|inspecoes|inspecciones" },
+        { t: ["Inspeções", "Inspeção final"], re: "final.{0,20}inspect|inspect.{0,30}final|inspec\\w* final|sign[- ]?off|\\binspections\\b|inspecoes|inspecciones" },
+        { t: ["Inspeções", "Inspeção de fire alarm"], re: "inspect|inspec|acceptance test", ctx: "fire alarm|alarme de incendio|alarma contra incendio" }
+      ],
       suggest: {
         vars: {"svc":{"f":"serviceType","ne":"Sem mudança no serviço"}},
         rules: [
@@ -885,6 +919,40 @@
         ],
         "Inspeções": ["Permit de plumbing","Permit de gás","Inspeção do underground","Inspeção rough","Inspeção de gás","Inspeção final"]
       },
+      // proposta → tarefas (tasks-core.js): mesmo formato do electrical
+      taskMatch: [
+        { t: ["Demolição", "Remover peças antigas"], re: "(remove|removal|demo|demolish|remover|retirar|quitar).{0,40}(existing|old|fixture|antig|vanity|toilet|tub|sink|pia|vaso)" },
+        { t: ["Demolição", "Cortar e tampar tubulação antiga"], re: "\\bcap\\b|cut and cap|tampar|taponar" },
+        { t: ["Esgoto (DWV)", "Esgoto subterrâneo (underground)"], re: "underground|subterr|below slab|under ?slab" },
+        { t: ["Esgoto (DWV)", "Teste do underground"], re: "test|teste|prueba", ctx: "underground|subterr|below slab" },
+        { t: ["Esgoto (DWV)", "Tubulação de esgoto e ventilação (DWV)"], re: "\\bdwv\\b|drain|waste|sewer|esgoto|desague|drenaje", not: "condensate|shower drain|floor drain only" },
+        { t: ["Esgoto (DWV)", "Ventilação pelo telhado (vent)"], re: "vent.{0,30}(roof|telhado|techo)|(roof|telhado|techo).{0,20}vent|vent stack|vent through" },
+        { t: ["Rough-in", "Rough-in de água (supply)"], re: "water (supply|lines|piping|distribution)|supply lines|\\bpex\\b|copper|tubulacao de agua|agua fria|tuberia de agua", not: "manifold" },
+        { t: ["Rough-in", "Manifold PEX"], re: "manifold" },
+        { t: ["Rough-in", "Caixa da lavadora / geladeira"], re: "washer box|washing machine|ice ?maker|refrigerator|lavadora|geladeira|refrigerador|refri" },
+        { t: ["Rough-in", "Válvulas de chuveiro / banheira"], re: "(shower|tub|bath)\\w*.{0,20}valve|mixing valve|valvula|valve.{0,20}(shower|tub)" },
+        { t: ["Rough-in", "Instalar banheira / base do chuveiro"], re: "(install|set|instalar|colocar).{0,30}(tub|bathtub|shower base|shower pan|banheira|base do chuveiro|tina|plato de ducha)" },
+        { t: ["Rough-in", "Tubulação de gás"], re: "gas (pipe|piping|line)|tubulacao de gas|tuberia de gas|black iron|\\bcsst\\b", not: "by others|gas fitter" },
+        { t: ["Rough-in", "Teste de pressão da água"], re: "pressure test|teste de pressao|prueba de presion", not: "\\bgas\\b" },
+        { t: ["Rough-in", "Teste de pressão do gás"], re: "pressure test|teste de pressao|prueba de presion", ctx: "\\bgas\\b" },
+        { t: ["Equipamentos", "Instalar aquecedor de água"], re: "water heater|tankless|aquecedor|calentador|indirect tank", not: "remove|removal|existing|remover|retirar|quitar|demo\\b" },
+        { t: ["Equipamentos", "Expansion tank"], re: "expansion tank|tanque de expans|vaso de expans" },
+        { t: ["Equipamentos", "Ventilação do aquecedor"], re: "vent|exaust|flue", ctx: "water heater|tankless|aquecedor|calentador" },
+        { t: ["Equipamentos", "Bomba de recirculação"], re: "recirc" },
+        { t: ["Equipamentos", "Sump pump / ejector"], re: "sump|ejector|bomba de esgoto|sumidero" },
+        { t: ["Equipamentos", "Backflow preventer"], re: "backflow|\\brpz\\b|double check|antirretorno" },
+        { t: ["Acabamento", "Instalar vasos sanitários"], re: "toilet|water closet|\\bwc\\b|vaso sanit|inodoro", not: "remove|removal|existing|remover|retirar|quitar|demo\\b" },
+        { t: ["Acabamento", "Instalar pias e torneiras"], re: "\\bsinks?\\b|faucet|lavatory|vanity|\\bpias?\\b|torneira|lavabo|lavamanos|grifo|fregadero", not: "outdoor faucet|exterior faucet|hose bib|torneira externa|remove|removal|existing|remover|retirar|quitar|demo\\b" },
+        { t: ["Acabamento", "Acabamento do chuveiro (trim)"], re: "shower trim|trim kit|shower ?head|acabamento do chuveiro|regadera" },
+        { t: ["Acabamento", "Ligar lava-louças / disposal"], re: "dishwasher|disposal|lava-?loucas?|lavavajillas|triturador" },
+        { t: ["Acabamento", "Torneiras externas"], re: "hose bibb?|sillcock|outdoor faucet|exterior faucet|torneira externa|llave exterior" },
+        { t: ["Acabamento", "Teste final de vazamento"], re: "leak test|final test|vazamento|prueba de fugas" },
+        { t: ["Inspeções", "Permit de plumbing"], re: "permit|licenca|permiso", not: "\\bgas\\b" },
+        { t: ["Inspeções", "Permit de gás"], re: "permit|licenca|permiso", ctx: "\\bgas\\b" },
+        { t: ["Inspeções", "Inspeção rough"], re: "rough.{0,20}inspect|inspect.{0,30}rough|\\binspections\\b|inspecoes|inspecciones" },
+        { t: ["Inspeções", "Inspeção de gás"], re: "inspect|inspec", ctx: "\\bgas\\b" },
+        { t: ["Inspeções", "Inspeção final"], re: "final.{0,20}inspect|inspect.{0,30}final|sign[- ]?off|\\binspections\\b|inspecoes|inspecciones" }
+      ],
       suggest: {
         vars: {"gut":{"any":[{"var":"newish"},{"f":"workType","re":"Remodel|Banheiro"}]}},
         rules: [
@@ -1538,6 +1606,78 @@
           { "pt": "Punch list", "en": "Punch list", "es": "Punch list" }
         ]
       },
+      taskMatch: [
+        {
+          "t": ["Remoção", "Remover equipamento antigo"],
+          "re": "(remove|removal|remover|retirar|quitar|demolish|\\bdemo\\b|disconnect).{0,40}(existing|old|antig|equipment|equipamento|unit|system|furnace|boiler|condenser|air handler)"
+        },
+        { "t": ["Remoção", "Recuperar refrigerante"], "re": "recover|recovery|recuper" },
+        { "t": ["Remoção", "Descarte de equipamento"], "re": "dispos(e|al) of|haul|descart|desech", "not": "garbage disposal" },
+        {
+          "t": ["Remoção", "Desligar / remover sistema a óleo ou gás (documentar p/ Mass Save)"],
+          "re": "(oil|gas).{0,30}(decommission|abandon|remove|removal)|decommission|desativ|desactiv"
+        },
+        {
+          "t": ["Equipamento", "Instalar condensadora / heat pump"],
+          "re": "condenser|condensing unit|heat pump|outdoor unit|condensadora|bomba de calor|unidad exterior",
+          "not": "line ?set|pad|bracket|circuit|remove|removal|dispose|existing|old |remover|retirar|quitar|descart"
+        },
+        { "t": ["Equipamento", "Pad / suporte da condensadora"], "re": "\\bpad\\b|wall bracket|bracket|suporte|soporte" },
+        { "t": ["Equipamento", "Stand elevado (acima da neve)"], "re": "elevated|snow|\\bstand\\b|base elevada" },
+        {
+          "t": ["Equipamento", "Instalar air handler"],
+          "re": "air[- ]handler|\\bahu\\b|fan coil|manejadora",
+          "not": "remove|removal|dispose|existing|old |remover|retirar|quitar|descart"
+        },
+        {
+          "t": ["Equipamento", "Instalar evaporadoras (mini-split)"],
+          "re": "evaporat|(wall|ceiling|indoor) (unit|head|cassette)|\\bheads?\\b|cassette|ductless|evaporadora|cabezal",
+          "not": "remove|removal|dispose|existing|old |remover|retirar|quitar|descart"
+        },
+        {
+          "t": ["Equipamento", "Instalar fornalha (furnace)"],
+          "re": "furnace|fornalha|calefactor|horno de gas",
+          "not": "remove|removal|dispose|existing|old |remover|retirar|quitar|descart"
+        },
+        {
+          "t": ["Equipamento", "Instalar caldeira (boiler)"],
+          "re": "boiler|caldeira|caldera",
+          "not": "remove|removal|dispose|existing|old |remover|retirar|quitar|descart"
+        },
+        { "t": ["Equipamento", "Instalar ERV / HRV"], "re": "\\berv\\b|\\bhrv\\b|energy recovery|heat recovery" },
+        {
+          "t": ["Distribuição", "Dutos novos (sheet metal)"],
+          "re": "ductwork|\\bducts?\\b|sheet metal|plenum|trunk|\\bdutos?\\b|\\bductos?\\b",
+          "not": "seal|insulat|leak|vedac|isolam|sellad|aislam|ductless"
+        },
+        {
+          "t": ["Distribuição", "Isolamento e vedação de dutos"],
+          "re": "(seal|insulat|mastic|vedac|isolam|sellad|aislam).{0,40}(duct|duto|ducto)|(duct|duto|ducto).{0,40}(seal|insulat|vedac|isol|sell|aisl)"
+        },
+        { "t": ["Distribuição", "Registros supply / return"], "re": "register|grille|diffuser|\\bsupplies\\b|supply and return|return air|registro|rejilla|difusor" },
+        { "t": ["Distribuição", "Line set"], "re": "line ?sets?|refrigerant (line|pipe|piping)|linha de refrigera|tuberia de refrigerante" },
+        { "t": ["Distribuição", "Dreno / bomba de condensado"], "re": "condensate|\\bdrain\\b|dreno|drenaje|condensado" },
+        { "t": ["Distribuição", "Tubulação de gás"], "re": "gas (pipe|piping|line)|tubulacao de gas|tuberia de gas", "not": "by others|plumber|gas fitter|gasista" },
+        { "t": ["Distribuição", "Coordenar gás com o plumber / gas fitter"], "re": "gas", "ctx": "by others|plumber|gas fitter|gasista|por outros" },
+        { "t": ["Distribuição", "Ventilação / exaustão (flue)"], "re": "\\bflue\\b|venting|chimney|liner|exaustao|chimenea" },
+        { "t": ["Distribuição", "Line hide / acabamento da linha"], "re": "line ?hide|line ?set cover|lineset cover" },
+        { "t": ["Distribuição", "Selar furos na parede (air sealing)"], "re": "air[- ]?seal|seal.{0,20}penetration|penetration" },
+        { "t": ["Controles", "Termostatos"], "re": "thermostat|termostato" },
+        { "t": ["Controles", "Zoneamento"], "re": "\\bzones?\\b|zoning|zonas?\\b|zoneamento|zonific" },
+        { "t": ["Controles", "Controles Wi-Fi"], "re": "wi-?fi|smart thermostat|ecobee|\\bnest\\b" },
+        { "t": ["Comissionamento", "Teste de pressão (nitrogênio)"], "re": "nitrogen|pressure test|nitrogenio|nitrogeno" },
+        { "t": ["Comissionamento", "Vácuo"], "re": "vacuum|evacuat|\\bvacuo\\b|\\bvacio\\b" },
+        { "t": ["Comissionamento", "Carga de refrigerante"], "re": "refrigerant charge|charge the system|weigh[- ]in|carga de refrigerante|\\bcarga\\b" },
+        { "t": ["Comissionamento", "Start-up e teste"], "re": "start[- ]?up|commission|arranque|partida" },
+        { "t": ["Comissionamento", "Manual J / cálculo de carga"], "re": "manual j|load calc|calculo de carga" },
+        { "t": ["Comissionamento", "Documentação Mass Save"], "re": "mass ?save|rebate|heat ?smart|incentiv" },
+        { "t": ["Inspeções", "Permit mecânico"], "re": "permit|licenca|permiso" },
+        { "t": ["Inspeções", "Inspeção de gás"], "re": "inspect|inspec", "ctx": "\\bgas\\b" },
+        { "t": ["Inspeções", "Inspeção final"], "re": "inspect|inspec|sign[- ]?off" },
+        { "t": ["Proteção e entrega", "Proteção do local (lonas / piso)"], "re": "drop cloth|floor protection|protect (the )?(floor|site|home)|protecao|proteccion" },
+        { "t": ["Proteção e entrega", "Limpeza"], "re": "clean ?up|limpeza|limpieza" },
+        { "t": ["Proteção e entrega", "Treinar o cliente (termostato / filtro)"], "re": "train|orientation|walk[- ]?through|demonstrat|instruct|treinar|orientacion" }
+      ],
       suggest: {
         "vars": {},
         "rules": [

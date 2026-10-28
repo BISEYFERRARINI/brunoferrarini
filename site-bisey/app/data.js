@@ -24,7 +24,7 @@
   function validEmail(e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || "").trim()); }
   function genPassword() { var a = "abcdefghjkmnpqrstuvwxyz23456789", s = ""; for (var i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)]; return s; }
   // perfis de empresa que o app usa no cabeçalho das propostas / PDF e na marca (logo, cor)
-  var CO_FIELDS = ["name", "short", "trade", "logo", "accent", "address", "phone", "email", "license", "state", "noGas", "hicReg"]; // noGas: "Não fazemos gás" (HVAC / plumbing); hicReg: nº de registro HIC (MA)
+  var CO_FIELDS = ["name", "short", "trade", "logo", "accent", "address", "phone", "email", "license", "state", "noGas", "hicReg", "customCatalog"]; // noGas: "Não fazemos gás" (HVAC / plumbing); hicReg: nº de registro HIC (MA); customCatalog: itens que a empresa sugeriu (tasks.js)
   function isStaffRole(r) { return r === "admin" || r === "manager"; }
   function finOut(f) {
     var mat = Number(f.materialBudget) || 0, lab = Number(f.laborBudget) || 0;
@@ -473,6 +473,50 @@
         }
         return P(t ? clone(t) : null);
       },
+      // tarefa nova na lista da obra (qualquer pessoa da equipe: "fiz uma coisa que não está na lista") — grava quem pôs e quando
+      addTask: function (projectId, tk) {
+        var p = db.projects.find(function (x) { return x.id === projectId; }), w = who(), label = String((tk && tk.label) || "").trim().slice(0, 120);
+        if (!p) return Promise.reject(new Error(t("ptk.errGone", "Tarefa não encontrada.")));
+        if (!label) return Promise.reject(new Error(t("ptk.errEmpty", "Escreva a tarefa.")));
+        var rec = { id: uid(), group: String(tk.group || "Outros").slice(0, 60), label: label, done: !!tk.done, source: tk.source || "crew", addedBy: w.name, addedById: w.id, addedAt: new Date().toISOString() };
+        if (rec.done) { rec.doneBy = w.name; rec.doneById = w.id; rec.doneAt = rec.addedAt; }
+        p.tasks = p.tasks || []; p.tasks.push(rec);
+        logAct("task.add", { projectId: projectId, companyId: p.companyId, ref: rec.id, label: rec.label });
+        if (rec.done) logAct("task.done", { projectId: projectId, companyId: p.companyId, ref: rec.id, label: rec.label });
+        persist(); return P(clone(rec));
+      },
+      // editar / apagar tarefa: só dono e gerente
+      updateTask: function (projectId, taskId, patch) {
+        if (!staff(me())) return Promise.reject(new Error(t("ptk.errPerm", "Só o dono ou o gerente pode mudar ou apagar tarefas.")));
+        var p = db.projects.find(function (x) { return x.id === projectId; }), tk = p && (p.tasks || []).find(function (x) { return x.id === taskId; });
+        if (!tk) return Promise.reject(new Error(t("ptk.errGone", "Tarefa não encontrada.")));
+        if (patch.label != null && String(patch.label).trim()) { tk.label = String(patch.label).trim().slice(0, 120); delete tk.tpl; delete tk.qty; }
+        if (patch.group) tk.group = String(patch.group).slice(0, 60);
+        var w = who(); tk.editedBy = w.name; tk.editedAt = new Date().toISOString();
+        persist(); return P(clone(tk));
+      },
+      deleteTask: function (projectId, taskId) {
+        if (!staff(me())) return Promise.reject(new Error(t("ptk.errPerm", "Só o dono ou o gerente pode mudar ou apagar tarefas.")));
+        var p = db.projects.find(function (x) { return x.id === projectId; }); if (!p) return P();
+        var tk = (p.tasks || []).find(function (x) { return x.id === taskId; });
+        p.tasks = (p.tasks || []).filter(function (x) { return x.id !== taskId; });
+        if (tk) logAct("task.delete", { projectId: projectId, companyId: p.companyId, ref: taskId, label: tk.label });
+        persist(); return P();
+      },
+      // catálogo próprio da empresa (sugestões aceitas: tarefas, materiais, itens de serviço) — fica junto com os dados da empresa
+      addCatalog: function (companyId, entries) {
+        var c = COMPANIES.find(function (y) { return y.id === companyId; }); if (!c) return Promise.reject(new Error(t("errors.companyNotFound", "Empresa não encontrada.")));
+        var list = (c.customCatalog || []).slice(), ids = {}; list.forEach(function (e) { ids[e.id] = 1; });
+        (entries || []).forEach(function (e) { if (e && e.id && !ids[e.id]) { list.push(e); ids[e.id] = 1; } else if (e && e.id) list = list.map(function (x) { return x.id === e.id ? e : x; }); });
+        return this.saveCompany({ id: companyId, customCatalog: list.slice(-300) });
+      },
+      saveCatalog: function (companyId, list) {
+        // dono / gerente mudam tudo; o funcionário só desfaz o que ele mesmo sugeriu
+        var u = me(), cur = ((COMPANIES.find(function (y) { return y.id === companyId; }) || {}).customCatalog || []), keep = {}; (list || []).forEach(function (e) { keep[e.id] = 1; });
+        var gone = cur.filter(function (e) { return !keep[e.id]; });
+        if (!staff(u) && gone.some(function (e) { return !u || e.by !== u.id; })) return Promise.reject(new Error(t("ptk.errPermCat", "Só o dono ou o gerente pode tirar itens da página da empresa.")));
+        return this.saveCompany({ id: companyId, customCatalog: (list || []).slice(-300) });
+      },
       uploadFile: function (projectId, file) {
         return blobToDataURL(file).then(function (d) {
           var p = db.projects.find(function (x) { return x.id === projectId; });
@@ -829,7 +873,7 @@
           org = chk(res[0]);
           var list = chk(res[1]).map(function (c) {
             return { id: c.slug, uuid: c.id, name: c.name, trade: tradeIn(c.trade), short: c.short_name || c.name.split(" ")[0], logo: c.logo_path ? publicAsset(c.logo_path) : (org.logo_path ? publicAsset(org.logo_path) : ""),
-              accent: c.accent_color || org.accent_color || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license_no || "", state: c.state || org.state || "", settings: c.settings || {}, hicReg: (c.settings || {}).hicReg || "" };
+              accent: c.accent_color || org.accent_color || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license_no || "", state: c.state || org.state || "", settings: c.settings || {}, hicReg: (c.settings || {}).hicReg || "", customCatalog: (c.settings || {}).customCatalog || [] };
           });
           CO_BY_SLUG = {}; CO_BY_ID = {}; list.forEach(function (c) { CO_BY_SLUG[c.id] = c; CO_BY_ID[c.uuid] = c; });
           if (list.length) setCompanies(list);
@@ -851,9 +895,17 @@
     function mapProject(r) {
       return au({ id: r.id, companyId: r.company_id, name: r.name, client: r.client, address: r.address, lat: r.lat, lng: r.lng, radius: r.radius_m || 150,
         status: r.status, startDate: r.start_date, estCompletion: r.est_completion, details: r.details || {}, scope: r.scope || "", teamNotes: r.team_notes || "", createdAt: r.created_at,
-        tasks: (r.project_tasks || []).sort(function (a, b) { return a.sort - b.sort; }).map(function (t) { return { id: t.id, group: t.grp, label: t.label, done: t.done, doneBy: t.done_by_name, doneById: t.done_by || null, doneAt: t.done_at }; }),
+        tasks: (r.project_tasks || []).sort(function (a, b) { return a.sort - b.sort; }).map(taskIn),
         files: (r.project_files || []).map(function (f) { return { id: f.id, name: f.name, mime: f.mime, size: f.size, path: f.path, createdAt: f.created_at, createdBy: f.created_by || null, createdByName: f.created_by_name || "" }; }) }, r);
     }
+    // tarefa: origem (proposta / ficha / equipe), modelo, quantidade e quem pôs (colunas da supabase-saas/004; sem elas ficam vazias)
+    function taskIn(t) {
+      var o = { id: t.id, group: t.grp, label: t.label, done: t.done, doneBy: t.done_by_name, doneById: t.done_by || null, doneAt: t.done_at };
+      if (t.source) o.source = t.source; if (t.tpl) o.tpl = t.tpl; if (t.qty) o.qty = Number(t.qty); if (t.ref) o.ref = t.ref;
+      if (t.added_by_name) { o.addedBy = t.added_by_name; o.addedById = t.added_by || null; o.addedAt = t.added_at; }
+      return o;
+    }
+    var TASK_X = true; // colunas novas de project_tasks existem? (some no 1º erro "column … does not exist")
     function mapTime(r) { return au({ id: r.id, userId: r.user_id, companyId: r.company_id, projectId: r.project_id, checkIn: r.check_in, checkOut: r.check_out, rate: Number(r.rate) || 0,
       inLoc: r.in_lat != null ? { lat: r.in_lat, lng: r.in_lng, ok: true } : { ok: false }, outLoc: r.out_lat != null ? { lat: r.out_lat, lng: r.out_lng, ok: true } : { ok: false }, inPhoto: r.in_photo, outPhoto: r.out_photo }, r); }
     function mapProposal(r) {
@@ -1027,13 +1079,19 @@
         var id = p.id || uid();
         var row = { id: id, company_id: p.companyId, name: p.name, client: p.client || null, address: p.address || null, lat: p.lat, lng: p.lng, radius_m: Number(p.radius) || 150,
           status: p.status || "Active", start_date: p.startDate || null, est_completion: p.estCompletion || null, details: p.details || {}, scope: p.scope || "", team_notes: p.teamNotes || "" };
-        var tasks = (p.tasks || []).map(function (t, i) { return { id: t.id || uid(), project_id: id, grp: t.group, label: t.label, done: !!t.done, done_by_name: t.doneBy || null, done_at: t.doneAt || null, sort: i }; });
+        var tasks = (p.tasks || []).map(function (t, i) { return { id: t.id || uid(), project_id: id, grp: t.group, label: t.label, done: !!t.done, done_by_name: t.doneBy || null, done_at: t.doneAt || null, sort: i, source: t.source || null, tpl: t.tpl || null, qty: t.qty || null, ref: t.ref || null }; });
+        var plain = function (l) { return l.map(function (x) { var o = Object.assign({}, x); delete o.source; delete o.tpl; delete o.qty; delete o.ref; return o; }); };
+        var upTasks = function () { // banco sem a 004: grava sem as colunas novas
+          if (!tasks.length) return null;
+          if (!TASK_X) return sb.from("project_tasks").upsert(plain(tasks)).then(chk);
+          return sb.from("project_tasks").upsert(tasks).then(function (r) { if (r.error && /column|schema cache/i.test(r.error.message || "")) { TASK_X = false; return sb.from("project_tasks").upsert(plain(tasks)).then(chk); } return chk(r); });
+        };
         return sb.from("projects").upsert(row).then(chk).then(function () {
           var keep = tasks.map(function (t) { return t.id; });
           var del = sb.from("project_tasks").delete().eq("project_id", id);
           if (keep.length) del = del.not("id", "in", "(" + keep.join(",") + ")");
           return del;
-        }).then(chk).then(function () { return tasks.length ? sb.from("project_tasks").upsert(tasks).then(chk) : null; })
+        }).then(chk).then(upTasks)
           .then(function () { return sb.from("projects").select("*, project_tasks(*), project_files(*)").eq("id", id).single(); })
           .then(function (r) { return mapProject(chk(r)); });
       },
@@ -1071,6 +1129,13 @@
       },
       saveFinancials: function (projectId, f) { var o = finOut(f); return sb.from("project_financials").upsert({ project_id: projectId, contract_value: o.contractValue, budget: o.budget, est_hours: o.estHours, material_budget: o.materialBudget, labor_budget: o.laborBudget, client_email: o.clientEmail || null, client_phone: o.clientPhone || null, daily_report: o.dailyReport }).then(chk); },
       setTaskDone: function (projectId, taskId, done) { return sb.rpc("set_task_done", { p_task_id: taskId, p_done: done }).then(chk); }, // o banco grava quem marcou (done_by + done_by_name) e quando
+      // tarefa da equipe (supabase-saas/004: add_task grava quem pôs e quando; funcionário pode); editar / apagar: gerente e dono (RLS tasks_write)
+      addTask: function (projectId, tk) { return sb.rpc("add_task", { p_project_id: projectId, p_group: tk.group || "Outros", p_label: String(tk.label || "").trim(), p_done: !!tk.done, p_source: tk.source || "crew" }).then(chk).then(function (r) { return taskIn(Array.isArray(r) ? r[0] : r); }); },
+      updateTask: function (projectId, taskId, patch) { var row = {}; if (patch.label) { row.label = String(patch.label).trim(); if (TASK_X) { row.tpl = null; row.qty = null; } } if (patch.group) row.grp = patch.group; return sb.from("project_tasks").update(row).eq("id", taskId).select("*").single().then(function (r) { return taskIn(chk(r)); }); },
+      deleteTask: function (projectId, taskId) { return sb.from("project_tasks").delete().eq("id", taskId).then(chk); },
+      // catálogo próprio da empresa (companies.settings.customCatalog): add_catalog_items (qualquer pessoa da empresa) e set_custom_catalog (gerente / dono)
+      addCatalog: function (companyId, entries) { if (!SAAS) return needSaas(); return sb.rpc("add_catalog_items", { p_company: coId(companyId), p_items: entries || [] }).then(chk).then(loadOrg); },
+      saveCatalog: function (companyId, list) { if (!SAAS) return needSaas(); return sb.rpc("set_custom_catalog", { p_company: coId(companyId), p_items: list || [] }).then(chk).then(loadOrg); },
       // indicação (tabela referrals + organizations.referral_code da 003; créditos entram na fatura quando o Stripe estiver ligado — docs/09)
       referralInfo: function () {
         if (!SAAS) return needSaas();

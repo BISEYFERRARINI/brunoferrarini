@@ -70,7 +70,7 @@
     main.appendChild(f); inp.focus();
   }
   function nav() {
-    var tabs = [["metrics", "Métricas"], ["tickets", "Tickets"], ["gaps", "Perguntas sem resposta"], ["leads", "Leads"]];
+    var tabs = [["metrics", "Métricas"], ["tickets", "Tickets"], ["gaps", "Perguntas sem resposta"], ["sugs", "Sugestões"], ["leads", "Leads"]];
     return el("nav", { "aria-label": "Seções" }, tabs.map(function (t) { return el("button", { type: "button", "aria-pressed": String(tab === t[0]), text: t[1], on: { click: function () { tab = t[0]; show(); } } }); }));
   }
   function kpi(v, label) { return el("div", { "class": "card kpi" }, [el("b", { text: v == null ? "—" : String(v) }), el("span", { text: label })]); }
@@ -110,6 +110,16 @@
       var rows = r.gaps.map(function (g) { return el("tr", {}, [el("td", { text: String(g.count) }), el("td", { text: g.question }), el("td", { text: (g.langs || []).join(", ") }), el("td", { text: Object.keys(g.reasons || {}).join(", ") }), el("td", { text: fmt(g.last) })]); });
       done(el("div", {}, [el("p", { "class": "muted small", text: "Perguntas em que o Assist não teve certeza, passou para pessoa ou levou 👎 (30 dias). Para melhorar: escreva o artigo em support/kb/kb.pt.md e kb.en.md (mesmo id) e publique — veja support/LEIA-ME.md." }),
         el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Vezes", "Pergunta", "Idioma", "Motivo", "Última"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])])]));
+    }).catch(fail);
+    if (tab === "sugs") call("suggestions?days=30").then(function (r) {
+      var lbl = function (x) { return x ? (x.pt || "") + (x.en && x.en !== x.pt ? " · " + x.en : "") : ""; };
+      var cand = r.candidates.map(function (a) { return el("tr", {}, [el("td", { text: String(a.accounts) }), el("td", { text: String(a.count) }), el("td", { text: a.trade }), el("td", { text: a.type }), el("td", { text: lbl(a.group) }), el("td", { text: lbl(a.label) }), el("td", { text: a.candidate ? "candidato ao trades.js" : "" })]); });
+      var rows = r.suggestions.map(function (x) { return el("tr", {}, [fmt(x.at), x.status + (x.reason ? " (" + x.reason + ")" : ""), x.trade, x.type + (x.kind ? " → " + x.kind : ""), x.text + (x.example ? " — ex.: " + x.example : ""), (x.entries || []).map(function (e) { return lbl(e.label); }).join(" / "), (x.user || {}).role + " · " + (x.accountId || "")].map(function (v) { return el("td", { text: String(v || "") }); })); });
+      done(el("div", {}, [el("p", { "class": "muted small", text: "Sugestões das empresas (“Falta alguma coisa que você faz?”). Itens pedidos por várias contas são candidatos ao catálogo global do ramo (trades.js) — a equipe decide e edita o código; nada é mudado sozinho. Pedidos de funcionalidade viram tickets (aba Tickets)." }),
+        el("h3", { text: "Pedidos repetidos (várias contas)" }),
+        el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Contas", "Vezes", "Ramo", "Tipo", "Grupo", "Item", ""].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, cand)])]),
+        el("h3", { text: "Últimas sugestões (30 dias)" }),
+        el("div", { "class": "card tbl" }, [el("table", {}, [el("thead", {}, [el("tr", {}, ["Quando", "Resultado", "Ramo", "Tipo", "Texto", "Entrou na página", "Quem"].map(function (h) { return el("th", { text: h }); }))]), el("tbody", {}, rows)])])]));
     }).catch(fail);
     if (tab === "leads") call("leads").then(function (r) {
       var rows = r.leads.map(function (t) { var l = t.lead || {}, c = t.contact || {}; return el("tr", {}, [fmt(t.createdAt), l.name || c.name || "", c.email || "", l.company || "", l.trade || "", l.teamSize || "", t.status].map(function (x) { return el("td", { text: String(x) }); })); });

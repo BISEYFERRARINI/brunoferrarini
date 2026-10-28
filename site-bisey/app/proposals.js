@@ -407,6 +407,8 @@
     d.companyId = p.companyId; d.name = p.client.address || p.number; d.client = p.client.name; d.address = p.client.address;
     d.scope = (p.number ? t("proposals.estimate", "Proposta ") + p.number + "\n\n" : "") + p.sections.map(function (s) { return s.title.toUpperCase() + "\n" + lines(s.text).map(function (l) { return "• " + l.replace(/\*\*/g, ""); }).join("\n"); }).join("\n\n") + (p.notIncluded ? "\n\n" + t("proposals.notIncludedHead", "NÃO INCLUÍDO") + "\n" + p.notIncluded.replace(/\*\*/g, "") : "");
     d.fin.contractValue = totalOf(p) || "";
+    // tarefas da equipe a partir do escopo e dos itens da proposta (tasks.js / tasks-core.js), marcadas "da proposta" — o gerente revisa no passo Tarefas
+    if (E.proposalTasks) { d.tasks = E.proposalTasks(p, []); if (p.id) d.proposalId = p.id; }
     S.draft = d; S.draftBase = null; S.draftFiles = []; S.wizStep = 0; E.go("projectForm"); E.toast(t("proposals.projectFilledInFrom", "Projeto preenchido com os dados da proposta. Confira e salve."));
   };
 

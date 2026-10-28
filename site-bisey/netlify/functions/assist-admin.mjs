@@ -4,10 +4,12 @@
 //   GET  conversation?id=<sessionId>
 //   GET  gaps?days=14                          GET metrics?days=7
 //   GET  leads?days=30                         GET weekly   (métricas + top perguntas sem resposta com rascunho de artigo)
+//   GET  suggestions?days=30                   sugestões das empresas (/api/suggest) + candidatos ao catálogo global (mesmo item em várias contas)
 import { json, preflight, readJSON, checkSecret, lastDays, safeId, day, env } from "../lib/util.mjs";
 import { store } from "../lib/store.mjs";
 import { listTickets, updateTickets } from "../lib/tickets.mjs";
 import { loadConv, draftArticles, budgetUsd, normQuestion } from "../lib/brain.mjs";
+import { listSuggestions, listCandidates } from "../lib/suggest.mjs";
 
 async function metrics(days) {
   const s = await store(); const ds = lastDays(Math.min(Math.max(days || 7, 1), 90));
@@ -45,7 +47,7 @@ async function cleanup() {
   for (const k of await s.list("rl/")) { const w = k.split("/").pop(); if (!keep.some((d) => w.startsWith(d))) { await s.del(k); n++; } }
   // privacidade: conversas, tickets respondidos, 👍/👎 e perguntas com mais de ASSIST_RETENTION_DAYS (padrão 365) são apagados
   const days = parseInt(env("ASSIST_RETENTION_DAYS", "365"), 10) || 365, limit = new Date(Date.now() - days * 864e5).toISOString();
-  for (const pre of ["fb/", "gap/", "metrics/", "spend/"]) for (const k of await s.list(pre)) { const d = k.slice(pre.length, pre.length + 10); if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d < limit.slice(0, 10)) { await s.del(k); n++; } }
+  for (const pre of ["fb/", "gap/", "metrics/", "spend/", "sug/"]) for (const k of await s.list(pre)) { const d = k.slice(pre.length, pre.length + 10); if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d < limit.slice(0, 10)) { await s.del(k); n++; } }
   for (const k of await s.list("conv/")) { const c = await s.get(k); if (c && (c.updatedAt || c.createdAt || "") < limit) { await s.del(k); n++; } }
   for (const pre of ["ticket/", "lead/"]) for (const k of await s.list(pre)) { const t = await s.get(k); if (t && (t.status !== "open" || pre === "lead/") && (t.updatedAt || t.at || t.createdAt || "") < limit) { await s.del(k); n++; } }
   return n;
@@ -68,6 +70,7 @@ export default async (req) => {
     if (req.method === "GET" && route === "conversation") { const id = safeId(q("id")); const c = id ? await loadConv(id) : null; return c ? json(req, { conversation: c }) : json(req, { error: "NOT_FOUND" }, 404); }
     if (req.method === "GET" && route === "gaps") return json(req, { gaps: await gaps(parseInt(q("days") || "14", 10)) });
     if (req.method === "GET" && route === "metrics") return json(req, await metrics(parseInt(q("days") || "7", 10)));
+    if (req.method === "GET" && route === "suggestions") return json(req, { suggestions: (await listSuggestions(parseInt(q("days") || "30", 10))).slice(0, 300), candidates: await listCandidates(parseInt(q("min") || "2", 10)) });
     if (req.method === "GET" && route === "leads") return json(req, { leads: (await listTickets({ status: "all", kind: "lead" })).slice(0, 200) });
     if (req.method === "GET" && route === "weekly") {
       const m = await metrics(7); const g = (await gaps(7)).slice(0, 10);

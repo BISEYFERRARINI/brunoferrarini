@@ -1013,7 +1013,8 @@
         (gkeys.length ? level(s.progress, { sm: true, bubble: false, label: fmtPct(s.progress) + t("projects.done", " concluído") }) + '<div style="height:12px"></div>' + gkeys.map(function (g) {
           var dn = gs[g].filter(function (t) { return t.done; }).length;
           return '<div class="check-group"><h4>' + esc(tv(g)) + ' <span class="muted num">' + dn + "/" + gs[g].length + "</span></h4>" + gs[g].map(function (t) { return taskRow(p, t); }).join("") + "</div>";
-        }).join("") : emptyState({ icon: "check", title: t("projects.noTasksAdded2", "Nenhuma tarefa cadastrada"), text: admin ? t("projects.pickTheTasksIn", "Escolha as tarefas em Editar → Tarefas.") : t("projects.theAdminHasnT", "O administrador ainda não cadastrou tarefas."), cta: admin ? { act: "editProject", id: p.id, label: t("projects.editTasks", "Editar tarefas"), icon: "edit" } : null })) + "</div></div>";
+        }).join("") : emptyState({ icon: "check", title: t("projects.noTasksAdded2", "Nenhuma tarefa cadastrada"), text: admin ? t("projects.pickTheTasksIn", "Escolha as tarefas em Editar → Tarefas.") : t("projects.theAdminHasnT", "O administrador ainda não cadastrou tarefas."), cta: admin ? { act: "editProject", id: p.id, label: t("projects.editTasks", "Editar tarefas"), icon: "edit" } : null })) +
+        (NV.tasksUi ? NV.tasksUi.scopeExtra(p) : "") + "</div></div>"; // tasks.js: tarefa avulsa da equipe, tarefas da proposta aceita, aviso de sugestões
     } else if (tab === "files") {
       body = filesBlock(p, admin);
     } else if (tab === "avisos") {
@@ -1041,8 +1042,9 @@
     return head + tabsHtml + '<div role="tabpanel">' + body + "</div>";
   }
   function taskRow(p, tk, compact) {
-    return '<label class="check' + (tk.done ? " done" : "") + (compact ? " compact" : "") + '"><input type="checkbox" data-act="task" data-pid="' + p.id + '" data-id="' + tk.id + '"' + (tk.done ? " checked" : "") + '><span class="cbox" aria-hidden="true">' + ic("check", 16) + '</span><div><div class="t">' + esc(tk.label) + "</div>" +
-      (tk.done && tk.doneBy ? '<div class="by">' + byLine(t("who.doneBy", "Feito por {n}"), tk.doneBy, tk.doneAt) + "</div>" : compact && tk.group ? '<div class="by">' + esc(tv(tk.group)) + "</div>" : "") + "</div></label>";
+    var x = NV.tasksUi ? NV.tasksUi.rowExtra(p, tk, compact) : { tag: "", by: "", acts: "" }; // tasks.js: origem ("da proposta"), quem acrescentou, editar / apagar
+    return '<label class="check' + (tk.done ? " done" : "") + (compact ? " compact" : "") + '"><input type="checkbox" data-act="task" data-pid="' + p.id + '" data-id="' + tk.id + '"' + (tk.done ? " checked" : "") + '><span class="cbox" aria-hidden="true">' + ic("check", 16) + '</span><div class="tk-body"><div class="t">' + esc(tk.label) + x.tag + "</div>" +
+      (tk.done && tk.doneBy ? '<div class="by">' + byLine(t("who.doneBy", "Feito por {n}"), tk.doneBy, tk.doneAt) + "</div>" : compact && tk.group ? '<div class="by">' + esc(tv(tk.group)) + "</div>" : "") + x.by + "</div>" + x.acts + "</label>";
   }
 
   // ═══════════ Atividade da obra: quem fez o quê, quando (dono e gerente; o gerente não vê nada de dinheiro) ═══════════
@@ -1056,7 +1058,7 @@
       .catch(function () { actCache[pid] = "ok"; S.acts = S.acts || {}; S.acts[pid] = []; if (S.view === "project") render(); });
     return false;
   }
-  var ACT_KIND = { task: ["task.done", "task.undone"], notice: ["notice.create", "notice.resolve", "notice.reopen", "notice.delete"], money: ["expense.create", "expense.delete", "revenue.create", "revenue.delete", "financials.update"], files: ["file.upload", "file.delete"] };
+  var ACT_KIND = { task: ["task.done", "task.undone", "task.add", "task.delete"], notice: ["notice.create", "notice.resolve", "notice.reopen", "notice.delete"], money: ["expense.create", "expense.delete", "revenue.create", "revenue.delete", "financials.update"], files: ["file.upload", "file.delete"] };
   function actGroup(type) { for (var k in ACT_KIND) if (ACT_KIND[k].indexOf(type) >= 0) return k; return "other"; }
   function actLine(a) {
     var x = a.extra || {}, fin = can("finance"), amt = "";
@@ -1064,6 +1066,7 @@
     var docName = x.docType === "invoice" ? t("act.invoice", "o invoice") : t("act.estimate", "a proposta");
     var M = {
       "task.done": ["check", t("act.taskDone", "{n} marcou como feita: {x}")], "task.undone": ["x", t("act.taskUndone", "{n} desmarcou a tarefa: {x}")],
+      "task.add": ["plus", t("ptk.actAdd", "{n} acrescentou a tarefa: {x}")], "task.delete": ["trash", t("ptk.actDel", "{n} apagou a tarefa: {x}")],
       "notice.create": ["bell", x.photo ? t("act.noticeCreatePhoto", "{n} mandou um aviso com foto: “{x}”") : t("act.noticeCreate", "{n} mandou um aviso: “{x}”")], "notice.resolve": ["check", t("act.noticeResolve", "{n} resolveu o aviso: “{x}”")],
       "notice.reopen": ["bell", t("act.noticeReopen", "{n} reabriu o aviso: “{x}”")], "notice.delete": ["trash", t("act.noticeDelete", "{n} apagou o aviso: “{x}”")],
       "expense.create": ["receipt", x.receipt ? t("act.receiptCreate", "{n} lançou uma nota ({c}): {x}") : t("act.expenseCreate", "{n} lançou uma despesa ({c}): {x}")], "expense.delete": ["trash", t("act.expenseDelete", "{n} apagou um lançamento ({c}): {x}")],
@@ -1168,16 +1171,19 @@
         '<div class="grid2">' + trade.text.filter(function (t) { return t.key !== "unitsCount"; }).map(function (t) { return inputF("details." + t.key, t.label, t.type === "number" ? "number" : null, t.type === "number" ? 'inputmode="decimal" step="any"' : ""); }).join("") + "</div></div>";
     } else if (step === 4) {
       // modelos de tarefa: grupo gravado em PT (valor), rótulo novo no idioma de quem cria; tarefas já salvas em PT continuam reconhecidas
-      var have = {}; d.tasks.forEach(function (t) { have[t.group + "|" + t.label] = true; });
-      var isTpl = function (g, l) { var a = trade.tasks[g]; return !!a && (a.indexOf(l) >= 0 || a.map(tv).indexOf(l) >= 0); };
-      var custom = d.tasks.filter(function (t) { return !isTpl(t.group, t.label); });
+      // + catálogo próprio da empresa (tasks.js → NV.coTasks); tarefa da proposta/IA guarda o modelo (tpl) e a quantidade: o chip do modelo fica marcado
+      var TT = NV.coTasks ? NV.coTasks(d.companyId) : trade.tasks, UI = NV.tasksUi;
+      var have = {}; d.tasks.forEach(function (t) { have[t.group + "|" + t.label] = t; if (t.tpl) { have[t.group + "|" + t.tpl] = t; have[t.group + "|" + tv(t.tpl)] = t; } });
+      var isTpl = function (g, l, tp) { var a = TT[g]; return !!a && (a.indexOf(l) >= 0 || a.map(tv).indexOf(l) >= 0 || (!!tp && a.indexOf(tp) >= 0)); };
+      var custom = d.tasks.filter(function (t) { return !isTpl(t.group, t.label, t.tpl); });
       body = t("projects.tapTheTasksThat", '<div class="spread" style="margin-bottom:12px"><p class="muted" style="margin:0;max-width:60ch">Toque nas tarefas que fazem parte deste trabalho. A equipe vê esta lista e marca o que for terminando.</p><button type="button" class="btn ghost sm" data-act="suggestTasks">Sugerir pela ficha da obra</button></div><div class="stack task-picker">') +
-        Object.keys(trade.tasks).map(function (g) {
-          return '<div class="opt-block"><span class="label">' + esc(tv(g)) + '</span><div class="chips">' + trade.tasks[g].map(function (l) { var on = have[g + "|" + l] || have[g + "|" + tv(l)]; return '<button type="button" class="chip' + (on ? " on" : "") + '" data-act="toggleTask" data-group="' + esc(g) + '" data-val="' + esc(tv(l)) + '" data-pt="' + esc(l) + '">' + (on ? "✓ " : "") + esc(tv(l)) + "</button>"; }).join("") + "</div></div>";
+        (UI ? UI.wizHead(d) : "") +
+        Object.keys(TT).map(function (g) {
+          return '<div class="opt-block"><span class="label">' + esc(tv(g)) + '</span><div class="chips">' + TT[g].map(function (l) { var on = have[g + "|" + l] || have[g + "|" + tv(l)]; return '<button type="button" class="chip' + (on ? " on" : "") + '" data-act="toggleTask" data-group="' + esc(g) + '" data-val="' + esc(tv(l)) + '" data-pt="' + esc(l) + '">' + (on ? "✓ " : "") + esc(tv(l)) + (on && on.qty ? " (" + on.qty + ")" : "") + (on && UI ? UI.srcTag(on) : "") + "</button>"; }).join("") + "</div></div>";
         }).join("") +
-        t("projects.customTask", '<div class="panel"><h3>Tarefa personalizada</h3><div class="row"><input type="text" id="customTask" placeholder="Ex.: Mover painel para a garagem" style="flex:1 1 220px"><select id="customGroup" style="width:auto">') + Object.keys(trade.tasks).concat(["Outros"]).map(function (g) { return '<option value="' + esc(g) + '">' + esc(tv(g)) + "</option>"; }).join("") + t("projects.add", '</select><button type="button" class="btn" data-act="addTask">Adicionar</button></div>') +
-        (custom.length ? '<div class="chips" style="margin-top:10px">' + custom.map(function (t) { return '<button type="button" class="chip on" data-act="toggleTask" data-group="' + esc(t.group) + '" data-val="' + esc(t.label) + '" data-pt="' + esc(t.label) + '">✕ ' + esc(t.label) + "</button>"; }).join("") + "</div>" : "") + "</div>" +
-        '<div class="muted small">' + d.tasks.length + t("projects.tasksSelected", " tarefas selecionadas</div></div>");
+        t("projects.customTask", '<div class="panel"><h3>Tarefa personalizada</h3><div class="row"><input type="text" id="customTask" placeholder="Ex.: Mover painel para a garagem" style="flex:1 1 220px"><select id="customGroup" style="width:auto">') + Object.keys(TT).concat(["Outros"]).map(function (g) { return '<option value="' + esc(g) + '">' + esc(tv(g)) + "</option>"; }).join("") + t("projects.add", '</select><button type="button" class="btn" data-act="addTask">Adicionar</button></div>') +
+        (custom.length ? '<div class="chips" style="margin-top:10px">' + custom.map(function (t) { return '<button type="button" class="chip on" data-act="toggleTask" data-group="' + esc(t.group) + '" data-val="' + esc(t.label) + '" data-pt="' + esc(t.label) + '">✕ ' + esc(t.label) + (UI ? UI.srcTag(t) : "") + "</button>"; }).join("") + "</div>" : "") + "</div>" +
+        '<div class="muted small">' + d.tasks.length + t("projects.tasksSelected", " tarefas selecionadas</div></div>") + (UI ? UI.notice(true) : "");
     } else if (step === 5) {
       body = t("projects.employeesSeeTheScope", '<div class="stack"><div class="muted small">Os funcionários veem o escopo e o recado. Não coloque preços aqui.</div><div id="scopeWarn">') + scopeWarnHtml(d) + t("projects.contractScopePasteThe", '</div><label class="field"><span>Escopo do contrato (cole aqui o escopo que o contrato passa)</span><textarea id="w-scope" data-bind="scope" style="min-height:200px">') + esc(d.scope) + "</textarea></label>" +
         t("projects.notesForTheCrew2", '<label class="field"><span>Recado para a equipe (chave, horários, cuidados, material)</span><textarea id="w-teamNotes" data-bind="teamNotes">') + esc(d.teamNotes) + "</textarea></label>" +
@@ -1281,7 +1287,7 @@
     var top = '<header class="topbar">' + searchBtn() + '<span class="sp"></span>' + helpBtn() + themeBtn() + "</header>";
     var mtop = '<header class="m-top">' + coCard(S.user.companyId, false, true) + t("common.html2", '<span class="sp"></span><button type="button" class="icon-btn" data-act="search" aria-label="Buscar">') + ic("search") + "</button>" + helpBtn() + themeBtn() + "</header>";
     var mob = '<nav class="bottom-nav" aria-label="Menu">' + EMP_NAV.map(function (n) { return '<button type="button" data-act="nav" data-id="' + n[0] + '" class="' + (cur === n[0] ? "on" : "") + '"' + (cur === n[0] ? ' aria-current="page"' : "") + ">" + ic(n[0] === "me" ? "user" : n[2], 24) + "<span>" + esc(n[0] === "me" ? t("nav.me", "Eu") : n[1]) + "</span></button>"; }).join("") + "</nav>";
-    var body = ({ punch: punchView, jobs: jobsView, project: projectView, notas: notasView, escala: minhaEscalaView, myexp: myExpView, me: meView })[S.view] || punchView;
+    var body = ({ punch: punchView, jobs: jobsView, project: projectView, notas: notasView, escala: minhaEscalaView, myexp: myExpView, me: meView, sugestoes: EXT.views.sugestoes })[S.view] || punchView; // sugestoes: tasks.js
     return '<div class="shell">' + side + '<div class="main">' + top + mtop + '<main class="content" id="conteudo" tabindex="-1">' + offlineFlag() + (API.mode === "demo" ? '<div class="demo-flag">' + ic("eye", 18) + t("nav.demoModeSampleData", "<span>Modo demonstração — dados de exemplo.</span></div>") : "") + (S.loading ? skeletonView() : body()) + "</main></div></div>" + mob;
   }
 
@@ -1783,22 +1789,31 @@
     },
     // Cancelar também pergunta se houver alterações (Salvar / Descartar / Continuar editando)
     cancelWizard: function () { var id = S.draft && S.draft.id; guardLeave(function () { S.draft = null; S.draftBase = null; if (id) go("project", { id: id }, true); else go("projects", {}, true); }); },
-    wizGo: function (el) { S.wizStep = Number(el.dataset.id); render(); window.scrollTo(0, 0); },
+    wizGo: function (el) {
+      S.wizStep = Number(el.dataset.id);
+      // passo Tarefas de projeto novo sem proposta: "Sugerir pela ficha" roda sozinho (de novo só se a ficha mudou; o botão continua)
+      var d = S.draft, sig = d && JSON.stringify(d.details || {});
+      if (S.wizStep === 4 && d && !d.id && !d.proposalId && d._sugSig !== sig) { var clean = !wizDirty(); d._sugSig = sig; A.suggestTasks(null, true); if (clean) markWizClean(); } // sugestão automática não conta como alteração
+      else render();
+      window.scrollTo(0, 0);
+    },
     pickOpt: function (el) { var p = el.dataset.path, v = el.dataset.val; set(S.draft, p, get(S.draft, p) === v ? "" : v); render(); },
     toggleOpt: function (el) { var p = el.dataset.path, v = el.dataset.val, arr = (get(S.draft, p) || []).slice(), i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); set(S.draft, p, arr); render(); },
-    toggleTask: function (el) { var g = el.dataset.group, l = el.dataset.val, pt = el.dataset.pt || l, i = S.draft.tasks.findIndex(function (t) { return t.group === g && (t.label === l || t.label === pt); }); if (i >= 0) S.draft.tasks.splice(i, 1); else S.draft.tasks.push({ id: null, group: g, label: l, done: false }); render(); },
+    toggleTask: function (el) { var g = el.dataset.group, l = el.dataset.val, pt = el.dataset.pt || l, i = S.draft.tasks.findIndex(function (t) { return t.group === g && (t.label === l || t.label === pt || (!!t.tpl && t.tpl === pt)); }); if (i >= 0) S.draft.tasks.splice(i, 1); else S.draft.tasks.push({ id: null, group: g, label: l, done: false }); render(); },
     addTask: function () {
       var l = $("#customTask").value.trim(), g = $("#customGroup").value; if (!l) { $("#customTask").focus(); return; }
-      S.draft.tasks.push({ id: null, group: g, label: l, done: false }); render();
+      S.draft.tasks.push({ id: null, group: g, label: l, done: false, source: "manual" }); render();
       // continua no campo (e no mesmo grupo) para digitar várias tarefas seguidas
       var gs = $("#customGroup"); if (gs) gs.value = g; var f = $("#customTask"); if (f) try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); }
     },
-    suggestTasks: function () {
+    suggestTasks: function (el, auto) {
       // regras do ramo (trades.js → suggest): lista [[grupo, tarefa], …] na ordem em que as regras disparam
       var tr = tradeDef(tradeOf(S.draft.companyId)), add = NV.tradeSuggest(tr.id, S.draft.details || {}, coFlags(S.draft.companyId));
       var n = 0;
-      add.forEach(function (a) { if (!S.draft.tasks.some(function (t) { return t.group === a[0] && (t.label === a[1] || t.label === tv(a[1])); })) { S.draft.tasks.push({ id: null, group: a[0], label: tv(a[1]), done: false }); n++; } });
-      render(); toast(n ? n + t("projects.suggestedTasksAddedReview", " tarefas sugeridas adicionadas. Revise a lista.") : t("projects.fillInTheType", "Preencha as etapas Tipo, Condições e ") + tr.stepName + t("projects.stepsToGetSuggestions", " para receber sugestões."));
+      add.forEach(function (a) { if (!S.draft.tasks.some(function (t) { return t.group === a[0] && (t.label === a[1] || t.label === tv(a[1]) || t.tpl === a[1]); })) { S.draft.tasks.push({ id: null, group: a[0], label: tv(a[1]), done: false, source: "sheet", tpl: a[1] }); n++; } });
+      render();
+      if (auto) { if (n) toast(t("ptk.autoSheet", "{n} tarefas sugeridas pela ficha da obra. Revise: toque para tirar ou pôr.", { n: n }), { kind: "info" }); return; } // ao chegar no passo Tarefas (projeto novo, sem proposta)
+      toast(n ? n + t("projects.suggestedTasksAddedReview", " tarefas sugeridas adicionadas. Revise a lista.") : t("projects.fillInTheType", "Preencha as etapas Tipo, Condições e ") + tr.stepName + t("projects.stepsToGetSuggestions", " para receber sugestões."));
     },
     rmDraftFile: function (el) { S.draftFiles.splice(Number(el.dataset.id), 1); render(); },
     geocode: function () {
@@ -1820,7 +1835,7 @@
         render(); return;
       }
       if (!d.name.trim()) { S.wizStep = 0; render(); var e2 = $("#wizErr"); e2.textContent = t("projects.giveTheProjectA", "Dê um nome ao projeto."); e2.hidden = false; return; }
-      var fin = d.fin, files = S.draftFiles.slice(), proj = JSON.parse(JSON.stringify(d)); delete proj.fin; delete proj._moneyOk; delete d._moneyOk;
+      var fin = d.fin, files = S.draftFiles.slice(), proj = JSON.parse(JSON.stringify(d)); delete proj.fin; delete proj._moneyOk; delete d._moneyOk; delete proj._sugSig;
       proj.lat = proj.lat === "" || proj.lat == null ? null : Number(proj.lat); proj.lng = proj.lng === "" || proj.lng == null ? null : Number(proj.lng);
       toast(t("projects.saving", "Salvando…"));
       API.saveProject(proj).then(function (saved) {
