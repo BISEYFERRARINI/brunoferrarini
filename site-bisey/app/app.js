@@ -199,6 +199,52 @@
       "@media (prefers-color-scheme: dark){" + R + ":not([data-theme=light]){--accent:" + dark + ";--accent-ink:#04091E}}";
   }
   // imagem → dataURL redimensionada no canvas (logo: PNG com transparência; se ficar grande, JPEG em fundo branco)
+  // ── logo da empresa: nítido na capa do PDF (até 1200 px no lado maior), PNG com transparência, até ~400 KB.
+  // SVG: fica vetorial depois de limpo (sem script, foreignObject, on*="…", links javascript:); SVG estranho/grande vira PNG.
+  var LOGO_MAX = 1200, LOGO_BYTES = 400 * 1024;
+  function dataBytes(d) { var i = String(d).indexOf(","); return Math.floor((String(d).length - i - 1) * 3 / 4); }
+  function sanitizeSvg(txt) {
+    var doc; try { doc = new DOMParser().parseFromString(String(txt || ""), "image/svg+xml"); } catch (e) { return null; }
+    var svg = doc && doc.documentElement;
+    if (!svg || String(svg.localName).toLowerCase() !== "svg" || doc.getElementsByTagName("parsererror").length) return null;
+    ["script", "foreignObject", "foreignobject", "iframe", "object", "embed", "audio", "video", "handler", "listener"].forEach(function (tag) {
+      [].slice.call(doc.getElementsByTagNameNS("*", tag)).forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
+    });
+    [svg].concat([].slice.call(svg.getElementsByTagName("*"))).forEach(function (el) {
+      [].slice.call(el.attributes).forEach(function (a) {
+        var n = a.name.toLowerCase(), v = String(a.value || "").replace(/\s+/g, "").toLowerCase();
+        if (/^on/.test(n)) el.removeAttribute(a.name);
+        else if ((n === "href" || n === "xlink:href" || /:href$/.test(n)) && !/^#/.test(v) && !/^data:image\/(png|jpe?g|gif|webp);/.test(v)) el.removeAttribute(a.name);
+        else if (/javascript:|expression\(|@import/.test(v)) el.removeAttribute(a.name);
+      });
+    });
+    return new XMLSerializer().serializeToString(svg);
+  }
+  function loadImg(src) { return new Promise(function (res, rej) { var img = new Image(); img.onload = function () { res(img); }; img.onerror = function () { rej(new Error(t("img.unreadable", "Não consegui abrir essa imagem."))); }; img.src = src; }); }
+  function rasterLogo(img) {
+    var w = img.naturalWidth || img.width || LOGO_MAX, h = img.naturalHeight || img.height || Math.round(LOGO_MAX / 3), d = "";
+    function draw(max, white) { var s = Math.min(1, max / Math.max(w, h)), c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s)); var g = c.getContext("2d"); if (white) { g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); } g.imageSmoothingQuality = "high"; g.drawImage(img, 0, 0, c.width, c.height); return c; }
+    var sizes = [LOGO_MAX, 1000, 800, 640];
+    for (var i = 0; i < sizes.length; i++) { d = draw(sizes[i]).toDataURL("image/png"); if (dataBytes(d) <= LOGO_BYTES) return d; }
+    d = draw(LOGO_MAX).toDataURL("image/webp", 0.9); if (/^data:image\/webp/.test(d) && dataBytes(d) <= LOGO_BYTES) return d; // mantém a transparência
+    for (var q = 0.88; q > 0.5; q -= 0.12) { d = draw(1000, true).toDataURL("image/jpeg", q); if (dataBytes(d) <= LOGO_BYTES) return d; }
+    return draw(640, true).toDataURL("image/jpeg", 0.7);
+  }
+  function prepareLogo(file) {
+    if (!file) return Promise.reject(new Error(t("img.notImage", "Escolha um arquivo de imagem (PNG, JPG ou SVG).")));
+    var isSvg = /svg/.test(file.type || "") || /\.svg$/i.test(file.name || "");
+    if (!isSvg && !/^image\//.test(file.type || "")) return Promise.reject(new Error(t("img.notImage", "Escolha um arquivo de imagem (PNG, JPG ou SVG).")));
+    if (isSvg) {
+      var read = file.text ? file.text() : new Promise(function (res) { var r = new FileReader(); r.onload = function () { res(r.result); }; r.readAsText(file); });
+      return read.then(function (txt) {
+        var clean = sanitizeSvg(txt); if (!clean) throw new Error(t("img.unreadable", "Não consegui abrir essa imagem."));
+        var url = "data:image/svg+xml;base64," + btoa(unescape(encodeURIComponent(clean)));
+        return loadImg(url).then(function (img) { return dataBytes(url) <= LOGO_BYTES ? url : rasterLogo(img); });
+      });
+    }
+    var u = URL.createObjectURL(file);
+    return loadImg(u).then(function (img) { URL.revokeObjectURL(u); return rasterLogo(img); }, function (e) { URL.revokeObjectURL(u); throw e; });
+  }
   function resizeImage(file, max) {
     max = max || 256;
     return new Promise(function (res, rej) {
@@ -2088,7 +2134,7 @@
     openSearch: openSearch, companyBrand: companyBrand, PRODUCT: PRODUCT, NAV: { admin: ADMIN_GROUPS, employee: EMP_GROUPS }, CREATE: CREATE,
     // fase 3: textos, papéis, conta nova, configurações e ajuda
     t: t, tn: tn, tv: tv, I18N: I18N, LANG: LANG, LOCALE: LOCALE, setLang: setLang, langSwitch: langSwitch, speechLang: speechLang, APP_VERSION: APP_VERSION, can: can, isStaff: isStaff, roleOf: roleOf, roleLabel: roleLabel, canView: canView, tradeLabel: tradeLabel, tradeDef: tradeDef,
-    luminance: luminance, resizeImage: resizeImage, copyText: copyText, brandOverride: brandOverride, paintAccent: paintAccent, afterLogin: afterLogin, runAct: runAct,
+    luminance: luminance, resizeImage: resizeImage, prepareLogo: prepareLogo, sanitizeSvg: sanitizeSvg, copyText: copyText, brandOverride: brandOverride, paintAccent: paintAccent, afterLogin: afterLogin, runAct: runAct,
     notifPrefs: notifPrefs, setNotifPref: setNotifPref, hrs: hrs, fmtTime: fmtTime, initials: initials, coLogo: coLogo, modalView: modalView, csvDownload: csvDownload, staffGroups: staffGroups,
     // "quem fez" (autoria) e permissões por tela — usados por propostas, impostos, indicação e o assistente
     SITE_URL: SITE_URL, byLine: byLine, byCell: byCell, whenShort: whenShort, firstName: firstName, isoLocal: isoLocal, VIEW_PERM: VIEW_PERM, allNav: allNav, navActive: navActive, catLabel: catLabel, hoursOf: hoursOf };

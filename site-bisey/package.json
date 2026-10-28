@@ -8,7 +8,11 @@
     "eval:assist": "node tests/assist-eval.js",
     "test:ai": "node tests/ai-fallback.js",
     "test:tax": "node tests/tax.js",
-    "test:novidades": "node tests/novidades.js"
+    "test:novidades": "node tests/novidades.js",
+    "build:matlist": "node tools/build-matlist.js",
+    "test:matlist": "node tests/matlist.js",
+    "test:matlist-ui": "node tests/matlist-ui.js",
+    "test:logo": "node tests/logo.js"
   },
   "dependencies": {
     "@netlify/blobs": "^8.1.0"

@@ -246,7 +246,74 @@
 
       var d = { v: 2, createdAt: new Date().toISOString(), users: users, projects: projects, financials: financials, time: time, expenses: exp, notices: notices, events: events, schedule: schedule };
       d.activity = deriveActivity(d);
+      addMatSample(d);
       return d;
+    }
+
+    // ── lista de material da conta de exemplo: preços de exemplo ("Meus preços"), promoções e uma proposta ACEITA ──
+    // A lista da proposta aceita é montada pelo "servidor de mentira" (ensureLists) com o levantamento de exemplo do ramo.
+    // Contas de exemplo de antes (já gravadas no aparelho) recebem o mesmo uma vez (matSeed), sem mexer no que a pessoa já tem.
+    function addMatSample(d) {
+      if (d.matSeed || d.org) return false;
+      d.matSeed = 1;
+      var today = new Date(); today.setHours(0, 0, 0, 0);
+      function ago(n) { var x = new Date(today); x.setDate(x.getDate() - n); return x.getFullYear() + "-" + ("0" + (x.getMonth() + 1)).slice(-2) + "-" + ("0" + x.getDate()).slice(-2); }
+      function at(n, h) { var x = new Date(today); x.setDate(x.getDate() - n); x.setHours(h || 10, 15, 0, 0); return x.toISOString(); }
+      if (!(d.materials || []).length) {
+        var el = window.NV.tradeDef("electrical").prices.basic, hv = window.NV.tradeDef("hvac").prices.basic;
+        // [índice na lista básica, [[loja, preço, dias atrás], …]] — alguns com mais de 30 dias (aparecem como desatualizados)
+        var P = [[0, [["homedepot", 98.97, 5], ["ies", 104.5, 12], ["granite", 101.2, 41]]], [1, [["homedepot", 139, 6], ["ies", 132.75, 9], ["lowes", 136.98, 4]]],
+          [2, [["homedepot", 152, 6], ["granite", 147.9, 18]]], [3, [["homedepot", 205, 8], ["ies", 198.4, 45]]], [9, [["homedepot", 0.98, 7], ["ies", 0.79, 14]]],
+          [10, [["homedepot", 2.48, 7], ["ies", 2.15, 14]]], [11, [["homedepot", 3.97, 7], ["granite", 3.45, 20]]], [12, [["homedepot", 2.18, 3], ["ies", 1.89, 11], ["lowes", 2.08, 3]]],
+          [13, [["homedepot", 3.98, 3], ["ies", 3.42, 11]]], [14, [["homedepot", 24.97, 3], ["ies", 21.8, 11], ["granite", 22.4, 25]]], [15, [["homedepot", 2.98, 3], ["ies", 2.49, 11]]],
+          [16, [["homedepot", 4.48, 3], ["ies", 3.95, 11]]], [17, [["homedepot", 24.98, 9], ["lowes", 22.98, 9]]], [19, [["homedepot", 58, 9], ["ies", 54.2, 16]]],
+          [20, [["homedepot", 289, 9], ["granite", 312, 22]]], [21, [["homedepot", 79.98, 9], ["ies", 74.5, 16]]], [22, [["homedepot", 21.48, 9], ["granite", 19.9, 33]]], [23, [["homedepot", 12.97, 2], ["lowes", 11.98, 2]]],
+          [25, [["homedepot", 49.97, 4], ["ies", 46.5, 10]]], [26, [["homedepot", 9.98, 4], ["ies", 8.4, 10]]], [27, [["homedepot", 6.98, 4], ["ies", 5.9, 10]]]];
+        var mats = P.filter(function (x) { return el[x[0]]; }).map(function (x) { var b = el[x[0]]; return { id: "mat-s" + x[0], name: b[0], category: b[1], unit: b[2], prices: x[1].map(function (q, i) { return { id: "pr-s" + x[0] + "-" + i, store: q[0], price: q[1], date: ago(q[2]), note: "" }; }) }; });
+        [[0, [["homedepot", 159, 6], ["johnstone", 148.5, 12], ["fwwebb", 152, 20]]], [1, [["homedepot", 219, 6], ["johnstone", 204, 12]]]].forEach(function (x) {
+          var b = hv[x[0]]; if (b) mats.push({ id: "mat-h" + x[0], name: b[0], category: b[1], unit: b[2], prices: x[1].map(function (q, i) { return { id: "pr-h" + x[0] + "-" + i, store: q[0], price: q[1], date: ago(q[2]), note: "" }; }) });
+        });
+        d.materials = mats;
+      }
+      if (!(d.deals || []).length) {
+        d.deals = [
+          { id: "deal-s1", store: "homedepot", title: "Romex NM-B 12/2 250 ft — Pro Xtra price", price: 124, validUntil: ago(-10), url: "", note: t("seed.dealNote1", "Preço de conta Pro"), source: "manual", createdAt: at(3) },
+          { id: "deal-s2", store: "ies", title: "20A GFCI receptacle TR/WR — clearance", price: 18.9, validUntil: ago(-6), url: "", note: t("seed.dealNote2", "Folheto do balcão"), source: "manual", createdAt: at(1) },
+          { id: "deal-s3", store: "granite", title: "200A main breaker panel 40 spaces — spring promo", price: 249, validUntil: ago(5), url: "", note: "", source: "manual", createdAt: at(20) }
+        ];
+      }
+      d.proposals = d.proposals || [];
+      if (!d.proposals.some(function (p) { return p.id === "prop-sample-maple"; })) {
+        d.proposals.push({ id: "prop-sample-maple", companyId: "eternity", projectId: "p-maple", docType: "estimate", number: "EST362", status: "Aceita", date: ago(16), validityDays: 30,
+          title: "ELECTRICAL PROPOSAL", subtitle: "Kitchen & Two Bathroom Remodel · 200A Service Upgrade",
+          client: { name: t("sample.sampleCustomerHomeowner", "Cliente Exemplo (proprietário)"), role: "Homeowner", address: "88 Maple Ave, Shrewsbury, MA", email: "", phone: "" },
+          sections: [
+            { title: "Service Upgrade", text: "Upgrade the existing 100A service to a new 200A main breaker panel (40 spaces) and new 200A meter socket.\nNew grounding electrode system: two 5/8\" x 8 ft ground rods and bonding.\nNew 20A AFCI/GFCI dual function breakers for all new circuits." },
+            { title: "Kitchen", text: "Install 8 recessed LED 6\" wafer lights on an LED dimmer.\nInstall 20A GFCI receptacles (TR/WR) at all countertops.\nDedicated 20A circuits in 12/2 NM-B Romex." },
+            { title: "Bathrooms (2)", text: "20A GFCI receptacles and dedicated circuits.\nDecorator switches for lights and exhaust fans." },
+            { title: "Whole House", text: "Replace all receptacles and switches with white tamper-resistant decorator devices.\nInstall hardwired interconnected combo smoke/CO detectors.\nLight fixtures and exhaust fans supplied by Owner (installation by Eternity Electric)." }
+          ],
+          items: [{ desc: "Electrical scope as described above", qty: "1 lot", price: "18500" }], total: 18500,
+          notIncluded: "Light fixtures and exhaust fans (supplied by Owner) · Patching and painting · Low-voltage wiring",
+          acceptedBy: t("sample.sampleCustomerHomeowner", "Cliente Exemplo (proprietário)"), acceptedAt: at(12, 19), sentTo: "cliente@example.com", sentAt: at(15, 18),
+          createdBy: "u-admin", createdByName: "Bruno", createdAt: at(16, 20), updatedAt: at(12, 19), statusBy: null, statusByName: "", statusAt: at(12, 19) });
+      }
+      return true;
+    }
+    // "servidor" do modo demonstração: proposta aceita ganha a lista de material sozinha (levantamento de exemplo do ramo + melhores preços)
+    function matReady() { return window.BiseyMat ? window.BiseyMat.loadCatalog() : Promise.reject(new Error("matlist")); }
+    function demoMatList(p) {
+      var M = window.BiseyMat, cat = window.NV.MATCAT, co = COMPANIES.find(function (c) { return c.id === p.companyId; }) || {};
+      var tr = window.NV.tradeKey(co.trade || "electrical"), tc = cat.trades[tr] || cat.trades.electrical;
+      var ml = { items: M.cleanTakeoff(M.mockTakeoff(tc, p, window.NV.lang)), notes: t("matlist.demoNote", "Lista de exemplo do modo demonstração (na conta conectada a IA lê o escopo da proposta)."),
+        at: new Date().toISOString(), trade: tr, source: "demo", auto: true };
+      ml.pricing = M.snapshot(M.priceList(ml, { materials: db.materials || [], deals: db.deals || [], stores: tc.stores, links: M.storeLinks((window.APP_CONFIG || {}).STORE_LINKS) }));
+      return ml;
+    }
+    function wantsList(p) { return p && p.status === "Aceita" && p.docType !== "invoice" && !p.materialList; }
+    function ensureLists() {
+      if (!(db.proposals || []).some(wantsList)) return P();
+      return matReady().then(function () { db.proposals.forEach(function (p) { if (wantsList(p)) p.materialList = demoMatList(p); }); persist(); }).catch(function () {});
     }
 
     function registry() { try { var r = JSON.parse(safeGet(REG) || "[]"); return Array.isArray(r) ? r : []; } catch (e) { return []; } }
@@ -260,6 +327,7 @@
       if (!db && activeKey !== KEY) { activeKey = KEY; safeSet(ACTIVE, KEY); return load(); } // conta criada que sumiu → volta para a de exemplo
       if (!db) { db = seed(); persist(); }
       if (!db.activity) { db.activity = deriveActivity(db); persist(); } // contas de antes do histórico: monta com o que já está gravado
+      if (addMatSample(db)) persist(); // conta de exemplo antiga: preços, promoções e proposta aceita de exemplo (uma vez)
       applyCompanies();
     }
     // empresas da conta ativa: as pré-configuradas (exemplo) + ajustes de Configurações, ou as criadas no onboarding
@@ -487,7 +555,7 @@
         db.expenses = db.expenses.filter(function (x) { return x.id !== id; }); persist(); return P();
       },
       // propostas
-      listProposals: function (companyId) { db.proposals = db.proposals || []; return P(clone(db.proposals.filter(function (x) { return !companyId || x.companyId === companyId; }))); },
+      listProposals: function (companyId) { db.proposals = db.proposals || []; return ensureLists().then(function () { return clone(db.proposals.filter(function (x) { return !companyId || x.companyId === companyId; })); }); },
       saveProposal: function (p) {
         db.proposals = db.proposals || [];
         var rec = clone(p), isNew = !rec.id; if (isNew) { rec.id = uid(); rec.createdAt = new Date().toISOString(); }
@@ -503,7 +571,10 @@
         var base = { companyId: rec.companyId, ref: rec.id, label: rec.number || "", extra: { docType: rec.docType || "estimate", status: st } };
         if (!old) logAct("proposal.create", base);
         if (rec.statusAt === rec.updatedAt) logAct("proposal.status", base);
-        persist(); return P(clone(rec));
+        persist();
+        // aceita agora (pelo status ou pelo cliente) → o "servidor" monta a lista de material com os melhores preços, como no publicAccept
+        if (wantsList(rec) && (!old || old.status !== "Aceita")) return matReady().then(function () { rec.materialList = demoMatList(rec); persist(); return clone(rec); }).catch(function () { return clone(rec); });
+        return P(clone(rec));
       },
       deleteProposal: function (id) {
         var x = (db.proposals || []).find(function (y) { return y.id === id; });
@@ -1237,7 +1308,7 @@
       uploadLogo: function (img, companySlug) {
         if (!SAAS) return needSaas();
         var blob = typeof img === "string" ? dataURLToBlob(img) : img;
-        var path = org.id + "/" + (companySlug ? "companies/" + coId(companySlug) : "logo") + "-" + Date.now() + ".png";
+        var path = org.id + "/" + (companySlug ? "companies/" + coId(companySlug) : "logo") + "-" + Date.now() + "." + ({ "image/svg+xml": "svg", "image/jpeg": "jpg", "image/webp": "webp" }[blob.type] || "png"); // extensão = tipo real (SVG limpo, PNG, JPG ou WebP)
         return sb.storage.from("org-assets").upload(path, blob, { contentType: blob.type || "image/png", upsert: true }).then(chk).then(function () { return path; });
       },
       saveOrg: function (o) {

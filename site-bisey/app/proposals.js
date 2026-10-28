@@ -71,7 +71,8 @@
   // cabeçalho neutro (página pública sem dados da empresa em Configurações → Empresa)
   var NEUTRAL = { brand: "", title: "PROPOSAL", tagline: "", contact: "", footer: "", role: "Contractor", logo: "", logoSm: "", logoW: "1.3in", accent: "#2A5BFF", dark: "#1C2230", bg: "#FAFAF8", payTo: "", email: "", custom: true, neutral: true };
   // instantâneo da marca na proposta (a página pública do cliente não carrega as empresas da conta)
-  function brandSnap(id) { var c = coRec(id); if (!c || CO[id]) return null; return { name: c.name, trade: c.trade, accent: c.accent || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license || "", state: c.state || "", hicReg: c.hicReg || "" }; }
+  // logo vai junto só quando está hospedado (https; conta conectada) — no modo demonstração o logo é um data: grande e fica só no aparelho
+  function brandSnap(id) { var c = coRec(id); if (!c || CO[id]) return null; return { name: c.name, trade: c.trade, accent: c.accent || "", email: c.email || "", phone: c.phone || "", address: c.address || "", license: c.license || "", state: c.state || "", hicReg: c.hicReg || "", logo: /^https:\/\//.test(c.logo || "") ? c.logo : "" }; }
 
   // seções padrão por ramo: trades.js → proposal.sections ([título, texto]) e proposal.keywords (modo sem IA)
   function SECTIONS_OF(tr) { return NV.tradeDef(tr).proposal.sections; }
@@ -150,7 +151,7 @@
     var sum = function (st) { return list.filter(function (p) { return p.status === st; }).reduce(function (a, p) { return a + (p.total || 0); }, 0); };
     var sent = list.filter(function (p) { return p.status === "Enviada" || p.status === "Aceita" || p.status === "Recusada"; }).length, won = list.filter(function (p) { return p.status === "Aceita"; }).length;
     return t("proposals.estimates", '<div class="page-head"><div><h1>Propostas</h1><p>') + esc(E.companyName(S.company)) + " · " + esc(E.tn("proposals.nEstimates", list.length, "1 proposta", "{n} propostas")) + " · " + esc(E.tn("proposals.nInvoices", all.length - list.length, "1 invoice", "{n} invoices")) + '</p></div><div class="row"><button class="btn ghost" data-act="pNew" data-id="invoice">' + E.ic("plus") + 'Invoice</button><button class="btn" data-act="pNew" data-id="estimate">' + E.ic("mic") + t("proposals.newEstimate", 'Nova proposta</button></div></div>') +
-      draftBanner() +
+      draftBanner() + (E.matList ? E.matList.banner(all) : "") +
       '<div class="kpis" style="margin-bottom:14px">' +
       kpi(t("proposals.sentAwaitingReply", "Enviadas aguardando"), money(sum("Enviada")), E.tn("proposals.nEstimates", list.filter(function (p) { return p.status === "Enviada"; }).length, "1 proposta", "{n} propostas")) +
       kpi(t("proposals.accepted", "Aceitas"), money(sum("Aceita")), E.tn("proposals.nEstimates", won, "1 proposta", "{n} propostas"), "v-good") +
@@ -158,7 +159,7 @@
       '<div class="chips" style="margin-bottom:10px">' + [["all", t("proposals.all", "Todas")], ["estimate", t("proposals.chipEstimates", "Propostas")], ["invoice", "Invoices"]].map(function (x) { return '<button type="button" class="chip' + (tf === x[0] ? " on" : "") + '" data-act="pTypeFilter" data-id="' + x[0] + '">' + x[1] + "</button>"; }).join("") + "</div>" +
       (shown.length ? t("proposals.noCustomerJobDate", '<div class="table-wrap"><table><thead><tr><th>Nº</th><th>Cliente</th><th>Obra</th><th>Data</th><th>Status</th><th class="n">Valor</th></tr></thead><tbody>') +
         shown.map(function (p) {
-          return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + '</b><div class="small muted">' + (isInv(p) ? "Invoice" : esc(t("proposals.rowEstimate", "Proposta"))) + "</div></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + (p.statusByName || p.createdByName ? '<div class="by">' + E.byLine("{n}", p.statusByName || p.createdByName, p.statusAt || p.createdAt) + "</div>" : "") + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
+          return '<tr class="click" data-act="pOpen" data-id="' + p.id + '"><td><b>' + esc(p.number || "—") + '</b><div class="small muted">' + (isInv(p) ? "Invoice" : esc(t("proposals.rowEstimate", "Proposta"))) + "</div></td><td>" + esc((p.client || {}).name || "—") + '</td><td class="small">' + esc((p.client || {}).address || "") + (p.subtitle ? '<div class="muted">' + esc(p.subtitle) + "</div>" : "") + "</td><td>" + E.fmtDate(p.date) + "</td><td>" + pPill(p.status) + (E.matList ? E.matList.rowBadge(p) : "") + (p.statusByName || p.createdByName ? '<div class="by">' + E.byLine("{n}", p.statusByName || p.createdByName, p.statusAt || p.createdAt) + "</div>" : "") + '</td><td class="n"><b>' + money(p.total) + "</b></td></tr>";
         }).join("") + "</tbody></table></div>"
         : E.emptyState({ icon: "doc", title: t("proposals.noEstimatesYet", "Nenhuma proposta ainda"), text: t("proposals.tapNewEstimateDescribe", "Toque em “Nova proposta”, fale o serviço e a proposta sai pronta."), cta: { act: "pNew", id: "estimate", label: t("proposals.newEstimate2", "Nova proposta"), icon: "mic", primary: true } }));
   };
@@ -267,8 +268,10 @@
   // ═══════════ documento (PDF) ═══════════
   function buildDoc(p) {
     var c = coFor(p.companyId, p), hd = p.header || {}, A = c.accent, D = c.dark;
-    var logoBig = c.logo ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="width:' + (c.logoW || "3.3in") + ';max-width:100%;display:block;margin:0 auto">' : '<div style="font-size:40pt;font-weight:700;letter-spacing:.04em;color:' + D + '">' + esc(c.brand.toUpperCase()) + "</div>";
-    var logoSm = c.logoSm ? '<img src="' + c.logoSm + '" alt="" style="height:.42in">' : '<span style="font-weight:700;color:' + D + ';letter-spacing:.06em">' + esc(c.brand.toUpperCase()) + "</span>";
+    // logo da empresa do cliente (até 1200 px): cabe numa caixa de 2,8 × 1,5 pol. sem distorcer (largo ou quadrado); Eternity / Blue Star como sempre
+    var logoBig = c.logo ? (c.custom ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="max-width:min(2.8in,100%);max-height:1.5in;width:auto;height:auto;display:block;margin:0 auto">'
+      : '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="width:' + (c.logoW || "3.3in") + ';max-width:100%;display:block;margin:0 auto">') : '<div style="font-size:40pt;font-weight:700;letter-spacing:.04em;color:' + D + '">' + esc(c.brand.toUpperCase()) + "</div>";
+    var logoSm = c.logoSm ? '<img src="' + c.logoSm + '" alt="" style="height:.42in;max-width:2.2in;object-fit:contain">' : '<span style="font-weight:700;color:' + D + ';letter-spacing:.06em">' + esc(c.brand.toUpperCase()) + "</span>";
     var validity = (p.validityDays || 30) + " days from issue date";
     var css = '<style>@page{size:letter;margin:.45in .6in .5in}' +
       '#print-root{-webkit-print-color-adjust:exact;print-color-adjust:exact;font-family:"Times New Roman",Times,Georgia,serif;color:' + D + ';font-size:10.5pt;line-height:1.38}' +
@@ -352,8 +355,13 @@
     var p = S.pdraft; p.total = totalOf(p);
     if (!p.client.name && !p.client.address) { E.toast(t("proposals.fillInTheCustomer", "Preencha o cliente ou o endereço da obra.")); var f = document.querySelector('[data-pbind="client.name"]'); if (f) f.focus(); return Promise.resolve(false); }
     E.toast(t("proposals.saving", "Salvando…"));
+    var hadList = !!p.materialList;
     return API.saveProposal(p).then(function (saved) { S.pdraft = Object.assign(blankProposal(), saved); markClean(); return reloadExt(); })
-      .then(function () { E.toast(isInv(S.pdraft) ? t("proposals.invoiceSaved", "Invoice salvo.") : t("proposals.estimateSaved", "Proposta salva.")); return true; });
+      .then(function () {
+        E.toast(isInv(S.pdraft) ? t("proposals.invoiceSaved", "Invoice salvo.") : t("proposals.estimateSaved", "Proposta salva."));
+        if (E.matList) E.matList.afterSave(S.pdraft, hadList);
+        return true;
+      });
   }
   EXT.leave.push(function () {
     if (S.view !== "proposalForm" || !isDirty()) return null;
@@ -417,7 +425,13 @@
     return true;
   });
   EXT.change.push(function (el) {
-    if (el.dataset.pbind && S.pdraft) { set(S.pdraft, el.dataset.pbind, el.value); hicSync(S.pdraft, el.dataset.pbind); if (el.tagName === "SELECT") E.render(); else schedulePersist(); return true; }
+    if (el.dataset.pbind && S.pdraft) {
+      var was = el.dataset.pbind === "status" && S.pdraft.id ? ((S.proposals.find(function (x) { return x.id === S.pdraft.id; }) || {}).status || null) : null; // status gravado (o input já mudou o rascunho)
+      set(S.pdraft, el.dataset.pbind, el.value); hicSync(S.pdraft, el.dataset.pbind);
+      // marcou "Aceita" numa proposta já salva: salva já (no aceite a lista de material é montada sozinha — matlist.js)
+      if (was != null && was !== "Aceita" && el.value === "Aceita" && S.pdraft.id && !isInv(S.pdraft)) { saveDraft().catch(function (e) { E.toast(e.message || t("proposals.errorSaving", "Erro ao salvar.")); }); return true; }
+      if (el.tagName === "SELECT") E.render(); else schedulePersist(); return true;
+    }
     if (el.dataset.pf) { S.priceFilter[el.dataset.pf] = el.value; E.render(); return true; }
     return false;
   });
@@ -470,39 +484,41 @@
     setTimeout(mountPreview, 0);
     var sent = p.acceptedAt ? t("proposals.acceptedByTheCustomer", '<div class="panel ed-sec" style="border-color:var(--good);background:var(--good-soft)"><h3 style="margin:0;color:var(--good)">✓ Aceita pelo cliente</h3><div>') + esc(p.acceptedBy || "") + " · " + E.fmtDate(p.acceptedAt) + "</div></div>"
       : p.sentTo ? t("proposals.sentTo", '<div class="panel ed-sec"><div class="small">📨 Enviada para <b>') + esc(p.sentTo) + t("proposals.sentOn", "</b> em ") + E.fmtDate(p.sentAt) + t("proposals.waitingForTheCustomer", " · aguardando resposta do cliente</div></div>") : "";
-    return head + sent + type + cli + voice + notes + prev + (p.id && !inv ? matListPanel(p) : "") + adv +
+    return head + sent + type + logoPanel(p) + cli + voice + notes + prev + (p.id && !inv ? matListPanel(p) : "") + adv +
       '<div class="sticky-actions">' + (p.id ? t("proposals.deleteDuplicate", '<button class="btn danger" data-act="pAskDel">Apagar</button><button class="btn ghost" data-act="pDup">Duplicar</button>') : "") +
       (p.id && !inv ? t("proposals.createInvoiceTurnInto", '<button class="btn ghost" data-act="pToInvoice">Gerar invoice</button><button class="btn ghost" data-act="pToProject">Virar projeto</button>') : "") +
       t("proposals.viewPdfPrintSave", '<button class="btn ghost" data-act="pPrint">Ver PDF / Imprimir</button><button class="btn ghost" data-act="pSave">Salvar</button><button class="btn" data-act="pSend">📨 Enviar para o cliente</button></div>');
   };
 
   // ── lista de material da obra (montada quando o cliente aceita) ──
-  function words(t) { return String(t || "").toLowerCase().replace(/[^a-z0-9/"]+/g, " ").split(" ").filter(function (w) { return w.length > 1; }); }
-  function matchMaterial(name) {
-    var a = words(name), bestM = null, bestS = 0;
-    S.materials.forEach(function (m) { var b = words(m.name), hit = a.filter(function (w) { return b.indexOf(w) >= 0; }).length, sc = hit / Math.max(3, Math.min(a.length, b.length)); if (sc > bestS) { bestS = sc; bestM = m; } });
-    return bestS >= 0.5 ? bestM : null;
+  // ── "Adicionar seu logo": empresa sem logo (não pré-configurada) vê o convite aqui mesmo, com a prévia do cabeçalho ──
+  function logoPanel(p) {
+    var r = coRec(p.companyId); if (!r || CO[p.companyId] || r.logo) return "";
+    if (!E.can("settings")) return '<div class="panel ed-sec p-logo"><div class="muted small">' + esc(t("proposals.logoAskOwner", "Ainda sem logo: peça ao dono para enviar em Configurações → Empresa.")) + "</div></div>";
+    var busy = S.pLogoBusy;
+    return '<div class="panel ed-sec p-logo"><div class="spread"><div style="min-width:0;flex:1 1 260px"><h3 style="margin:0">' + esc(t("proposals.logoTitle", "Seu logo na proposta")) + '</h3><div class="muted small">' + esc(t("proposals.logoSub", "Ainda sem logo: o documento sai só com o nome da empresa. O logo aparece na capa, no cabeçalho de cada página, no invoice, na página de aceite e no e-mail ao cliente.")) + "</div></div>" +
+      '<label class="btn sm upload-btn' + (busy ? " disabled" : "") + '">' + (busy ? '<span class="spin" aria-hidden="true"></span> ' + esc(t("proposals.logoSaving", "Salvando o logo…")) : E.ic("upload", 16) + " " + esc(t("proposals.logoAdd", "Adicionar seu logo"))) +
+      '<input type="file" id="pLogo" accept="image/png,image/jpeg,image/webp,image/svg+xml,.svg"' + (busy ? " disabled" : "") + "></label></div>" +
+      '<div class="p-logo-prev"><span class="label">' + esc(t("proposals.logoPreview", "Como fica o cabeçalho")) + "</span>" + (E.docPreview ? E.docPreview({ name: r.name, trade: r.trade, accent: r.accent, license: r.license, address: r.address, email: r.email, phone: r.phone }, "") : "") +
+      '<div class="muted small">' + esc(t("proposals.logoHint", "PNG com fundo transparente, JPG ou SVG.")) + "</div></div></div>";
   }
-  function matListPanel(p) {
-    var ml = p.materialList;
-    var headH = t("proposals.materialListAndWhere", '<div class="spread"><div><h3 style="margin:0">Lista de material e onde comprar mais barato</h3><div class="muted small">Só para você · ') + (ml ? t("proposals.builtOn", "montada em ") + E.fmtDate(ml.at) : t("proposals.buildsItselfWhenThe", "é montada sozinha quando o cliente aceita a proposta")) + "</div></div>" +
-      '<button class="btn ' + (ml ? "ghost " : "") + 'sm" data-act="pMatList"' + (S.pMatBusy ? " disabled" : "") + ">" + (S.pMatBusy ? t("proposals.building", "Montando…") : ml ? t("proposals.rebuildList", "Refazer lista") : t("proposals.buildListNow", "Montar lista agora")) + "</button></div>";
-    if (!ml || !(ml.items || []).length) return '<div class="panel ed-sec">' + headH + "</div>";
-    var shop = {}, known = 0;
-    var rows = ml.items.map(function (it) {
-      var m = matchMaterial(it.name), b = m ? best(m) : null, sub = b ? b.price * (Number(it.qty) || 0) : 0;
-      if (b) { known += sub; (shop[b.store] = shop[b.store] || []).push(it.qty + " " + (it.unit || "") + " " + it.name); }
-      return "<tr><td><b>" + esc(it.name) + '</b></td><td class="n">' + esc(it.qty) + " " + esc(it.unit || "") + "</td><td>" +
-        (b ? '<span class="pill good">' + esc(storeName(b.store)) + "</span> " + money2(b.price) + '</td><td class="n"><b>' + money2(sub) + "</b>" : t("proposals.noSavedPrice", '<span class="muted small">sem preço salvo</span></td><td class="n">—')) + "</td><td>" +
-        STORES.map(function (s) { return '<a class="chip" style="padding:3px 8px;font-size:12px" href="' + esc(s.url(it.search || it.name)) + '" target="_blank" rel="noopener">' + esc(s.short) + "</a>"; }).join(" ") + "</td></tr>";
-    }).join("");
-    return '<div class="panel ed-sec">' + headH +
-      t("proposals.materialQtyCheapestYour", '<div class="table-wrap"><table><thead><tr><th>Material</th><th class="n">Qtd</th><th>Mais barato (seus preços)</th><th class="n">Subtotal</th><th>Pesquisar</th></tr></thead><tbody>') + rows + "</tbody></table></div>" +
-      (known ? t("proposals.materialWithKnownPrice", '<div class="total-bar"><span>Material com preço conhecido</span><span>') + money2(known) + "</span></div>" : "") +
-      (Object.keys(shop).length ? t("proposals.buyAtEachStore", '<div><span class="label">Comprar em cada loja</span>') + Object.keys(shop).map(function (sid) { return '<div class="sec-card" style="margin-top:8px"><b>' + esc(storeName(sid)) + '</b><div class="small">' + shop[sid].map(esc).join(" · ") + "</div></div>"; }).join("") + "</div>" : "") +
-      (ml.notes ? '<div class="muted small">' + esc(ml.notes) + "</div>" : "") +
-      t("proposals.theCheapestPriceComes", '<div class="muted small">O preço “mais barato” vem da aba Preços → Meus preços. As lojas de material elétrico não mostram preço sem login; os botões abrem a busca de cada loja para conferir.</div></div>');
-  }
+  EXT.change.push(function (el) {
+    if (el.id !== "pLogo" || !el.files || !el.files[0]) return false;
+    var p = S.pdraft, id = p && p.companyId; if (!id) return true;
+    S.pLogoBusy = true; E.render();
+    E.prepareLogo(el.files[0]).then(function (logo) { return API.saveCompany({ id: id, logo: logo }); })
+      .then(function () {
+        S.pLogoBusy = false;
+        if (S.pdraft && S.pdraft.companyId === id) { var snap = brandSnap(id); if (snap) S.pdraft.companyBrand = snap; }
+        if (E.applyBrand) E.applyBrand({}); else E.render();
+        E.toast(t("proposals.logoSaved", "Logo salvo. Já aparece na proposta."));
+      })
+      .catch(function (e) { S.pLogoBusy = false; E.render(); E.toast((e && e.message) || t("proposals.errorSaving", "Erro ao salvar.")); });
+    return true;
+  });
+
+  // lista de material da proposta aceita: matlist.js (melhor preço por item, comprados, exportar, cotação, orçamento)
+  function matListPanel(p) { return E.matList ? E.matList.panel(p) : ""; }
 
   // ── prévia (mesmo HTML do PDF, dentro de um quadro) ──
   var prevTimer = null;
@@ -625,7 +641,7 @@
   // ═══════════ invoice (documento) ═══════════
   function invoiceBody(p, c) {
     var A = c.accent, D = c.dark, paid = num(p.amountPaid), tot = totalOf(p);
-    var logo = c.logo ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="width:2.4in;display:block;margin:0 auto">' : '<div style="font-size:30pt;font-weight:700;letter-spacing:.04em;color:' + D + ';text-align:center">' + esc(c.brand.toUpperCase()) + "</div>";
+    var logo = c.logo ? '<img src="' + c.logo + '" alt="' + esc(c.brand) + '" style="' + (c.custom ? "max-width:min(2.4in,100%);max-height:1.2in;width:auto;height:auto" : "width:2.4in") + ';display:block;margin:0 auto">' : '<div style="font-size:30pt;font-weight:700;letter-spacing:.04em;color:' + D + ';text-align:center">' + esc(c.brand.toUpperCase()) + "</div>";
     var hd = p.header || {};
     var top = '<div style="text-align:center">' + logo + '<div style="font-weight:700;margin-top:6px">' + esc(hd.tagline || c.tagline) + '</div><div style="font-style:italic">' + esc(hd.contact || c.contact) + "</div></div>" +
       '<div style="border-top:1px solid ' + A + ';border-bottom:1px solid ' + A + ';margin:14px 0;padding:8px 0;text-align:center"><div style="font-size:26pt;font-weight:700;letter-spacing:.08em">INVOICE</div>' + (p.subtitle ? '<div style="font-style:italic">' + esc(p.subtitle) + "</div>" : "") + "</div>";
@@ -664,14 +680,6 @@
         if (r && r.ok) { p.sentTo = r.sent; p.sentAt = new Date().toISOString(); if (p.status === "Rascunho") p.status = "Enviada"; if (S.pdraft === p) markClean(); return reloadExt().then(function () { E.toast(t("proposals.sentTo2", "Enviado para ") + r.sent + "."); }); }
         E.toast(svcMsg(r));
       }).catch(function (e) { E.toast(e.message || t("proposals.errorUploading", "Erro ao enviar.")); });
-  };
-  AC.pMatList = function () {
-    var p = S.pdraft; if (!p.id) { E.toast(t("proposals.saveTheEstimateFirst", "Salve a proposta primeiro.")); return; }
-    S.pMatBusy = true; E.render();
-    API.services("materialList", { id: p.id }).then(function (r) {
-      S.pMatBusy = false;
-      if (r && r.ok) { var clean = S.pdraft === p && !isDirty(); p.materialList = r.list; if (clean) markClean(); E.render(); E.toast(t("proposals.materialListReady", "Lista de material pronta.")); } else { E.render(); E.toast(svcMsg(r)); }
-    });
   };
   function svcMsg(r) {
     var e = r && r.error;
@@ -749,10 +757,17 @@
         : E.emptyState({ icon: "tag", title: t("prices.noMaterialsYet", "Nenhum material cadastrado"), text: t("prices.startWithABasic", "Comece por uma lista básica e vá anotando os preços de cada loja."), cta: '<div class="row" style="justify-content:center">' + tradeDef(S.company).prices.basicOffer.map(function (b, i) { return '<button class="btn ' + (i ? "ghost " : "") + 'sm" data-act="prBasic" data-id="' + b.list + '">' + esc(b.label) + "</button>"; }).join("") + "</div>" }));
     return t("prices.yourPricesByStore", '<div class="spread" style="margin-bottom:10px"><p class="muted small" style="margin:0">Seus preços por loja (usados na estimativa e na lista de material). Verde = mais barato · apagado = mais de 30 dias.</p><button class="btn sm" data-act="prNewMat">+ Material</button></div>') +
       t("prices.searchInputTypeSearch", '<div class="filters"><label class="field"><span>Buscar</span><input type="search" data-pf="q" value="') + esc(f.q) + t("prices.categoryAll", '" placeholder="ex.: Romex, GFCI, line set"></label><label class="field"><span>Categoria</span><select data-pf="cat"><option value="">Todas</option>').replace(/placeholder="[^"]*"/, function (m) { var ex = tradeDef(S.company).prices.searchExample; return ex ? 'placeholder="' + esc(ex) + '"' : m; }) + // exemplo do ramo (B17)
-      Object.keys(cats).sort().map(function (c) { return "<option" + (f.cat === c ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select></label></div>" + table +
+      Object.keys(cats).sort().map(function (c) { return "<option" + (f.cat === c ? " selected" : "") + ">" + esc(c) + "</option>"; }).join("") + "</select></label></div>" + table + basicMore() +
       t("prices.tapAPriceTo", '<p class="muted small" style="margin-top:12px">Toque num preço para atualizar. As lojas de material elétrico mostram preço só para clientes com conta; use o preço da sua cotação ou nota fiscal.</p>') + dealsHtml;
   }
 
+  // já tem materiais (ex.: os de exemplo): a lista básica do ramo continua a um toque (só acrescenta o que falta)
+  function basicMore() {
+    if (!S.materials.length) return "";
+    var have = {}; S.materials.forEach(function (m) { have[m.name] = 1; });
+    var offers = tradeDef(S.company).prices.basicOffer.filter(function (b) { return NV.tradeDef(b.list).prices.basic.some(function (x) { return !have[x[0]]; }); });
+    return offers.length ? '<div class="row" style="margin-top:10px">' + offers.map(function (b) { return '<button class="btn ghost sm" data-act="prBasic" data-id="' + b.list + '">+ ' + esc(b.label) + "</button>"; }).join("") + "</div>" : "";
+  }
   var promoFile = null;
   // arquivo opcional de liquidações (gerado fora do app): só é buscado se configurado em APP_CONFIG.PROMOS_URL
   // (true = "promos.json" ao lado do app) — sem configuração não há requisição (antes dava 404 no console)
@@ -864,6 +879,9 @@
   };
 
   window.EE.buildProposalDoc = buildDoc; // usado nos testes
+  // usado por matlist.js (lista de material)
+  window.EE.prop = { tradeKey: tradeKey, tradeDef: tradeDef, storeOf: storeOf, isInv: isInv, svcMsg: svcMsg, isDirty: isDirty, markClean: markClean, reloadExt: reloadExt,
+    coFor: coFor, money2: money2, longDate: longDate, stores: function (co) { syncStores(); return co === S.company ? STORES.slice() : NV.tradeDef(tradeKey(co)).prices.stores.slice(); } };
 
   // ═══════════ página do cliente (link do e-mail): ver, baixar PDF e aceitar ═══════════
   (function publicPage() {
@@ -884,7 +902,7 @@
       var inv = p.docType === "invoice", c = coFor(p.companyId, p), bg = c.custom ? "#EEF1F0" : "#EFE8DC";
       document.title = ((inv ? "Invoice " : "Proposal ") + (p.number || "")).trim() + (c.brand ? " · " + c.brand : "");
       document.body.style.background = bg;
-      app.innerHTML = '<div class="pub-bar"><div><b style="font-size:17px">' + esc(c.brand || (inv ? "Invoice" : "Proposal")) + '</b><div class="small" style="color:#7a6a55">' + (inv ? "Invoice " : "Proposal ") + esc(p.number || "") + "</div></div>" +
+      app.innerHTML = '<div class="pub-bar"><div>' + (c.logoSm ? '<img src="' + esc(c.logoSm) + '" alt="' + esc(c.brand || "") + '" style="height:34px;max-width:180px;object-fit:contain;display:block;margin-bottom:2px">' : "") + '<b style="font-size:17px">' + esc(c.brand || (inv ? "Invoice" : "Proposal")) + '</b><div class="small" style="color:#7a6a55">' + (inv ? "Invoice " : "Proposal ") + esc(p.number || "") + "</div></div>" +
         '<button class="btn" id="pubPdf" type="button">Download PDF</button></div>';
       var root = document.getElementById("print-root");
       if (!root) { root = document.createElement("div"); root.id = "print-root"; document.body.insertBefore(root, after); }

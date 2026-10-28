@@ -23,7 +23,8 @@
     proposals: [
       [t("faq.prop.1q", "Como faço uma proposta por voz?"), t("faq.prop.1a", "Toque em “Nova proposta”, aperte o microfone e fale o serviço, o preço e a forma de pagamento. O app monta a proposta no padrão da sua empresa; revise e salve.")],
       [t("faq.prop.2q", "A proposta sai em inglês?"), t("faq.prop.2a", "Sim. Você fala em português e o documento sai em inglês, no padrão americano (escopo, investimento, pagamento, não incluído, garantia, aceite).")],
-      [t("faq.prop.3q", "Como o cliente aceita?"), t("faq.prop.3a", "Em “Enviar para o cliente” ele recebe um link para ver, baixar o PDF e aceitar online. Depois do aceite, gere o invoice com um toque.")]
+      [t("faq.prop.3q", "Como o cliente aceita?"), t("faq.prop.3a", "Em “Enviar para o cliente” ele recebe um link para ver, baixar o PDF e aceitar online. Depois do aceite, gere o invoice com um toque.")],
+      [t("faq.prop.4q", "O que é a lista de material da proposta aceita?"), t("faq.prop.4a", "Quando o cliente aceita, o Bisey monta sozinho a lista de material do seu ramo e mostra, item por item, a loja mais barata com base nos seus preços (Meus preços) e nas promoções que você registrou. Mostra a economia do mix mais barato contra comprar tudo numa loja só. Marque o que foi comprado, exporte em CSV/PDF ou peça cotação ao fornecedor. Confirme o preço no caixa.")]
     ],
     notas: [
       [t("faq.nota.1q", "Como lanço uma nota de compra?"), t("faq.nota.1a", "Toque em “Tirar foto da nota”. O app lê a nota, descobre a obra e a categoria e você só confere e salva.")],
@@ -40,7 +41,7 @@
     gastos: [[t("faq.gas.1q", "Como lanço uma despesa ou um pagamento recebido?"), t("faq.gas.1a", "Use “Lançamento manual”: escolha Despesa ou Receita, a categoria, o valor e a obra. Notas com foto entram aqui sozinhas.")]],
     reports: [[t("faq.rep.1q", "Como pago a equipe?"), t("faq.rep.1a", "A folha de horas mostra dias, horas e o total de cada um no período. “Baixar CSV” gera a planilha para o pagamento ou o contador.")]],
     team: [[t("faq.team.1q", "Qual a diferença entre os papéis?"), t("faq.team.1a", "Administrador vê tudo. Gerente cuida de obras, escala, agenda, avisos, notas, ponto e propostas, sem ver valores financeiros nem Configurações. Funcionário bate o ponto e vê as obras sem valores.")]],
-    prices: [[t("faq.pr.1q", "Para que servem “Meus preços”?"), t("faq.pr.1a", "Anote o preço de cada material por loja. O mais barato fica em verde e é usado na lista de material da proposta aceita.")]],
+    prices: [[t("faq.pr.1q", "Para que servem “Meus preços”?"), t("faq.pr.1a", "Anote o preço de cada material por loja. O mais barato fica em verde e é usado na lista de material da proposta aceita.")], [t("faq.pr.2q", "De onde vêm os preços da lista de material?"), t("faq.pr.2a", "Só dos seus preços por loja, das ofertas que você anotou ou importou e, no futuro, de feeds oficiais das lojas. Preço com mais de 30 dias aparece marcado e promoção vencida não conta. Sem preço, o app mostra “Ver preço na loja”.")]],
     settings: [[t("faq.set.1q", "Onde troco o logo e a cor?"), t("faq.set.1a", "Em Configurações → Empresa. A mudança aparece na hora no app e nas próximas propostas e PDFs.")]],
     punch: [[t("faq.punch.1q", "Bati o ponto na obra errada. E agora?"), t("faq.punch.1a", "Avise o administrador ou o gerente: eles corrigem o registro. Da próxima vez, confira a obra antes de bater a entrada.")]],
     jobs: [[t("faq.jobs.1q", "Como marco uma tarefa como feita?"), t("faq.jobs.1a", "Abra a obra → Tarefas e toque na tarefa. Fica registrado quem fez e quando.")]],

@@ -39,7 +39,7 @@
       '<div class="grid2"><label class="field" style="max-width:200px"><span>' + esc(t("set.co.state", "Estado")) + '</span><select id="set-state" data-set="state">' + STATES.map(function (s) { return "<option" + (d.state === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></label>" +
       // nº de registro HIC (lei de MA, M.G.L. c.142A): vai no bloco de contrato residencial das propostas de reforma em MA
       (d.state === "MA" && NV.tradeDef(d.trade).proposal.hic ? inp("hicReg", t("set.co.hicReg", "Registro HIC (MA) — nº")) : "") + "</div>" + flagsBlock(d) + "</section>";
-    var brand = '<section class="panel set-sec"><div class="panel-head"><div><h3>' + esc(t("set.brand.title", "Logo e cor")) + '</h3><span class="muted small">' + esc(t("set.brand.sub", "A cor vai nos botões, abas e barras; o logo no menu e nas propostas.")) + "</span></div></div>" +
+    var brand = '<section class="panel set-sec"><div class="panel-head"><div><h3>' + esc(t("set.brand.title", "Logo e cor")) + '</h3><span class="muted small">' + esc(t("set.brand.sub", "A cor vai nos botões, abas e barras; o logo no menu, nas propostas, nos invoices, na página de aceite e no e-mail ao cliente.")) + "</span></div></div>" +
       '<div class="set-brand"><div class="ob-logo"><span class="ob-logo-img' + (logo ? "" : " empty") + '">' + (logo ? '<img src="' + esc(logo) + '" alt="' + esc(t("set.brand.logoAlt", "Logo atual")) + '">' : ic("upload", 22)) + "</span>" +
       '<div class="stack" style="gap:6px"><label class="btn ghost sm upload-btn">' + ic("upload", 16) + esc(logo ? t("set.brand.change", "Trocar logo") : t("set.brand.send", "Enviar logo")) + '<input type="file" id="setLogo" accept="image/*"></label>' +
       (d.logo ? '<button type="button" class="btn quiet sm" data-act="setLogoRm">' + esc(t("set.brand.remove", "Remover logo")) + "</button>" : "") + "</div></div>" +
@@ -58,6 +58,7 @@
       return '<label class="set-toggle"><span><b>' + esc(f.label) + "</b><span>" + esc(f.desc) + '</span></span><input type="checkbox" role="switch" id="set-flag-' + f.key + '" data-setflag="' + f.key + '"' + (d[f.key] ? " checked" : "") + '><span class="sw-ui" aria-hidden="true"></span></label>';
     }).join("") + "</div>";
   }
+  E.docPreview = function (d, logo) { return docPreview(d, logo); }; // também no editor da proposta (proposals.js → "Adicionar seu logo")
   function docPreview(d, logo) {
     var td = NV.tradeDef(d.trade).proposal, acc = d.accent || "var(--accent)", title = td.title || "PROPOSAL", tag = td.tagline || ""; // cabeçalho do ramo (trades.js)
     return '<div class="doc-head" style="--doc:' + esc(acc) + '">' + (logo ? '<img src="' + esc(logo) + '" alt="">' : '<div class="doc-name">' + esc(String(d.name || "").toUpperCase()) + "</div>") +
@@ -192,7 +193,7 @@
     if (el.dataset.setflag && S.setCo) { S.setCo[el.dataset.setflag] = el.checked; mark(); return true; }
     if (el.dataset.set && S.setCo) { S.setCo[el.dataset.set] = el.value; S.setCo.dirty = true; if (el.tagName === "SELECT") E.render(); return true; } // texto: sem redesenhar (o clique em Salvar não se perde)
     if (el.id === "setColorPick" && S.setCo) { S.setCo.accent = el.value; S.setCo.dirty = true; E.render(); return true; }
-    if (el.id === "setLogo" && el.files && el.files[0]) { E.resizeImage(el.files[0], 256).then(function (d) { var x = draft(); x.logo = d; x.dirty = true; E.render(); }).catch(function (e) { E.toast(e.message, { kind: "bad" }); }); return true; }
+    if (el.id === "setLogo" && el.files && el.files[0]) { E.prepareLogo(el.files[0]).then(function (d) { var x = draft(); x.logo = d; x.dirty = true; E.render(); }).catch(function (e) { E.toast(e.message, { kind: "bad" }); }); return true; }
     if (el.dataset.notif) {
       var k = el.dataset.notif, on = el.checked;
       if (k === "browser" && on && window.Notification && Notification.permission === "default") {

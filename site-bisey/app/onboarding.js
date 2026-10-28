@@ -75,7 +75,7 @@
         '<div><span class="label">' + esc(t("ob.s3.logo", "Logo")) + '</span><div class="ob-logo">' +
         (d.logo ? '<span class="ob-logo-img"><img src="' + esc(d.logo) + '" alt="' + esc(t("ob.s3.logoAlt", "Logo da empresa")) + '"></span>' : '<span class="ob-logo-img empty">' + ic("upload", 22) + "</span>") +
         '<div class="stack" style="gap:6px"><label class="btn ghost sm upload-btn">' + ic("upload", 16) + esc(d.logo ? t("ob.s3.change", "Trocar logo") : t("ob.s3.send", "Enviar logo")) + '<input type="file" id="obLogo" accept="image/*"></label>' +
-        (d.logo ? '<button type="button" class="btn quiet sm" data-act="obLogoRm">' + esc(t("ob.s3.remove", "Remover")) + "</button>" : '<span class="muted small">' + esc(t("ob.s3.logoHint", "PNG, JPG ou SVG. Ajustamos o tamanho sozinhos.")) + "</span>") + "</div></div></div>" +
+        (d.logo ? '<button type="button" class="btn quiet sm" data-act="obLogoRm">' + esc(t("ob.s3.remove", "Remover")) + "</button>" : '<span class="muted small">' + esc(t("ob.s3.logoHint", "PNG com fundo transparente, JPG ou SVG. Sai nítido na capa da proposta, no invoice e no e-mail ao cliente — dá para trocar depois em Configurações.")) + "</span>") + "</div></div></div>" +
         '<div><span class="label">' + esc(t("ob.s3.color", "Cor de destaque")) + '</span><div class="ob-swatches" role="radiogroup" aria-label="' + esc(t("ob.s3.color", "Cor de destaque")) + '">' +
         PALETTE.map(function (c) { var on = d.accent.toLowerCase() === c[0].toLowerCase(); return '<button type="button" role="radio" aria-checked="' + on + '" class="ob-sw' + (on ? " on" : "") + '" style="--sw:' + c[0] + '" data-act="obColor" data-id="' + c[0] + '" aria-label="' + esc(c[1]) + '" title="' + esc(c[1]) + '"></button>'; }).join("") +
         '<label class="ob-sw custom" title="' + esc(t("ob.s3.custom", "Outra cor")) + '"><input type="color" id="obColorPick" value="' + esc(d.accent) + '" aria-label="' + esc(t("ob.s3.custom", "Outra cor")) + '">' + ic("plus", 16) + "</label></div>" +
@@ -198,7 +198,7 @@
     if (el.dataset.ob) { S.signup.d[el.dataset.ob] = el.value; return true; }
     if (el.dataset.obm) { var k = el.dataset.obm.split("."); S.signup.d.team[Number(k[0])][k[1]] = el.value; return true; }
     if (el.id === "obLogo" && el.files && el.files[0]) {
-      E.resizeImage(el.files[0], 256).then(function (d) { S.signup.d.logo = d; E.render(); }).catch(function (e) { setErr(e.message); });
+      E.prepareLogo(el.files[0]).then(function (d) { S.signup.d.logo = d; E.render(); }).catch(function (e) { setErr(e.message); });
       return true;
     }
     return false;
